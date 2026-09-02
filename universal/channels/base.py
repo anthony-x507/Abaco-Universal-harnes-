@@ -61,3 +61,13 @@ class BaseCommunication(ABC):
     def receive(self) -> InboundMessage | None:
         """Optional pull API. Return None on EOF / no message."""
         return None
+
+    def handle_text(self, text: str) -> str:
+        """Push one inbound string through the bound handler.
+
+        CLI implements this. Other channels override it the same way so
+        ``Agent.accept`` stays channel-shaped after ``factory.start``.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement handle_text yet"
+        )

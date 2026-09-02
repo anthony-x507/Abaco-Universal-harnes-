@@ -7,9 +7,8 @@ from universal.config import Settings
 from universal.core.agent import Agent
 from universal.core.lifecycle import AgentLifecycle
 from universal.core.registry import AgentRegistry
-from universal.plugins.system_prompt import SystemPromptPlugin
-from universal.plugins.tools import ToolBeltPlugin, utc_now_tool
-from universal.plugins.transcript import TranscriptPlugin
+from universal.plugins.catalog import PluginCatalog
+from universal.plugins.catalog import catalog as default_plugins
 from universal.providers.base import Provider
 from universal.providers.openai_compat import OpenAICompatProvider
 from universal.templates.catalog import TemplateCatalog, catalog as default_catalog
@@ -30,6 +29,7 @@ class AgentGenerator:
         *,
         provider: Provider | None = None,
         templates: TemplateCatalog | None = None,
+        plugins: PluginCatalog | None = None,
     ) -> None:
         if registry is None or lifecycle is None:
             raise TypeError("AgentGenerator requires injected registry and lifecycle")
@@ -40,17 +40,19 @@ class AgentGenerator:
         self.settings = settings
         self._provider = provider
         self.templates = templates or default_catalog
+        self.plugins = plugins or default_plugins
 
     def provider(self) -> Provider:
-        if self._provider is not None:
-            return self._provider
-        return OpenAICompatProvider(
-            base_url=self.settings.llm_base_url,
-            api_key=self.settings.llm_api_key,
-            model=self.settings.llm_model,
-            timeout=self.settings.llm_timeout,
-            organization=self.settings.llm_organization,
-        )
+        """One shared provider per generator. Do not construct a client per agent."""
+        if self._provider is None:
+            self._provider = OpenAICompatProvider(
+                base_url=self.settings.llm_base_url,
+                api_key=self.settings.llm_api_key,
+                model=self.settings.llm_model,
+                timeout=self.settings.llm_timeout,
+                organization=self.settings.llm_organization,
+            )
+        return self._provider
 
     def generate(
         self,
@@ -79,13 +81,4 @@ class AgentGenerator:
         self, agent: Agent, plugin_ids: tuple[str, ...], system_prompt: str
     ) -> None:
         for plugin_id in plugin_ids:
-            if plugin_id == "system_prompt":
-                agent.attach_plugin(SystemPromptPlugin(system_prompt))
-            elif plugin_id == "transcript":
-                agent.attach_plugin(TranscriptPlugin())
-            elif plugin_id == "tools":
-                belt = ToolBeltPlugin()
-                belt.add(utc_now_tool())
-                agent.attach_plugin(belt)
-            else:
-                raise ValueError(f"Unknown default plugin {plugin_id!r}")
+            agent.attach_plugin(self.plugins.create(plugin_id, system_prompt=system_prompt))

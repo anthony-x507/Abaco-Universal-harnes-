@@ -41,3 +41,14 @@ def test_agent_bound_to_cli_channel() -> None:
     channel.deliver("ping")
     assert channel.serve_once() == "pong"
     assert "pong" in out.getvalue()
+
+
+def test_channel_capture_swallows_send() -> None:
+    out = StringIO()
+    channel = CLIChannel(stdout=out)
+    channel.bind(lambda inbound: f"cap:{inbound.text}")
+    with channel.capture() as chunks:
+        reply = channel.handle_text("z")
+    assert reply == "cap:z"
+    assert chunks == ["cap:z"]
+    assert out.getvalue() == ""

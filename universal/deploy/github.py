@@ -20,7 +20,7 @@ class GitHubDeployTarget:
         return DeployResult(
             ok=False,
             message=(
-                "GitHub deploy is deferred. Package written at "
-                f"{archive} — push it yourself or wait for the GitHub target."
+                "GitHub deploy is deferred. Use the ZIP packager (target='zip'). "
+                f"No archive was written for {archive}."
             ),
         )

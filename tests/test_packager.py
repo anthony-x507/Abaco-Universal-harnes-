@@ -46,11 +46,13 @@ def test_github_target_is_a_stub(tmp_path: Path) -> None:
     assert "deferred" in result.message.lower()
 
 
-def test_factory_github_target_raises(platform: Universal, tmp_path: Path) -> None:
+def test_factory_github_target_raises_without_writing(platform: Universal, tmp_path: Path) -> None:
     agent = platform.factory.create("general", name="gh")
+    dest = tmp_path / "gh.zip"
     try:
-        platform.factory.deploy(agent.id, tmp_path / "gh.zip", target="github")
+        platform.factory.deploy(agent.id, dest, target="github")
     except DeployError as exc:
         assert "deferred" in str(exc).lower()
     else:
         raise AssertionError("expected DeployError from GitHub stub")
+    assert not dest.exists(), "GitHub stub must not write a ZIP as a side effect"

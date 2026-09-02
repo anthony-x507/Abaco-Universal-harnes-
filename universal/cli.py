@@ -9,9 +9,11 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from universal._version import __version__
+from universal.channels.cli import CLIChannel
 from universal.config import Settings
 from universal.core.platform import Universal
 from universal.exceptions import UniversalError
+from universal.session import FactorySession
 from universal.templates.catalog import list_templates
 
 
@@ -36,16 +38,27 @@ def build_parser() -> argparse.ArgumentParser:
     templates = sub.add_parser("templates", help="List the three built-in templates.")
     templates.add_argument("--json", action="store_true")
 
-    create = sub.add_parser("create", help="Create an agent from a template and print its id.")
+    create = sub.add_parser(
+        "create",
+        help="Create an agent in this process and print its id (gone when the process exits).",
+    )
     create.add_argument("template", help="Template id: general, researcher, or coder.")
     create.add_argument("--name", help="Optional agent name.")
 
-    sub.add_parser("list", help="List agents in this process (empty after the CLI exits).")
+    sub.add_parser(
+        "list",
+        help="List agents in this process only. Use `universal shell` to keep a registry alive.",
+    )
 
     deploy = sub.add_parser("deploy", help="Create an agent and write a ZIP package.")
     deploy.add_argument("template", nargs="?", default="general")
     deploy.add_argument("--name", help="Optional agent name.")
     deploy.add_argument("--out", "-o", type=Path, help="Destination zip path or directory.")
+
+    sub.add_parser(
+        "shell",
+        help="In-process factory session: create/start/stop/list/delete/ask/deploy.",
+    )
 
     return parser
 
@@ -71,13 +84,16 @@ def _cmd_ask(args: argparse.Namespace) -> int:
     agent = platform.factory.create(args.template, args.name)
     platform.factory.start(agent.id)
     try:
-        answer = agent.complete(args.prompt)
+        channel = agent.channel
+        if args.json and isinstance(channel, CLIChannel):
+            with channel.capture():
+                answer = agent.accept(args.prompt)
+            print(json.dumps({"agent_id": agent.id, "template": agent.template_id, "answer": answer}, indent=2))
+        else:
+            # Channel send() is the user-visible answer (no second print).
+            agent.accept(args.prompt)
     finally:
         platform.factory.stop(agent.id)
-    if args.json:
-        print(json.dumps({"agent_id": agent.id, "template": agent.template_id, "answer": answer}, indent=2))
-    else:
-        print(answer)
     return 0
 
 
@@ -90,18 +106,7 @@ def _cmd_chat(args: argparse.Namespace) -> int:
     print(f"Universal chat  template={agent.template_id}  id={agent.id}  (/quit to exit)")
     assert agent.channel is not None
     try:
-        while True:
-            try:
-                line = input("you> ")
-            except (EOFError, KeyboardInterrupt):
-                print()
-                break
-            if line.strip() in {":q", "/quit", "/exit"}:
-                break
-            if not line.strip():
-                continue
-            reply = agent.complete(line)
-            print(f"agent> {reply}")
+        agent.channel.serve_forever(prompt="you> ")
     finally:
         platform.factory.stop(agent.id)
     return 0
@@ -115,11 +120,10 @@ def _cmd_create(args: argparse.Namespace) -> int:
 
 
 def _cmd_list(_args: argparse.Namespace) -> int:
-    # The CLI is process-local; listing after a previous invocation is empty.
     platform = _platform()
     infos = platform.factory.list()
     if not infos:
-        print("No agents in this process. Use `universal ask` or `universal create`.")
+        print("No agents in this process. Use `universal shell` to keep the registry alive.")
         return 0
     for info in infos:
         print(f"{info.id}  {info.name}  {info.template_id}  {info.state.value}")
@@ -134,6 +138,24 @@ def _cmd_deploy(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_shell(_args: argparse.Namespace) -> int:
+    settings = Settings.from_env()
+    platform = Universal(settings)
+    session = FactorySession(platform)
+    print("Universal factory shell. Type help. quit to exit.")
+    while True:
+        try:
+            line = input("universal> ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 0
+        result = session.execute(line)
+        if result == "quit":
+            return 0
+        if result:
+            print(result)
+
+
 _HANDLERS = {
     "ask": _cmd_ask,
     "chat": _cmd_chat,
@@ -141,6 +163,7 @@ _HANDLERS = {
     "create": _cmd_create,
     "list": _cmd_list,
     "deploy": _cmd_deploy,
+    "shell": _cmd_shell,
 }
 
 

@@ -134,3 +134,14 @@ class Agent:
             return self.complete(inbound.text)
 
         self.channel.bind(_handle)
+
+    def accept(self, text: str) -> str:
+        """Inbound path after ``factory.start``: go through the bound channel.
+
+        ``complete`` stays the model path (what the channel handler calls).
+        Using ``complete`` from a started agent would skip the channel
+        contract. If no channel is assembled, this falls back to ``complete``.
+        """
+        if self.channel is None:
+            return self.complete(text)
+        return self.channel.handle_text(text)

@@ -7,12 +7,14 @@ from universal.core.factory import AgentFactory
 from universal.core.lifecycle import AgentLifecycle
 from universal.core.platform import Universal
 from universal.core.registry import AgentRegistry
+from universal.session import FactorySession
 
 __all__ = [
     "Agent",
     "AgentFactory",
     "AgentLifecycle",
     "AgentRegistry",
+    "FactorySession",
     "Settings",
     "Universal",
     "__version__",

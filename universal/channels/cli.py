@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import TextIO
 
 from universal.channels.base import (
@@ -99,27 +100,41 @@ class CLIChannel(BaseCommunication):
         self.send(outbound)
         return result
 
+    def handle_text(self, text: str) -> str:
+        return self.handle(InboundMessage(text=text, sender_id="local"))
+
+    @contextmanager
+    def capture(self) -> Iterator[list[str]]:
+        """Temporarily send outbound text into a list (JSON ask, tests)."""
+        chunks: list[str] = []
+        prev_writer = self._writer
+        prev_stdout = self._stdout
+        self._writer = chunks.append
+        self._stdout = None
+        try:
+            yield chunks
+        finally:
+            self._writer = prev_writer
+            self._stdout = prev_stdout
+
     def serve_once(self) -> str:
         inbound = self.receive()
         if inbound is None:
-            return ""
-        if inbound.text.strip() in {":q", "/quit", "/exit"}:
             self.stop()
+            return ""
+        stripped = inbound.text.strip()
+        if stripped in {":q", "/quit", "/exit"}:
+            self.stop()
+            return ""
+        if not stripped:
             return ""
         return self.handle(inbound)
 
     def serve_forever(self, *, prompt: str = "you> ") -> None:
-        self.start()
+        """Read / handle / print until quit or EOF. Used by ``universal chat``."""
+        if not self._running:
+            self.start()
         while self._running:
-            if prompt and self._stdin is None and self._reader is None:
+            if prompt:
                 print(prompt, end="", flush=True)
-            reply = self.serve_once()
-            if not self._running:
-                break
-            if reply == "" and not self._inbox:
-                # EOF with no reply ends the loop.
-                if self._reader is None and self._stdin is not None:
-                    break
-                if self._reader is None and self._stdin is None and not self._inbox:
-                    # input() EOF already returned None
-                    pass
+            self.serve_once()

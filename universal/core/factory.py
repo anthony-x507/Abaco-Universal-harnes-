@@ -17,6 +17,7 @@ from universal.core.registry import AgentRegistry
 from universal.core.types import AgentInfo
 from universal.deploy.github import GitHubDeployTarget
 from universal.exceptions import DeployError
+from universal.plugins.catalog import PluginCatalog
 from universal.providers.base import Provider
 from universal.templates.catalog import TemplateCatalog
 
@@ -32,6 +33,7 @@ class AgentFactory:
         *,
         provider: Provider | None = None,
         templates: TemplateCatalog | None = None,
+        plugins: PluginCatalog | None = None,
     ) -> None:
         if registry is None or lifecycle is None:
             raise TypeError(
@@ -44,7 +46,12 @@ class AgentFactory:
         self.lifecycle = lifecycle
         self.settings = settings
         self.generator = AgentGenerator(
-            registry, lifecycle, settings, provider=provider, templates=templates
+            registry,
+            lifecycle,
+            settings,
+            provider=provider,
+            templates=templates,
+            plugins=plugins,
         )
         self.manager = AgentManager(registry, lifecycle)
 
@@ -79,9 +86,7 @@ class AgentFactory:
         if target == "zip":
             return self.manager.deploy(agent_id, dest)
         if target == "github":
-            archive = self.manager.deploy(agent_id, dest)
-            result = GitHubDeployTarget().deploy(archive)
-            if not result.ok:
-                raise DeployError(result.message)
-            return archive
+            # Do not write a ZIP as a side effect of a stub that cannot deploy.
+            result = GitHubDeployTarget().deploy(dest or Path("."))
+            raise DeployError(result.message)
         raise DeployError(f"Unknown deploy target {target!r}. v1 supports 'zip' (GitHub is a stub).")

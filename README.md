@@ -26,7 +26,12 @@ python3 -m universal ask --template coder "Write a Python function that reverses
 python3 -m universal chat --template general
 python3 -m universal templates
 python3 -m universal deploy general --out ./agent.zip
+python3 -m universal shell
 ```
+
+`ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept` / `serve_forever`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
+
+`universal shell` is the factory control plane in one process: `create`, `start`, `stop`, `list`, `delete`, `ask`, `deploy`. That is how those operations stay on the single injected registry.
 
 ## Environment variables
 
@@ -53,7 +58,7 @@ Universal          composition root
         └── AgentManager     start / stop / list / delete / deploy
 ```
 
-An **Agent** is `provider + channel + PluginHost`. `Agent.complete(prompt)` runs plugin hooks, calls the provider, and loops on tool calls.
+An **Agent** is `provider + channel + PluginHost`. `Agent.complete(prompt)` is the model path. After `factory.start`, inbound text uses `Agent.accept` so it goes through the bound channel. `PluginCatalog` turns template plugin ids into instances.
 
 **Hot-swap:** `agent.attach_plugin(plugin)` / `agent.detach_plugin(name)` work while the agent is running. Plugins hook `before_complete`, `after_complete`, and optional tools. This is implemented in v1.
 
@@ -62,9 +67,10 @@ universal/
   core/          Agent, registry, lifecycle, factory, generator, manager
   providers/     OpenAI-compatible HTTP client (the only v1 provider)
   channels/      BaseCommunication + CLI channel
-  plugins/       system prompt, transcript, tool belt
+  plugins/       catalog + system prompt, transcript, tool belt
   templates/     general, researcher, coder
   deploy/        ZIP packager + GitHub stub interface
+  session.py     in-process factory shell (one Universal root)
 ```
 
 ### Templates (the first three faces)
@@ -97,17 +103,37 @@ Coverage that the brief asked for:
 ## Deferred
 
 - Hugging Face / MLX as real provider plugins (not fake “local” models)
-- Telegram / Slack channels (`BaseCommunication` is the slot)
-- GitHub deploy (interface only)
-- Session persistence across processes (registry is in-memory)
+- Telegram / Slack / HTTP-callback channels (`BaseCommunication` is the slot)
+- GitHub deploy (interface only; calling it does not write a ZIP)
+- Cross-process registry (see integration risks)
 - Streaming tokens
 - A web or ChatGPT-shaped UI — not in scope
 
 ## Conflicts with earlier notes
 
-Early design notes used the name “Aegis” and sketched a tree under `factory/`. That name is ChatGPT design history, not the product. This repo uses **Universal platform** / package `universal`, and the real core lives under `universal/`.
+Notes 00–01 are not in this tree. What we have from the brief: an “Aegis” sketch under `factory/`, many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those conflict with the locks. This repo uses **Universal platform** / package `universal`, core under `universal/`, one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
 
-Those notes also suggested many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those locks win: one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
+## Integration risks (stopped here)
+
+The owner lock is: if a note is consistent but the integration would break another subsystem or the wiring, stop and report — do not push through. A smaller aligned cut wins.
+
+**Judged against the locked contracts (one registry, one lifecycle, one provider, one channel, plugin assembly).** Notes 00–01 were not available in-repo, so this list is wiring risk, not only name conflicts.
+
+1. **No second registry.** A file, sqlite, or sidecar store so `universal create` then `universal list` works across processes would duplicate `AgentRegistry` / `AgentLifecycle`. Generator and Manager would no longer share one in-memory pair. **Stopped.** Use `universal shell` or the library in one process.
+
+2. **No `start` / `stop` / `delete` as one-shot CLI commands.** They would look like they persist and would invite a store. Factory methods exist; the shell and the library call them.
+
+3. **No second live channel in this cut.** An HTTP callback next to the CLI channel would mean `factory.start` has to pick a transport or run two. That splits the “one working channel” contract. Telegram/Slack stay behind `BaseCommunication`.
+
+4. **No extra provider objects per agent.** The generator caches one client and injects it. A per-agent `httpx.Client` would leak and hide the “one provider” wiring.
+
+5. **GitHub deploy is not a silent ZIP.** `target="github"` raises `DeployError` and writes nothing. The working target is `zip`.
+
+6. **System prompt has two honest layers, not a third.** `Agent.complete` prepends `agent.system_prompt` so an agent without plugins still works. `SystemPromptPlugin` replaces leading system messages. The generator sets both from the same template string. A sync service between them would be a third owner — **not added.** Mutate both if you change the prompt, or detach the plugin and set `agent.system_prompt`.
+
+7. **Plugin ids go through `PluginCatalog`.** Templates name plugins; the generator does not `if plugin_id == ...`. Filesystem plugin discovery is deferred (it would load code the factory did not inject).
+
+If a later note asks for any of the above “because the sketch did”, do not implement it until the registry/lifecycle/channel contracts are redesigned on purpose.
 
 ## Library usage
 
