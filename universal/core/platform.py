@@ -1,0 +1,41 @@
+"""Composition root: constructs registry and lifecycle once, then injects them."""
+
+from __future__ import annotations
+
+from universal.config import Settings
+from universal.core.factory import AgentFactory
+from universal.core.lifecycle import AgentLifecycle
+from universal.core.registry import AgentRegistry
+from universal.providers.base import Provider
+from universal.templates.catalog import TemplateCatalog
+
+
+class Universal:
+    """Process-wide Universal platform instance.
+
+    This is the only type that constructs ``AgentRegistry`` and
+    ``AgentLifecycle``. Both are injected into the factory, which forwards
+    the same objects to ``AgentGenerator`` and ``AgentManager``.
+    """
+
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        *,
+        provider: Provider | None = None,
+        templates: TemplateCatalog | None = None,
+    ) -> None:
+        self.settings = settings or Settings.from_env()
+        self.registry = AgentRegistry()
+        self.lifecycle = AgentLifecycle(self.registry)
+        self.factory = AgentFactory(
+            self.registry,
+            self.lifecycle,
+            self.settings,
+            provider=provider,
+            templates=templates,
+        )
+
+    @classmethod
+    def from_env(cls, *, provider: Provider | None = None) -> Universal:
+        return cls(Settings.from_env(), provider=provider)
