@@ -23,8 +23,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `07.md` | Domain 4 / Part 10: 5G/6G Wireless plugin, sandbox, template | saved, not integrated |
 | `08.md` | Domain 5 / Part 11: Vehicle ECU & RF Security | saved, not integrated |
 | `09.md` | Domain 6 / Part 12: Robotics & Drone Technology | saved, not integrated |
+| `10.md` | Domain 7 / Part 13: Jammers & Electronic Warfare | saved, **never integrate jammer TX** |
 
-Expected: 51. Received: 9.
+Expected: 51. Received: 10.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -37,3 +38,4 @@ Expected: 51. Received: 9.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
 - Note 08 (vehicle / RF) describes relay/replay attacks, CAN inject, ECU flash, key-fob decode. Archive only. Do not implement attack or unauthorized-access tooling. Legal OBD diagnostics on a vehicle the owner controls can be considered later as a separate, scoped plugin.
 - Note 09 (drones) includes live MAVLink control, RF detection, and later jammers/EW. Archive only. Do not implement jamming, spoofing, or unauthorized drone control. Simulation / mission-file planning can be reviewed later as a scoped plugin.
+- Note 10 (EW/jammers) includes working `hackrf_transfer` jamming and counter-drone TX. **Never integrate into `universal/`.** Defensive recommendations-only text may be discussed later; transmit/jam/spoof code will not be built.
