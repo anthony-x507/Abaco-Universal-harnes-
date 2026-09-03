@@ -29,5 +29,9 @@ class PluginError(UniversalError):
     """A plugin failed to install, detach, or run."""
 
 
+class ChannelNotFound(UniversalError):
+    """The requested channel id is not in the catalog."""
+
+
 class DeployError(UniversalError):
     """Packaging or deploy failed."""

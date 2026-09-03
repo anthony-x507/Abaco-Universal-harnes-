@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from universal.channels.cli import CLIChannel
+from universal.channels.catalog import ChannelCatalog
+from universal.channels.catalog import catalog as default_channels
 from universal.config import Settings
 from universal.core.agent import Agent
 from universal.core.lifecycle import AgentLifecycle
@@ -30,6 +31,7 @@ class AgentGenerator:
         provider: Provider | None = None,
         templates: TemplateCatalog | None = None,
         plugins: PluginCatalog | None = None,
+        channels: ChannelCatalog | None = None,
     ) -> None:
         if registry is None or lifecycle is None:
             raise TypeError("AgentGenerator requires injected registry and lifecycle")
@@ -39,8 +41,10 @@ class AgentGenerator:
         self.lifecycle = lifecycle
         self.settings = settings
         self._provider = provider
+        self._provider_injected = provider is not None
         self.templates = templates or default_catalog
         self.plugins = plugins or default_plugins
+        self.channels = channels or default_channels
 
     def provider(self) -> Provider:
         """One shared provider per generator. Do not construct a client per agent."""
@@ -54,22 +58,29 @@ class AgentGenerator:
             )
         return self._provider
 
+    def replace_settings(self, settings: Settings) -> None:
+        """Point this generator at new settings. Rebuilds the cached live client."""
+        self.settings = settings
+        if not self._provider_injected:
+            self._provider = None
+
     def generate(
         self,
         template_id: str,
         name: str | None = None,
         *,
         provider: Provider | None = None,
+        channel: str = "cli",
     ) -> Agent:
         template = self.templates.get(template_id)
         agent_name = name or f"{template.id}-{template.name.lower()}"
-        channel = CLIChannel()
+        transport = self.channels.create(channel)
         agent = Agent(
             name=agent_name,
             provider=provider or self.provider(),
             template_id=template.id,
             system_prompt=template.system_prompt,
-            channel=channel,
+            channel=transport,
         )
         self._install_default_plugins(agent, template.default_plugins, template.system_prompt)
         agent.bind_channel()

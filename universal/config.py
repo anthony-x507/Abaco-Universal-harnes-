@@ -47,6 +47,24 @@ class Settings:
             llm_organization=os.environ.get(ENV_ORGANIZATION, "").strip(),
         )
 
+    def with_updates(
+        self,
+        *,
+        llm_base_url: str | None = None,
+        llm_api_key: str | None = None,
+        llm_model: str | None = None,
+        llm_timeout: float | None = None,
+        llm_organization: str | None = None,
+    ) -> Settings:
+        """Return a copy with selected fields replaced. Empty API key keeps the current key."""
+        return Settings(
+            llm_base_url=llm_base_url.strip() if llm_base_url else self.llm_base_url,
+            llm_api_key=llm_api_key.strip() if llm_api_key is not None and llm_api_key.strip() else self.llm_api_key,
+            llm_model=llm_model.strip() if llm_model else self.llm_model,
+            llm_timeout=llm_timeout if llm_timeout is not None else self.llm_timeout,
+            llm_organization=llm_organization.strip() if llm_organization is not None else self.llm_organization,
+        )
+
     def require_live(self) -> None:
         """Raise if this settings object cannot make a live provider call."""
         missing: list[str] = []

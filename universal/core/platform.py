@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from universal.channels.catalog import ChannelCatalog
 from universal.config import Settings
 from universal.core.factory import AgentFactory
 from universal.core.lifecycle import AgentLifecycle
@@ -26,6 +27,7 @@ class Universal:
         provider: Provider | None = None,
         templates: TemplateCatalog | None = None,
         plugins: PluginCatalog | None = None,
+        channels: ChannelCatalog | None = None,
     ) -> None:
         self.settings = settings or Settings.from_env()
         self.registry = AgentRegistry()
@@ -37,7 +39,14 @@ class Universal:
             provider=provider,
             templates=templates,
             plugins=plugins,
+            channels=channels,
         )
+
+    def replace_settings(self, settings: Settings) -> None:
+        """Update in-memory settings on this root. Does not write a file."""
+        self.settings = settings
+        self.factory.settings = settings
+        self.factory.generator.replace_settings(settings)
 
     def provider(self) -> Provider:
         """The single provider instance shared by agents this root creates."""

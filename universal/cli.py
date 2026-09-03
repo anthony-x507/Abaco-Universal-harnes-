@@ -44,6 +44,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     create.add_argument("template", help="Template id: general, researcher, or coder.")
     create.add_argument("--name", help="Optional agent name.")
+    create.add_argument("--channel", default="cli", help="Channel id (v1: cli).")
+
+    serve = sub.add_parser(
+        "serve",
+        help="HTTP factory control plane on this process (one Universal root).",
+    )
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=43124)
+    serve.add_argument(
+        "--demo",
+        action="store_true",
+        help="Inject an echo provider so the SPA works without UNIVERSAL_LLM_API_KEY.",
+    )
 
     sub.add_parser(
         "list",
@@ -114,9 +127,15 @@ def _cmd_chat(args: argparse.Namespace) -> int:
 
 def _cmd_create(args: argparse.Namespace) -> int:
     platform = _platform()
-    agent = platform.factory.create(args.template, args.name)
+    agent = platform.factory.create(args.template, args.name, channel=args.channel)
     print(agent.id)
     return 0
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    from universal.server import run_server
+
+    return run_server(host=args.host, port=args.port, demo=args.demo)
 
 
 def _cmd_list(_args: argparse.Namespace) -> int:
@@ -164,6 +183,7 @@ _HANDLERS = {
     "list": _cmd_list,
     "deploy": _cmd_deploy,
     "shell": _cmd_shell,
+    "serve": _cmd_serve,
 }
 
 

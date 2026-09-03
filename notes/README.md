@@ -62,8 +62,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `46.md` | UI Step 9: Global polish (sidebar, Ctrl+K, Aegis chrome) | saved, **do not implement** |
 | `47.md` | UI Step 10: PWA + Tauri/Electron packaging of Aegis UI | saved, **do not implement** |
 | `48.md` | Aegis assembly letter (copy folders + `api/` + `ui/aegis-ui`) | saved, **do not follow as build order** |
+| `49.md` | Designer alignment plan (Universal face, factory REST, no Aegis) | accepted — engineering executing Hito 0–1 |
 
-Expected: 51. Received: 48. Owner said this is the last note (3 originally announced notes never arrived).
+Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -102,6 +103,7 @@ Expected: 51. Received: 48. Owner said this is the last note (3 originally annou
 - Note 46 (resizable sidebar, Ctrl+K palette, “Aegis Agent Factory” top bar wiring Chat/Browser/Scheduler routes) is **not implemented**. Same lock: do not assemble the clone-stack face. Layout ideas (palette, resize) may inform a later Universal-branded UI.
 - Note 47 (PWA manifest `Aegis Agent Factory`, `aegis-ui-v1` SW, Tauri `com.aegis.agentfactory` / Electron wrap) is **not implemented**. Do not package the clone face. A later Universal desktop shell can reuse Tauri/PWA *ideas* under Universal naming.
 - Note 48 (Aegis assembly order: `requirements.txt` → `core/` → `api/` → `ui/aegis-ui/` → `factory/`) is **historical only**. Do not write live `docs/assembly_guide_es.md`. Do not copy that tree. Universal already has a composition root; the integration plan is `docs/integration_plan.md`.
+- Note 49 is the designer alignment plan. Accepted: factory REST (not OpenAI `/v1/chat/completions`), in-memory registry, Chat/Agents/Settings SPA, webhook later, browser/scheduler/EW/40-providers out. `universal.server` did **not** exist when they wrote Hito 0 — engineering builds it on the existing `Universal` root. No pause state (start/stop only). No Aegis chrome.
 - Note 37 (Aegis README advertising EW, 25+ providers, browser replay, `ui/factory_panel`) is **historical only**. Do not overwrite the Universal README or add `docs/api_reference.md` for the clone stack.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
 - Notes 15–17 and 19 (FastAPI for clones, LibreChat compose/Mongo, fake-stream SSE + `/code/execute`, hardcoded 25+ option lists including `ew_specialist`) are **historical only**. Do not add `api/` as a second factory (`AgentFactory()` in `main.py` would fork registry/lifecycle). Do not ship LibreChat, Mongo for that UI, or a dummy `sk-dummy` OpenAI shim. A later HTTP layer for the from-zero face may reuse endpoint *ideas* only if it injects the existing `Universal` root. Do not expose placeholder provider/channel lists or EW templates.

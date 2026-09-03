@@ -17,6 +17,7 @@ from universal.core.registry import AgentRegistry
 from universal.core.types import AgentInfo
 from universal.deploy.github import GitHubDeployTarget
 from universal.exceptions import DeployError
+from universal.channels.catalog import ChannelCatalog
 from universal.plugins.catalog import PluginCatalog
 from universal.providers.base import Provider
 from universal.templates.catalog import TemplateCatalog
@@ -34,6 +35,7 @@ class AgentFactory:
         provider: Provider | None = None,
         templates: TemplateCatalog | None = None,
         plugins: PluginCatalog | None = None,
+        channels: ChannelCatalog | None = None,
     ) -> None:
         if registry is None or lifecycle is None:
             raise TypeError(
@@ -52,6 +54,7 @@ class AgentFactory:
             provider=provider,
             templates=templates,
             plugins=plugins,
+            channels=channels,
         )
         self.manager = AgentManager(registry, lifecycle)
 
@@ -61,8 +64,9 @@ class AgentFactory:
         name: str | None = None,
         *,
         provider: Provider | None = None,
+        channel: str = "cli",
     ) -> Agent:
-        return self.generator.generate(template_id, name, provider=provider)
+        return self.generator.generate(template_id, name, provider=provider, channel=channel)
 
     def start(self, agent_id: str) -> Agent:
         return self.manager.start(agent_id)
