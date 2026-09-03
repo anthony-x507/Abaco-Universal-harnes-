@@ -35,6 +35,10 @@ Webhook is a **channel**, same class of citizen as `cli`. It is not a plugin. It
 - No second registry.
 - Localhost, no login, until a later bind+auth decision.
 
+## Signed cut (note 53)
+
+The inbound factory route, when sí arrives, is `POST /v1/agents/{id}/webhook` (channel-owned, then `handle_text` → `accept`). Outbound URL is per-agent, in memory. UI enables webhook only after `GET /v1/channels` lists it.
+
 ## Activation phrase
 
 Implement only after: **sí, Hito 3** (designer or owner). Until then, this document is the prep.

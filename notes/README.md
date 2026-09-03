@@ -63,7 +63,10 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `47.md` | UI Step 10: PWA + Tauri/Electron packaging of Aegis UI | saved, **do not implement** |
 | `48.md` | Aegis assembly letter (copy folders + `api/` + `ui/aegis-ui`) | saved, **do not follow as build order** |
 | `49.md` | Designer alignment plan (Universal face, factory REST, no Aegis) | accepted — Hito 0–1 shipped |
-| `50.md` | Designer answers + sí on Hito 2 streaming | accepted — engineering executing Hito 2 |
+| `50.md` | Designer answers + sí on Hito 2 streaming | accepted — Hito 2 shipped |
+| `51.md` | Designer visto final (approve + polish list) | accepted — polish shipped |
+| `52.md` | Confirm polish; wait for sí on Hito 3 | waiting — prep only, see `docs/hito3_webhook_prep.md` |
+| `53.md` | Signs the lock-safe Hito 3 cut; still wait for “sí, Hito 3” | waiting — do not register webhook |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 
