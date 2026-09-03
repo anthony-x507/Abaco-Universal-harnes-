@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from universal.core.types import CompletionResponse, Message, ToolSpec
 from universal.providers.base import Provider
 
@@ -26,3 +28,15 @@ class EchoProvider(Provider):
             model=self.model,
             finish_reason="stop",
         )
+
+    def stream(
+        self,
+        messages: list[Message],
+        *,
+        tools: list[ToolSpec] | None = None,
+        model: str | None = None,
+    ) -> Iterator[str]:
+        text = self.complete(messages, tools=tools, model=model).text
+        step = 4
+        for index in range(0, len(text), step):
+            yield text[index : index + step]

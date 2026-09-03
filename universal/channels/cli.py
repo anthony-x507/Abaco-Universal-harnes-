@@ -35,6 +35,7 @@ class CLIChannel(BaseCommunication):
         self._stdin = stdin
         self._stdout = stdout
         self._handler: MessageHandler | None = None
+        self._stream_handler: Callable[[InboundMessage], Iterator[str]] | None = None
         self._running = False
         self._inbox: list[str] = []
 
@@ -54,6 +55,9 @@ class CLIChannel(BaseCommunication):
 
     def bind(self, handler: MessageHandler) -> None:
         self._handler = handler
+
+    def bind_stream(self, handler: Callable[[InboundMessage], Iterator[str]]) -> None:
+        self._stream_handler = handler
 
     def send(self, message: OutboundMessage) -> None:
         text = message.text if message.text.endswith("\n") else message.text + "\n"
@@ -102,6 +106,20 @@ class CLIChannel(BaseCommunication):
 
     def handle_text(self, text: str) -> str:
         return self.handle(InboundMessage(text=text, sender_id="local"))
+
+    def handle_text_stream(self, text: str) -> Iterator[str]:
+        """Push one inbound string through the stream handler, then send the full reply."""
+        inbound = InboundMessage(text=text, sender_id="local")
+        if self._stream_handler is None:
+            yield self.handle(inbound)
+            return
+        parts: list[str] = []
+        for piece in self._stream_handler(inbound):
+            parts.append(piece)
+            yield piece
+        full = "".join(parts)
+        if full:
+            self.send(OutboundMessage(text=full))
 
     @contextmanager
     def capture(self) -> Iterator[list[str]]:

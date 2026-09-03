@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 from universal.channels.base import InboundMessage
@@ -111,6 +112,70 @@ class Agent:
             self._history.append(Message(role="assistant", content=response.text))
         return response.text
 
+    def complete_stream(self, prompt: str, *, remember: bool = True) -> Iterator[str]:
+        """Same plugin/tool path as ``complete``, yielding final-text deltas.
+
+        Tool rounds use ``complete``. The last assistant text is streamed.
+        """
+        user = Message(role="user", content=prompt)
+        turn: list[Message] = []
+        if self.system_prompt:
+            turn.append(Message(role="system", content=self.system_prompt))
+        turn.extend(self._history)
+        turn.append(user)
+        turn = self.plugins.before_complete(self, turn)
+
+        tools = self.plugins.collect_tools()
+        working = list(turn)
+        assembled = ""
+
+        if tools:
+            response: CompletionResponse | None = None
+            for _ in range(self.max_tool_iters):
+                response = self.provider.complete(working, tools=tools)
+                if response.wants_tools:
+                    working.append(
+                        Message(
+                            role="assistant",
+                            content=response.text or "",
+                            tool_calls=response.tool_calls,
+                        )
+                    )
+                    for call in response.tool_calls:
+                        result = self.plugins.invoke_tool(call)
+                        working.append(
+                            Message(
+                                role="tool",
+                                content=result,
+                                name=call.name,
+                                tool_call_id=call.id,
+                            )
+                        )
+                    continue
+                break
+            else:
+                raise ProviderError(
+                    f"Agent {self.id!r} exceeded max_tool_iters={self.max_tool_iters}"
+                )
+            assert response is not None
+            response = self.plugins.after_complete(self, working, response)
+            assembled = response.text
+            if assembled:
+                yield assembled
+        else:
+            pieces: list[str] = []
+            for piece in self.provider.stream(working, tools=None):
+                pieces.append(piece)
+                yield piece
+            assembled = "".join(pieces)
+            response = CompletionResponse(text=assembled, model=getattr(self.provider, "model", "") or "")
+            response = self.plugins.after_complete(self, working, response)
+            assembled = response.text
+
+        if remember:
+            self._history.append(user)
+            self._history.append(Message(role="assistant", content=assembled))
+
     def info(self, state: AgentState = AgentState.CREATED) -> AgentInfo:
         channel_name = self.channel.name if self.channel is not None else ""
         model = getattr(self.provider, "model", "") or ""
@@ -134,6 +199,9 @@ class Agent:
             return self.complete(inbound.text)
 
         self.channel.bind(_handle)
+        bind_stream = getattr(self.channel, "bind_stream", None)
+        if callable(bind_stream):
+            bind_stream(lambda inbound: self.complete_stream(inbound.text))
 
     def accept(self, text: str) -> str:
         """Inbound path after ``factory.start``: go through the bound channel.
@@ -145,3 +213,14 @@ class Agent:
         if self.channel is None:
             return self.complete(text)
         return self.channel.handle_text(text)
+
+    def accept_stream(self, text: str) -> Iterator[str]:
+        """Inbound streaming path after ``factory.start``. Still channel-shaped."""
+        if self.channel is None:
+            yield from self.complete_stream(text)
+            return
+        handle_stream = getattr(self.channel, "handle_text_stream", None)
+        if callable(handle_stream):
+            yield from handle_stream(text)
+            return
+        yield self.channel.handle_text(text)

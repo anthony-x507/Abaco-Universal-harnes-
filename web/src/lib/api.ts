@@ -124,3 +124,54 @@ export async function askAgent(id: string, prompt: string): Promise<Agent> {
     body: JSON.stringify({ prompt }),
   })
 }
+
+export async function askAgentStream(
+  id: string,
+  prompt: string,
+  onDelta: (text: string) => void,
+): Promise<Agent> {
+  const response = await fetch(`/v1/agents/${id}/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, stream: true }),
+  })
+  if (!response.ok) {
+    throw new ApiError(response.status, await parseError(response))
+  }
+  if (!response.body) {
+    throw new ApiError(502, 'Stream had no body')
+  }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let donePayload: Agent | null = null
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const parts = buffer.split('\n\n')
+    buffer = parts.pop() ?? ''
+    for (const part of parts) {
+      const line = part
+        .split('\n')
+        .filter((row) => row.startsWith('data:'))
+        .map((row) => row.slice(5).trim())
+        .join('')
+      if (!line) continue
+      const event = JSON.parse(line) as Agent & { text?: string; done?: boolean; error?: string }
+      if (event.error) {
+        throw new ApiError(502, event.error)
+      }
+      if (event.text) {
+        onDelta(event.text)
+      }
+      if (event.done) {
+        donePayload = event
+      }
+    }
+  }
+  if (!donePayload) {
+    throw new ApiError(502, 'Stream ended without a final agent payload')
+  }
+  return donePayload
+}

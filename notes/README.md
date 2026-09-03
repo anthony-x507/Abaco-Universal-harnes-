@@ -62,7 +62,8 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `46.md` | UI Step 9: Global polish (sidebar, Ctrl+K, Aegis chrome) | saved, **do not implement** |
 | `47.md` | UI Step 10: PWA + Tauri/Electron packaging of Aegis UI | saved, **do not implement** |
 | `48.md` | Aegis assembly letter (copy folders + `api/` + `ui/aegis-ui`) | saved, **do not follow as build order** |
-| `49.md` | Designer alignment plan (Universal face, factory REST, no Aegis) | accepted — engineering executing Hito 0–1 |
+| `49.md` | Designer alignment plan (Universal face, factory REST, no Aegis) | accepted — Hito 0–1 shipped |
+| `50.md` | Designer answers + sí on Hito 2 streaming | accepted — engineering executing Hito 2 |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 

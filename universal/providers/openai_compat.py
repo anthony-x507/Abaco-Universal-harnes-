@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
 from typing import Any
 
 import httpx
@@ -94,6 +96,63 @@ class OpenAICompatProvider(Provider):
             raise ProviderError("Provider returned non-JSON") from exc
 
         return self._parse(data)
+
+    def stream(
+        self,
+        messages: list[Message],
+        *,
+        tools: list[ToolSpec] | None = None,
+        model: str | None = None,
+    ) -> Iterator[str]:
+        if tools:
+            yield from super().stream(messages, tools=tools, model=model)
+            return
+        if not self._api_key:
+            raise ProviderError(
+                "UNIVERSAL_LLM_API_KEY is empty. Set it before calling a live model."
+            )
+        payload: dict[str, Any] = {
+            "model": model or self._model,
+            "messages": [message.to_openai() for message in messages],
+            "stream": True,
+        }
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        if self._organization:
+            headers["OpenAI-Organization"] = self._organization
+        try:
+            with self._client.stream(
+                "POST", self.completions_url, json=payload, headers=headers
+            ) as response:
+                if response.status_code >= 400:
+                    snippet = response.read().decode("utf-8", errors="replace")[:400]
+                    raise ProviderError(f"Provider returned HTTP {response.status_code}: {snippet}")
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    if line.startswith("data:"):
+                        line = line[5:].strip()
+                    if line == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(line)
+                    except ValueError:
+                        continue
+                    choices = data.get("choices") or []
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta") or {}
+                    piece = delta.get("content")
+                    if piece:
+                        yield str(piece)
+        except ProviderError:
+            raise
+        except httpx.TimeoutException as exc:
+            raise ProviderError(f"Provider timed out after {self._timeout}s") from exc
+        except httpx.HTTPError as exc:
+            raise ProviderError(f"Provider HTTP error: {exc}") from exc
 
     def close(self) -> None:
         if self._owns_client:

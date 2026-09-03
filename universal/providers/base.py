@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 
 from universal.core.types import CompletionResponse, Message, ToolSpec
+from universal.exceptions import ProviderError
 
 
 class Provider(ABC):
@@ -24,3 +26,21 @@ class Provider(ABC):
         model: str | None = None,
     ) -> CompletionResponse:
         """Return the next assistant message (and optional tool calls)."""
+
+    def stream(
+        self,
+        messages: list[Message],
+        *,
+        tools: list[ToolSpec] | None = None,
+        model: str | None = None,
+    ) -> Iterator[str]:
+        """Yield assistant text deltas. Default: one chunk from ``complete``.
+
+        Tool-call rounds must use ``complete``. This helper raises if the
+        fallback completion asks for tools.
+        """
+        response = self.complete(messages, tools=tools, model=model)
+        if response.wants_tools:
+            raise ProviderError("stream() cannot emit tool calls; use complete()")
+        if response.text:
+            yield response.text

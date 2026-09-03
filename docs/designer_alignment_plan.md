@@ -44,7 +44,7 @@ Process lifetime. No SQLite/JSON registry in v1.
 
 0. HTTP factory server on the existing root (`python3 -m universal serve`).
 1. SPA: Chat, Agents, Settings. Full replies, no streaming.
-2. Streaming (later).
+2. Streaming — authorized (`notes/50.md`). Tokens via factory `/ask?stream`, not `/v1/chat/completions`.
 3. Webhook channel (later).
 4. Plugin list + ZIP from the UI (later).
 5. Usage guide + demo (later).

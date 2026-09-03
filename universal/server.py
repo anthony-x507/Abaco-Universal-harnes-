@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from universal.channels.catalog import list_channels
@@ -39,6 +41,7 @@ class CreateAgentBody(BaseModel):
 
 class AskBody(BaseModel):
     prompt: str
+    stream: bool = False
 
 
 class SettingsBody(BaseModel):
@@ -188,19 +191,43 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         state.platform.factory.delete(agent_id)
         return {"deleted": payload}
 
-    @app.post("/v1/agents/{agent_id}/ask")
-    def ask_agent(agent_id: str, body: AskBody) -> dict[str, Any]:
-        prompt = body.prompt.strip()
+    def _prepare_ask(agent_id: str, prompt: str) -> Any:
         if not prompt:
             raise HTTPException(status_code=400, detail="prompt is required")
         if not state.demo:
-            try:
-                state.platform.settings.require_live()
-            except ConfigError:
-                raise
+            state.platform.settings.require_live()
         agent = state.platform.registry.get(agent_id)
         state.platform.factory.start(agent.id)
+        return agent
+
+    @app.post("/v1/agents/{agent_id}/ask")
+    def ask_agent(agent_id: str, body: AskBody) -> Any:
+        prompt = body.prompt.strip()
+        agent = _prepare_ask(agent_id, prompt)
         channel = agent.channel
+        if body.stream:
+            def events() -> Iterator[str]:
+                pieces: list[str] = []
+                try:
+                    stream = agent.accept_stream(prompt)
+                    if isinstance(channel, CLIChannel):
+                        with channel.capture():
+                            for piece in stream:
+                                pieces.append(piece)
+                                yield f"data: {json.dumps({'text': piece})}\n\n"
+                    else:
+                        for piece in stream:
+                            pieces.append(piece)
+                            yield f"data: {json.dumps({'text': piece})}\n\n"
+                    payload = _agent_payload(state.platform, agent.id)
+                    payload["answer"] = "".join(pieces)
+                    payload["done"] = True
+                    yield f"data: {json.dumps(payload)}\n\n"
+                except UniversalError as exc:
+                    yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+            return StreamingResponse(events(), media_type="text/event-stream")
+
         if isinstance(channel, CLIChannel):
             with channel.capture():
                 answer = agent.accept(prompt)
@@ -220,6 +247,9 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
 def run_server(*, host: str = "127.0.0.1", port: int = 43124, demo: bool = False) -> int:
     import uvicorn
+
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        raise ConfigError("v1 serve binds localhost only. Do not pass a public host.")
 
     settings = Settings.from_env()
     if demo:

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Textarea } from '../components/ui/textarea'
-import { ApiError, askAgent, getAgent, listAgents, type Agent, type HistoryTurn } from '../lib/api'
+import { ApiError, askAgentStream, getAgent, listAgents, type Agent, type HistoryTurn } from '../lib/api'
 import { cn } from '../lib/utils'
 
 export function ChatPage() {
@@ -71,14 +71,35 @@ export function ChatPage() {
     setSending(true)
     setError('')
     setPrompt('')
-    setHistory((current) => [...current, { role: 'user', content: text }])
+    setHistory((current) => [
+      ...current,
+      { role: 'user', content: text },
+      { role: 'assistant', content: '' },
+    ])
     try {
-      const result = await askAgent(selectedId, text)
+      const result = await askAgentStream(selectedId, text, (delta) => {
+        setHistory((current) => {
+          const next = [...current]
+          const last = next[next.length - 1]
+          if (last?.role === 'assistant') {
+            next[next.length - 1] = { role: 'assistant', content: last.content + delta }
+          }
+          return next
+        })
+      })
       setHistory(result.history ?? [])
       setAgents((current) => current.map((agent) => (agent.id === result.id ? result : agent)))
     } catch (err) {
       const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Ask failed.'
       setError(message)
+      setHistory((current) => {
+        const next = [...current]
+        const last = next[next.length - 1]
+        if (last?.role === 'assistant' && last.content === '') {
+          next.pop()
+        }
+        return next
+      })
     } finally {
       setSending(false)
     }

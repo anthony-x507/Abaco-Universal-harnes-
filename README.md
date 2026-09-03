@@ -34,7 +34,7 @@ python3 -m universal serve --demo
 
 `universal shell` is the factory control plane in one process: `create`, `start`, `stop`, `list`, `delete`, `ask`, `deploy`. That is how those operations stay on the single injected registry.
 
-`universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`). It is not an OpenAI `/v1/chat/completions` clone. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk.
+`universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`). It is not an OpenAI `/v1/chat/completions` clone. `POST /v1/agents/{id}/ask` with `stream: true` yields SSE tokens through `Agent.accept_stream`. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk. v1 binds localhost only.
 
 The first browser face lives in `web/` (Chat, Agents, Settings). It talks only to this server.
 
@@ -109,7 +109,6 @@ Coverage that the brief asked for:
 
 ## Deferred
 
-- Streaming tokens (Hito 2)
 - Webhook channel (Hito 3) — `create` already chooses a channel; v1 registers `cli` only
 - Hugging Face / MLX as real provider plugins (not fake “local” models)
 - Telegram / Slack (after webhook)
