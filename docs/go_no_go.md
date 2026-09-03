@@ -9,7 +9,7 @@ A checkpoint process. Three agents reviewed the tree against the designer plan a
 | Hito 0 HTTP factory server | **Sí — shipped** | `python3 -m universal serve`. One `Universal` root. Factory REST only. |
 | Hito 1 SPA Chat / Agents / Settings | **Sí — shipped** | `web/` talks to `/v1/agents`. Universal chrome. Demo echo works. |
 | Hito 2 Streaming | **Sí — authorized in notes/50.md** | Tokens via `accept_stream` + SSE on `/v1/agents/{id}/ask`. |
-| Hito 3 Webhook | **Parar until Hito 2 is decided** | Must be a catalog channel at `create`. Not an extra HTTP route. |
+| Hito 3 Webhook | **Parar — waiting for sí** | Polish from note 51 is shipped. Note 52 confirms it. Prep only: `docs/hito3_webhook_prep.md`. Do not register `webhook` yet. |
 | Hito 4 Plugin attach + ZIP in UI | **Parar** | Deploy API exists; UI must not grow until 2/3 are chosen. |
 | Hito 5 Usage guide / owner demo | **Sí — light, anytime** | README + `web/README.md` already cover run. A short owner walkthrough can wait. |
 
