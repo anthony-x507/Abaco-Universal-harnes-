@@ -43,8 +43,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `27.md` | Part 29: AI-generated browser skills + scheduler | saved, **historical — do not implement** |
 | `28.md` | Part 30: Scheduler calls browser replay on a timer | saved, **historical — do not implement** |
 | `29.md` | Part 31: Shared BrowserScheduler + login_to_dashboard plugin | saved, **historical — do not implement** |
+| `30.md` | Part 32: Cron/timezone scheduling of browser replay | saved, **historical — do not implement** |
 
-Expected: 51. Received: 29.
+Expected: 51. Received: 30.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -65,6 +66,7 @@ Expected: 51. Received: 29.
 - Note 27 (LLM-generated login/click sequences, `browser_skills` plugin, in-memory scheduler) is **historical only**. Do not implement AI web-automation skills or scheduled replay. That path is unauthorized-access adjacent and forks the factory.
 - Note 28 (scheduler HTTP-calls `/browser/record/replay` every 10s) is **historical only**. Do not wire timed replay of stored browser skills.
 - Note 29 (`tools/browser_scheduler.py` plus `login_to_dashboard` daily replay) is **historical only**. Do not add a second scheduler instance or agent-initiated login automation.
+- Note 30 (croniter/pytz cron replay of browser skills) is **historical only**. Do not add cron-driven login/replay.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
 - Notes 15–17 and 19 (FastAPI for clones, LibreChat compose/Mongo, fake-stream SSE + `/code/execute`, hardcoded 25+ option lists including `ew_specialist`) are **historical only**. Do not add `api/` as a second factory (`AgentFactory()` in `main.py` would fork registry/lifecycle). Do not ship LibreChat, Mongo for that UI, or a dummy `sk-dummy` OpenAI shim. A later HTTP layer for the from-zero face may reuse endpoint *ideas* only if it injects the existing `Universal` root. Do not expose placeholder provider/channel lists or EW templates.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
