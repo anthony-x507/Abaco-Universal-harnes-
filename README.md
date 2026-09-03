@@ -113,7 +113,7 @@ Coverage that the brief asked for:
 
 ## Chat, errors, memory
 
-`universal chat` uses `Agent.accept` after `factory.start` (same inbound as HTTP). Chat has **Clear history** (`POST /v1/agents/{id}/reset`); state is unchanged. Provider failures map to 401 / 408 / 429 / 503 with Settings copy in the SPA.
+`universal chat` uses `Agent.accept` after `factory.start` (same inbound as HTTP). Chat has **Clear history** (`POST /v1/agents/{id}/reset`); state is unchanged. Provider failures map to 401 / 408 / 429 / 503 with Settings copy in the SPA. Tool and (future) delegate activity show as a 2–3s banner above the composer; they are not chat turns.
 
 The researcher template sets `memory=True`. Facts go to `memory.json` under `UNIVERSAL_MEMORY_DIR` (default: a temp folder), keyed by **agent name** — not a second registry. Recreate an agent with the same name to reload facts after the process exits. The model only sees the last 10 turns plus the system prompt.
 
