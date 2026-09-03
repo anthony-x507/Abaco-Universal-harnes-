@@ -67,6 +67,7 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `51.md` | Designer visto final (approve + polish list) | accepted — polish shipped |
 | `52.md` | Confirm polish; wait for sí on Hito 3 | waiting — prep only, see `docs/hito3_webhook_prep.md` |
 | `53.md` | Signs the lock-safe Hito 3 cut; still wait for “sí, Hito 3” | waiting — do not register webhook |
+| `54.md` | Confirm wait; docs/URL design OK, no webhook code | waiting |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 
