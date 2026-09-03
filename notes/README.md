@@ -26,8 +26,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `10.md` | Domain 7 / Part 13: Jammers & Electronic Warfare | saved, **never integrate jammer TX** |
 | `11.md` | Domain 8 / Part 14: Mesh Networking & IoT Protocols | saved, not integrated |
 | `12.md` | Domain 9 / Part 15: Embedded Systems & FPGA Development | saved, not integrated |
+| `13.md` | Domain 10 / Part 16: Knowledge Base & Training Platform | saved, not integrated |
 
-Expected: 51. Received: 12.
+Expected: 51. Received: 13.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -43,3 +44,4 @@ Expected: 51. Received: 12.
 - Note 10 (EW/jammers) includes working `hackrf_transfer` jamming and counter-drone TX. **Never integrate into `universal/`.** Defensive recommendations-only text may be discussed later; transmit/jam/spoof code will not be built.
 - Note 11 (mesh) is mostly placeholders plus host `ip`/`iw`/`batctl`/`tshark` commands. Archive only. A later scoped plugin may document owner-controlled mesh setup; do not auto-run root wireless changes.
 - Note 12 (embedded/FPGA) compiles and flashes via `arduino-cli` / `iceprog`. Archive only. A later scoped plugin may compile firmware the owner writes; do not auto-flash USB devices or run privileged Docker for hardware.
+- Note 13 (knowledge base) is a ChromaDB ingest/search scaffold plus quiz placeholders. Archive only. Do not add a second memory/store next to the existing agent memory. A later scoped RAG plugin can be reviewed if it stays local and does not fork the registry.
