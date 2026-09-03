@@ -35,6 +35,7 @@ export function ChatPage() {
   const [template, setTemplate] = useState('general')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loadingList, setLoadingList] = useState(true)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [sending, setSending] = useState(false)
   const [creating, setCreating] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -42,6 +43,12 @@ export function ChatPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const selectedIdRef = useRef(selectedId)
+  const threadRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   const selected = useMemo(
     () => agents.find((agent) => agent.id === selectedId) ?? null,
@@ -96,15 +103,26 @@ export function ChatPage() {
   useEffect(() => {
     if (!selectedId) {
       setHistory([])
+      setLoadingHistory(false)
       return
     }
+    setHistory([])
+    setLoadingHistory(true)
+    setError('')
     let cancelled = false
+    const requested = selectedId
     const load = async () => {
       try {
-        const agent = await getAgent(selectedId)
-        if (!cancelled) setHistory(agent.history ?? [])
+        const agent = await getAgent(requested)
+        if (cancelled || selectedIdRef.current !== requested) return
+        setHistory(agent.history ?? [])
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load conversation.')
+        if (!cancelled && selectedIdRef.current === requested) {
+          setHistory([])
+          setError(err instanceof Error ? err.message : 'Could not load conversation.')
+        }
+      } finally {
+        if (!cancelled && selectedIdRef.current === requested) setLoadingHistory(false)
       }
     }
     void load()
@@ -112,6 +130,10 @@ export function ChatPage() {
       cancelled = true
     }
   }, [selectedId])
+
+  useEffect(() => {
+    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight })
+  }, [history, sending, loadingHistory])
 
   const buildPrompt = (text: string) => {
     if (attachments.length === 0) return text
@@ -126,8 +148,10 @@ export function ChatPage() {
 
   const send = async () => {
     const text = prompt.trim()
-    if ((!text && attachments.length === 0) || !selectedId) return
+    if ((!text && attachments.length === 0) || !selectedId || sending) return
     const outbound = buildPrompt(text || '(attachment only)')
+    const agentId = selectedId
+    const keptAttachments = attachments
     setSending(true)
     setError('')
     setPrompt('')
@@ -138,7 +162,8 @@ export function ChatPage() {
       { role: 'assistant', content: '' },
     ])
     try {
-      const result = await askAgentStream(selectedId, outbound, (delta) => {
+      const result = await askAgentStream(agentId, outbound, (delta) => {
+        if (selectedIdRef.current !== agentId) return
         setHistory((current) => {
           const next = [...current]
           const last = next[next.length - 1]
@@ -148,21 +173,24 @@ export function ChatPage() {
           return next
         })
       })
+      if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
       setAgents((current) => current.map((agent) => (agent.id === result.id ? result : agent)))
     } catch (err) {
       const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Ask failed.'
+      if (selectedIdRef.current !== agentId) return
       setError(message)
+      setPrompt(text)
+      setAttachments(keptAttachments)
       setHistory((current) => {
         const next = [...current]
-        const last = next[next.length - 1]
-        if (last?.role === 'assistant' && last.content === '') {
-          next.pop()
-        }
+        if (next[next.length - 1]?.role === 'assistant') next.pop()
+        const user = next[next.length - 1]
+        if (user?.role === 'user' && user.content === outbound) next.pop()
         return next
       })
     } finally {
-      setSending(false)
+      if (selectedIdRef.current === agentId) setSending(false)
     }
   }
 
@@ -260,7 +288,14 @@ export function ChatPage() {
         </Button>
       </div>
 
-      {error && <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">{error}</div>}
+      {error && (
+        <div className="flex items-center justify-between gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+          <span>{error}</span>
+          <button type="button" className="text-red-100 hover:text-white" onClick={() => setError('')} aria-label="Dismiss error">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="flex min-h-0 flex-1 overflow-x-auto">
         {panes.left && (
@@ -351,9 +386,11 @@ export function ChatPage() {
               </button>
             </header>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-auto px-4 py-4">
+            <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-auto px-4 py-4">
               {!selected ? (
                 <p className="text-sm text-muted">The writing area is here. Choose an agent to start the thread.</p>
+              ) : loadingHistory ? (
+                <p className="text-sm text-muted">Loading conversation…</p>
               ) : history.length === 0 ? (
                 <p className="text-sm text-muted">No messages yet. Type below, or attach a file or audio note.</p>
               ) : (
@@ -361,7 +398,7 @@ export function ChatPage() {
                   .filter((turn) => turn.role === 'user' || turn.role === 'assistant')
                   .map((turn, index) => (
                     <div
-                      key={`${turn.role}-${index}`}
+                      key={`${selectedId}-${turn.role}-${index}`}
                       className={cn(
                         'max-w-3xl rounded-lg px-3 py-2 text-sm leading-relaxed',
                         turn.role === 'user'
@@ -370,11 +407,13 @@ export function ChatPage() {
                       )}
                     >
                       <div className="mb-1 text-[11px] uppercase tracking-wide text-muted">{turn.role}</div>
-                      <div className="whitespace-pre-wrap">{turn.content}</div>
+                      <div className="whitespace-pre-wrap">{turn.content || (turn.role === 'assistant' && sending ? '…' : '')}</div>
                     </div>
                   ))
               )}
-              {sending && <p className="text-sm text-accent">Waiting for the agent…</p>}
+              {sending && history.at(-1)?.role === 'assistant' && !history.at(-1)?.content && (
+                <p className="text-sm text-accent">Waiting for the agent…</p>
+              )}
             </div>
 
             <form
@@ -420,7 +459,7 @@ export function ChatPage() {
                   }
                 }}
                 placeholder={selected ? 'Write in the middle column…' : 'Create an agent first'}
-                disabled={!selected || sending}
+                disabled={!selected || sending || loadingHistory}
                 rows={3}
                 className="min-h-[72px]"
               />
@@ -439,7 +478,7 @@ export function ChatPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={!selected || sending}
+                  disabled={!selected || sending || loadingHistory}
                   onClick={() => fileRef.current?.click()}
                 >
                   <Paperclip size={14} />
@@ -449,13 +488,13 @@ export function ChatPage() {
                   type="button"
                   size="sm"
                   variant={recording ? 'danger' : 'outline'}
-                  disabled={!selected || sending}
+                  disabled={!selected || sending || loadingHistory}
                   onClick={() => void toggleRecord()}
                 >
                   {recording ? <Square size={14} /> : <Mic size={14} />}
                   {recording ? 'Stop audio' : 'Audio'}
                 </Button>
-                <Button type="submit" disabled={!selected || sending || (!prompt.trim() && attachments.length === 0)}>
+                <Button type="submit" disabled={!selected || sending || loadingHistory || (!prompt.trim() && attachments.length === 0)}>
                   Send
                 </Button>
               </div>

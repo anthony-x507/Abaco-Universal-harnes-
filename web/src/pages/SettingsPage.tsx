@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -10,42 +10,43 @@ export function SettingsPage() {
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('')
   const [channel, setChannel] = useState('cli')
+  const [channels, setChannels] = useState<string[]>(['cli'])
+  const [coming, setComing] = useState<string[]>(['webhook'])
   const [hasKey, setHasKey] = useState(false)
   const [demo, setDemo] = useState(false)
   const [serverOk, setServerOk] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadedOnce, setLoadedOnce] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      try {
-        const [settings, health] = await Promise.all([getSettings(), getHealth()])
-        if (cancelled) return
-        setBaseUrl(settings.llm_base_url)
-        setModel(settings.llm_model)
-        setChannel(settings.default_channel)
-        setHasKey(Boolean(settings.llm_api_key))
-        setDemo(settings.demo)
-        setServerOk(health.status === 'ok')
-        setError('')
-      } catch (err) {
-        if (!cancelled) {
-          setServerOk(false)
-          setError(err instanceof Error ? err.message : 'Could not load settings.')
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void load()
-    return () => {
-      cancelled = true
+  const load = useCallback(async () => {
+    setLoading(true)
+    setMessage('')
+    try {
+      const [settings, health] = await Promise.all([getSettings(), getHealth()])
+      setBaseUrl(settings.llm_base_url)
+      setModel(settings.llm_model)
+      setChannel(settings.default_channel)
+      setChannels(settings.channels.length > 0 ? settings.channels : ['cli'])
+      setComing(settings.channels_coming)
+      setHasKey(Boolean(settings.llm_api_key))
+      setDemo(settings.demo)
+      setServerOk(health.status === 'ok')
+      setLoadedOnce(true)
+      setError('')
+    } catch (err) {
+      setServerOk(false)
+      setError(err instanceof Error ? err.message : 'Could not load settings.')
+    } finally {
+      setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
 
   const save = async () => {
     setSaving(true)
@@ -60,6 +61,8 @@ export function SettingsPage() {
       })
       setHasKey(Boolean(saved.llm_api_key))
       setApiKey('')
+      setChannels(saved.channels.length > 0 ? saved.channels : ['cli'])
+      setComing(saved.channels_coming)
       setMessage('Settings updated in this server process. They are not written to disk.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed.')
@@ -77,8 +80,17 @@ export function SettingsPage() {
         </p>
       </div>
 
-      {loading ? (
+      {loading && !loadedOnce ? (
         <p className="text-sm text-muted">Loading settings…</p>
+      ) : !loadedOnce ? (
+        <Card className="space-y-3 p-5">
+          <p className="text-sm font-medium">Settings are not available.</p>
+          <p className="text-sm text-red-300">{error || 'The factory server did not respond.'}</p>
+          <p className="text-xs text-muted">Start `universal serve` and retry. The form stays empty until a load succeeds.</p>
+          <Button size="sm" onClick={() => void load()} disabled={loading}>
+            {loading ? 'Retrying…' : 'Retry'}
+          </Button>
+        </Card>
       ) : (
         <Card className="space-y-4 p-5">
           <div className="flex items-center justify-between text-sm">
@@ -87,6 +99,14 @@ export function SettingsPage() {
               {serverOk ? (demo ? 'Connected (demo echo)' : 'Connected') : 'Offline'}
             </span>
           </div>
+          {error && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              <span>{error}</span>
+              <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
+                {loading ? 'Retrying…' : 'Retry'}
+              </Button>
+            </div>
+          )}
           <div className="space-y-1">
             <Label htmlFor="base-url">LLM base URL</Label>
             <Input id="base-url" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
@@ -113,17 +133,22 @@ export function SettingsPage() {
               onChange={(event) => setChannel(event.target.value)}
               className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
             >
-              <option value="cli">cli</option>
-              <option value="webhook" disabled>
-                webhook (later)
-              </option>
+              {channels.map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+              {coming.map((id) => (
+                <option key={id} value={id} disabled>
+                  {id} (later)
+                </option>
+              ))}
             </select>
           </div>
-          <Button onClick={() => void save()} disabled={saving}>
+          <Button onClick={() => void save()} disabled={saving || !serverOk}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
           {message && <p className="text-sm text-accent">{message}</p>}
-          {error && <p className="text-sm text-red-300">{error}</p>}
         </Card>
       )}
     </div>

@@ -76,7 +76,31 @@ export function AgentsPage() {
         </p>
       </div>
 
-      {error && <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <span>{error}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() =>
+              void (async () => {
+                setLoading(true)
+                try {
+                  await refresh()
+                  setError('')
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Could not load agents.')
+                } finally {
+                  setLoading(false)
+                }
+              })()
+            }
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-medium">Create agent</h2>
