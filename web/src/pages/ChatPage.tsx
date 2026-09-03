@@ -1,4 +1,4 @@
-import { FileText, Mic, Paperclip, PanelLeft, PanelRight, Square, X } from 'lucide-react'
+import { FileText, Mic, Paperclip, PanelLeft, PanelRight, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { WorkspacePane } from '../components/WorkspacePane'
@@ -11,10 +11,13 @@ import {
   ApiError,
   askAgentStream,
   createAgent,
+  friendlyError,
+  PROVIDER_ERROR_COPY,
   getAgent,
   getSettings,
   listAgents,
   listTemplates,
+  resetAgent,
   type Agent,
   type HistoryTurn,
   type Template,
@@ -48,6 +51,8 @@ export function ChatPage() {
   const [creating, setCreating] = useState(false)
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState('')
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [clearing, setClearing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -201,7 +206,10 @@ export function ChatPage() {
         })
         return
       }
-      const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Ask failed.'
+      const message = friendlyError(err)
+      if (err instanceof ApiError && PROVIDER_ERROR_COPY[err.status]) {
+        showToast(message)
+      }
       if (selectedIdRef.current !== agentId) return
       setHistory((current) => {
         const next = [...current]
@@ -230,6 +238,22 @@ export function ChatPage() {
     setPrompt('')
     setAttachments([])
     await sendPrompt(outbound, true)
+  }
+
+  const clearHistory = async () => {
+    if (!selectedId) return
+    setClearing(true)
+    setError('')
+    try {
+      const agent = await resetAgent(selectedId)
+      setHistory(agent.history ?? [])
+      setAgents((current) => current.map((row) => (row.id === agent.id ? { ...row, ...agent } : row)))
+      setConfirmClear(false)
+    } catch (err) {
+      setError(friendlyError(err))
+    } finally {
+      setClearing(false)
+    }
   }
 
   const retryLast = async () => {
@@ -456,9 +480,23 @@ export function ChatPage() {
                     : 'Create or pick an agent on the left.'}
                 </div>
               </div>
-              <button type="button" className="text-muted hover:text-ink" onClick={() => togglePane('middle')} aria-label="Close messages">
-                <X size={14} />
-              </button>
+              <div className="flex items-center gap-2">
+                {selected && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={sending || clearing}
+                    title="Clear history"
+                    onClick={() => setConfirmClear(true)}
+                  >
+                    <Trash2 size={14} />
+                    Clear history
+                  </Button>
+                )}
+                <button type="button" className="text-muted hover:text-ink" onClick={() => togglePane('middle')} aria-label="Close messages">
+                  <X size={14} />
+                </button>
+              </div>
             </header>
 
             <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-auto px-4 py-4">
@@ -593,6 +631,23 @@ export function ChatPage() {
 
         {panes.right && <WorkspacePane onClose={() => togglePane('right')} />}
       </div>
+
+      {confirmClear && selected && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
+          <div className="max-w-md space-y-3 rounded-lg border border-border bg-surface p-5">
+            <h2 className="text-sm font-medium">Clear history?</h2>
+            <p className="text-sm text-muted">Are you sure? This will delete the conversation history.</p>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setConfirmClear(false)} disabled={clearing}>
+                Cancel
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => void clearHistory()} disabled={clearing}>
+                {clearing ? 'Clearing…' : 'Clear history'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

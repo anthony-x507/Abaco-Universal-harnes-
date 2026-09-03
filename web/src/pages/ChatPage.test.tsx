@@ -90,6 +90,26 @@ describe('Chat page quality tests', () => {
     expect(screen.getByText('again')).toBeInTheDocument()
   })
 
+  it('clears history after confirm', async () => {
+    const user = userEvent.setup()
+    const { calls } = installFetchMock((path, init) => {
+      if (path === '/v1/agents/a1/reset' && init?.method === 'POST') {
+        return jsonResponse({ ...agentFixture, history: [] })
+      }
+      return null
+    })
+
+    renderChat()
+    expect(await screen.findByRole('button', { name: 'Clear history' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Clear history' }))
+    expect(screen.getByText('Are you sure? This will delete the conversation history.')).toBeInTheDocument()
+    const confirms = screen.getAllByRole('button', { name: 'Clear history' })
+    await user.click(confirms[confirms.length - 1])
+    await waitFor(() => {
+      expect(calls.some((call) => call.path === '/v1/agents/a1/reset' && call.init?.method === 'POST')).toBe(true)
+    })
+  })
+
   it('T17 keeps the user turn and shows Retry when the stream dies', async () => {
     const user = userEvent.setup()
     installFetchMock((path, init) => {

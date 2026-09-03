@@ -36,6 +36,21 @@ export type Settings = {
   channels_coming: string[]
 }
 
+export const PROVIDER_ERROR_COPY: Record<number, string> = {
+  401: 'Invalid API key. Please check Settings.',
+  408: 'Request timed out. Try again.',
+  429: 'Rate limit exceeded. Wait a moment.',
+  503: 'Cannot reach LLM service. Check your connection.',
+}
+
+export function friendlyError(err: unknown): string {
+  if (err instanceof ApiError) {
+    return PROVIDER_ERROR_COPY[err.status] ?? err.message
+  }
+  if (err instanceof Error) return err.message
+  return 'Something went wrong. Try again.'
+}
+
 export class ApiError extends Error {
   status: number
 
@@ -121,6 +136,10 @@ export async function deleteAgent(id: string): Promise<void> {
   await request(`/v1/agents/${id}`, { method: 'DELETE' })
 }
 
+export async function resetAgent(id: string): Promise<Agent> {
+  return request(`/v1/agents/${id}/reset`, { method: 'POST' })
+}
+
 export async function askAgent(id: string, prompt: string): Promise<Agent> {
   return request(`/v1/agents/${id}/ask`, {
     method: 'POST',
@@ -138,9 +157,9 @@ function parseSseBlock(
     .map((row) => row.slice(5).trim())
     .join('')
   if (!line) return null
-  const event = JSON.parse(line) as Agent & { text?: string; done?: boolean; error?: string }
+  const event = JSON.parse(line) as Agent & { text?: string; done?: boolean; error?: string; status?: number }
   if (event.error) {
-    throw new ApiError(502, event.error)
+    throw new ApiError(event.status ?? 502, event.error)
   }
   if (event.text) {
     onDelta(event.text)

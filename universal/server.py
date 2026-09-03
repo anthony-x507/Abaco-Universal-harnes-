@@ -118,7 +118,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
     @app.exception_handler(ProviderError)
     async def _provider(_request: Request, exc: ProviderError) -> JSONResponse:
-        return JSONResponse({"error": str(exc)}, status_code=502)
+        return JSONResponse({"error": str(exc)}, status_code=exc.status_code)
 
     @app.exception_handler(UniversalError)
     async def _universal(_request: Request, exc: UniversalError) -> JSONResponse:
@@ -249,7 +249,8 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
                     payload["done"] = True
                     yield f"data: {json.dumps(payload)}\n\n"
                 except UniversalError as exc:
-                    yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+                    status = getattr(exc, "status_code", 502)
+                    yield f"data: {json.dumps({'error': str(exc), 'status': status})}\n\n"
                 finally:
                     _finish_ask(agent.id)
 
@@ -266,6 +267,14 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             return payload
         finally:
             _finish_ask(agent.id)
+
+    @app.post("/v1/agents/{agent_id}/reset")
+    def reset_agent(agent_id: str) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        agent.reset_history()
+        payload = _agent_payload(state.platform, agent.id)
+        payload["status"] = "reset"
+        return payload
 
     @app.post("/v1/agents/{agent_id}/webhook")
     def webhook_inbound(agent_id: str, body: WebhookBody) -> dict[str, Any]:

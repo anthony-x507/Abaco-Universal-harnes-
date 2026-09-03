@@ -86,13 +86,14 @@ class OpenAICompatProvider(Provider):
         try:
             response = self._client.post(self.completions_url, json=payload, headers=headers)
         except httpx.TimeoutException as exc:
-            raise ProviderError(f"Provider timed out after {self._timeout}s") from exc
+            raise ProviderError("LLM request timed out", status_code=408) from exc
+        except httpx.ConnectError as exc:
+            raise ProviderError("Cannot reach LLM service", status_code=503) from exc
         except httpx.HTTPError as exc:
-            raise ProviderError(f"Provider HTTP error: {exc}") from exc
+            raise ProviderError(f"Provider HTTP error: {exc}", status_code=502) from exc
 
         if response.status_code >= 400:
-            snippet = response.text[:400]
-            raise ProviderError(f"Provider returned HTTP {response.status_code}: {snippet}")
+            raise self._http_status_error(response.status_code, response.text[:400])
 
         try:
             data = response.json()
@@ -132,7 +133,7 @@ class OpenAICompatProvider(Provider):
             ) as response:
                 if response.status_code >= 400:
                     snippet = response.read().decode("utf-8", errors="replace")[:400]
-                    raise ProviderError(f"Provider returned HTTP {response.status_code}: {snippet}")
+                    raise self._http_status_error(response.status_code, snippet)
                 for line in response.iter_lines():
                     if not line:
                         continue
@@ -154,9 +155,11 @@ class OpenAICompatProvider(Provider):
         except ProviderError:
             raise
         except httpx.TimeoutException as exc:
-            raise ProviderError(f"Provider timed out after {self._timeout}s") from exc
+            raise ProviderError("LLM request timed out", status_code=408) from exc
+        except httpx.ConnectError as exc:
+            raise ProviderError("Cannot reach LLM service", status_code=503) from exc
         except httpx.HTTPError as exc:
-            raise ProviderError(f"Provider HTTP error: {exc}") from exc
+            raise ProviderError(f"Provider HTTP error: {exc}", status_code=502) from exc
 
     def close(self) -> None:
         if self._owns_client:
@@ -167,6 +170,16 @@ class OpenAICompatProvider(Provider):
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+    @staticmethod
+    def _http_status_error(status_code: int, snippet: str) -> ProviderError:
+        if status_code == 401:
+            return ProviderError("Invalid API key", status_code=401)
+        if status_code == 429:
+            return ProviderError("Rate limit exceeded", status_code=429)
+        if status_code == 408:
+            return ProviderError("LLM request timed out", status_code=408)
+        return ProviderError(f"LLM error: HTTP {status_code}: {snippet}", status_code=status_code)
 
     @staticmethod
     def _parse(data: dict[str, Any]) -> CompletionResponse:

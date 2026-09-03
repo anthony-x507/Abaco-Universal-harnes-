@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
@@ -53,6 +54,11 @@ class FakeProvider(Provider):
         else:
             text = self._reply
         return CompletionResponse(text=text, model=self._model, finish_reason="stop")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_memory_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("UNIVERSAL_MEMORY_DIR", str(tmp_path / "universal-memory"))
 
 
 @pytest.fixture

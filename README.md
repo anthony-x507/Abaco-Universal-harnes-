@@ -111,6 +111,12 @@ Coverage that the brief asked for:
 - packager writes a zip
 - factory polish, isolated histories, 409 lock, webhook inbound/outbound
 
+## Chat, errors, memory
+
+`universal chat` uses `Agent.accept` after `factory.start` (same inbound as HTTP). Chat has **Clear history** (`POST /v1/agents/{id}/reset`); state is unchanged. Provider failures map to 401 / 408 / 429 / 503 with Settings copy in the SPA.
+
+The researcher template sets `memory=True`. Facts go to `memory.json` under `UNIVERSAL_MEMORY_DIR` (default: a temp folder), keyed by **agent name** — not a second registry. Recreate an agent with the same name to reload facts after the process exits. The model only sees the last 10 turns plus the system prompt.
+
 ## Webhook channel
 
 `create(..., channel="webhook")` is registered. Other systems POST to the factory on localhost:

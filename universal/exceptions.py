@@ -20,6 +20,10 @@ class TemplateNotFound(UniversalError):
 class ProviderError(UniversalError):
     """The language-model provider failed to complete a request."""
 
+    def __init__(self, message: str, *, status_code: int = 502) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
 
 class LifecycleError(UniversalError):
     """An illegal agent state transition was requested."""

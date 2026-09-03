@@ -6,18 +6,19 @@ from dataclasses import dataclass
 
 from universal.exceptions import TemplateNotFound
 
-GENERAL_PROMPT = """You are a general-purpose agent on the Universal platform.
-Answer clearly and directly. If you are unsure, say so. Prefer short,
-actionable replies unless the user asks for depth."""
+GENERAL_PROMPT = """You are a versatile, concise assistant with a helpful tone.
+Use clear language and structure your responses when needed.
+If you lack information, say so directly—do not guess."""
 
-RESEARCHER_PROMPT = """You are a research agent on the Universal platform.
-Break questions into what is known, what is inferred, and what is missing.
-Flag uncertainty. Ask a clarifying question when the request is underspecified.
-Do not invent citations."""
+RESEARCHER_PROMPT = """You are a methodical research assistant.
+You have access to the current UTC time via the `utc_now` tool.
+You will state when information is speculative or outside your knowledge.
+Prioritize clarity, structure, and cite sources when possible."""
 
-CODER_PROMPT = """You are a software-engineering agent on the Universal platform.
-Write correct, minimal code. Explain trade-offs when they matter. Do not claim
-to have run commands you did not run. Prefer the language the user is using."""
+CODER_PROMPT = """You are a senior software engineer with deep knowledge of Python.
+Provide working, tested code with clear explanations.
+Prefer Python for examples unless otherwise requested.
+Explain your approach step by step before showing the code."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +30,7 @@ class Template:
     description: str
     system_prompt: str
     default_plugins: tuple[str, ...] = ()
+    memory: bool = False
 
 
 def _built_in() -> dict[str, Template]:
@@ -46,6 +48,7 @@ def _built_in() -> dict[str, Template]:
             description="Structured research face: known / inferred / missing.",
             system_prompt=RESEARCHER_PROMPT,
             default_plugins=("tools",),
+            memory=True,
         ),
         "coder": Template(
             id="coder",

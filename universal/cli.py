@@ -111,6 +111,23 @@ def _cmd_ask(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_chat_turns(agent: object, lines: Sequence[str]) -> list[str]:
+    """Drive started-agent inbound through ``accept`` (same contract as HTTP)."""
+    from universal.core.agent import Agent
+
+    if not isinstance(agent, Agent):
+        raise TypeError("run_chat_turns expects an Agent")
+    answers: list[str] = []
+    for raw in lines:
+        stripped = raw.strip()
+        if stripped in {":q", "/quit", "/exit"}:
+            break
+        if not stripped:
+            continue
+        answers.append(agent.accept(stripped))
+    return answers
+
+
 def _cmd_chat(args: argparse.Namespace) -> int:
     settings = Settings.from_env()
     settings.require_live()
@@ -120,7 +137,18 @@ def _cmd_chat(args: argparse.Namespace) -> int:
     print(f"Universal chat  template={agent.template_id}  id={agent.id}  (/quit to exit)")
     assert agent.channel is not None
     try:
-        agent.channel.serve_forever(prompt="you> ")
+        while True:
+            try:
+                line = input("you> ")
+            except EOFError:
+                print()
+                break
+            if line.strip() in {":q", "/quit", "/exit"}:
+                break
+            if not line.strip():
+                continue
+            # accept → handle_text → bound complete. Channel send() prints the reply.
+            agent.accept(line)
     finally:
         platform.factory.stop(agent.id)
     return 0

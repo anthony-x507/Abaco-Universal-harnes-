@@ -49,8 +49,9 @@ def test_openai_compat_http_error() -> None:
         "fake-model",
         client=httpx.Client(transport=transport),
     )
-    with pytest.raises(ProviderError, match="401"):
+    with pytest.raises(ProviderError, match="Invalid API key") as caught:
         provider.complete([Message(role="user", content="ping")])
+    assert caught.value.status_code == 401
 
 
 def test_openai_compat_refuses_empty_key() -> None:

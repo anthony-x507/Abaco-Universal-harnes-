@@ -73,6 +73,7 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `57.md` | Integrator still waiting for “sí, Hito 3” | superseded by 58 |
 | `58.md` | Owner: sí, Hito 3 | accepted — Hito 3 shipped |
 | `59.md` | Testing guide (T01–T17, W01–W05) after polish / Hito 3 | accepted — executable in `docs/testing_guide.md` |
+| `60.md` | Six polish / intelligence adjustments before Hito 4 | accepted — applied lock-safe |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 

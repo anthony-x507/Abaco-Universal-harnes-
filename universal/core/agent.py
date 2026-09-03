@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import json
+import os
+import re
+import tempfile
 import uuid
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from universal.channels.base import InboundMessage
 from universal.core.plugin import Plugin, PluginHost
 from universal.core.types import AgentInfo, AgentState, CompletionResponse, Message, utcnow
 from universal.exceptions import ProviderError
+
+_NAME_FACT = re.compile(r"\bmy name is\s+(.+?)(?:[.!?]|$)", re.IGNORECASE)
+DEFAULT_HISTORY_TURNS = 10
 
 if TYPE_CHECKING:
     from universal.channels.base import BaseCommunication
@@ -37,6 +45,9 @@ class Agent:
         channel: BaseCommunication | None = None,
         agent_id: str | None = None,
         max_tool_iters: int = 8,
+        memory: bool = False,
+        memory_dir: Path | None = None,
+        max_history_turns: int = DEFAULT_HISTORY_TURNS,
     ) -> None:
         self.id = agent_id or new_agent_id()
         self.name = name
@@ -46,8 +57,14 @@ class Agent:
         self.channel = channel
         self.plugins = PluginHost()
         self.max_tool_iters = max_tool_iters
+        self.max_history_turns = max_history_turns
+        self.memory_enabled = memory
+        self.memory_dir = memory_dir
+        self.memory_data: dict[str, Any] = {"facts": [], "last_conversation": ""}
         self.created_at = utcnow()
         self._history: list[Message] = []
+        if memory:
+            self._load_memory()
 
     @property
     def history(self) -> list[Message]:
@@ -63,15 +80,72 @@ class Agent:
 
     def reset_history(self) -> None:
         self._history.clear()
+        transcript = self.plugins.get("transcript")
+        clear = getattr(transcript, "clear", None)
+        if callable(clear):
+            clear()
 
-    def complete(self, prompt: str, *, remember: bool = True) -> str:
-        """Send ``prompt`` through plugins and the provider; return assistant text."""
+    def memory_path(self) -> Path:
+        root = self.memory_dir or Path(
+            os.environ.get("UNIVERSAL_MEMORY_DIR", tempfile.gettempdir())
+        ) / "universal-memory"
+        safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in self.name)[:80] or "agent"
+        return root / f"{safe}.json"
+
+    def _load_memory(self) -> None:
+        path = self.memory_path()
+        if not path.is_file():
+            return
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        if isinstance(loaded, dict):
+            self.memory_data = {
+                "facts": list(loaded.get("facts") or []),
+                "last_conversation": str(loaded.get("last_conversation") or ""),
+            }
+
+    def _save_memory(self) -> None:
+        path = self.memory_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(self.memory_data, indent=2), encoding="utf-8")
+
+    def _update_memory(self, user_text: str, answer: str) -> None:
+        match = _NAME_FACT.search(user_text)
+        if match:
+            person = match.group(1).strip()
+            facts = [
+                fact
+                for fact in list(self.memory_data.get("facts") or [])
+                if not str(fact).startswith("The user's name is ")
+            ]
+            facts.append(f"The user's name is {person}.")
+            self.memory_data["facts"] = facts[-20:]
+        self.memory_data["last_conversation"] = f"User: {user_text}\nAgent: {answer}"
+        self._save_memory()
+
+    def _history_for_provider(self) -> list[Message]:
+        limit = max(0, self.max_history_turns) * 2
+        if limit == 0:
+            return []
+        return self._history[-limit:]
+
+    def _prompt_messages(self, prompt: str) -> tuple[Message, list[Message]]:
         user = Message(role="user", content=prompt)
         turn: list[Message] = []
         if self.system_prompt:
             turn.append(Message(role="system", content=self.system_prompt))
-        turn.extend(self._history)
+        facts = [str(fact) for fact in (self.memory_data.get("facts") or [])] if self.memory_enabled else []
+        if facts:
+            turn.append(Message(role="system", content="Persistent memory:\n" + "\n".join(facts)))
+        turn.extend(self._history_for_provider())
         turn.append(user)
+        return user, turn
+
+    def complete(self, prompt: str, *, remember: bool = True) -> str:
+        """Send ``prompt`` through plugins and the provider; return assistant text."""
+        user, turn = self._prompt_messages(prompt)
         turn = self.plugins.before_complete(self, turn)
 
         tools = self.plugins.collect_tools()
@@ -110,6 +184,8 @@ class Agent:
         if remember:
             self._history.append(user)
             self._history.append(Message(role="assistant", content=response.text))
+        if self.memory_enabled:
+            self._update_memory(prompt, response.text)
         return response.text
 
     def complete_stream(self, prompt: str, *, remember: bool = True) -> Iterator[str]:
@@ -117,12 +193,7 @@ class Agent:
 
         Tool rounds use ``complete``. The last assistant text is streamed.
         """
-        user = Message(role="user", content=prompt)
-        turn: list[Message] = []
-        if self.system_prompt:
-            turn.append(Message(role="system", content=self.system_prompt))
-        turn.extend(self._history)
-        turn.append(user)
+        user, turn = self._prompt_messages(prompt)
         turn = self.plugins.before_complete(self, turn)
 
         tools = self.plugins.collect_tools()
@@ -175,6 +246,8 @@ class Agent:
         if remember:
             self._history.append(user)
             self._history.append(Message(role="assistant", content=assembled))
+        if self.memory_enabled:
+            self._update_memory(prompt, assembled)
 
     def info(self, state: AgentState = AgentState.CREATED) -> AgentInfo:
         channel_name = self.channel.name if self.channel is not None else ""

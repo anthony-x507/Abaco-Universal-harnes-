@@ -85,6 +85,7 @@ class AgentGenerator:
             template_id=template.id,
             system_prompt=template.system_prompt,
             channel=transport,
+            memory=template.memory,
         )
         if hasattr(transport, "agent_id"):
             transport.agent_id = agent.id
