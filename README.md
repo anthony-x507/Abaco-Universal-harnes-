@@ -36,7 +36,7 @@ python3 -m universal serve --demo
 
 `universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`). It is not an OpenAI `/v1/chat/completions` clone. `POST /v1/agents/{id}/ask` with `stream: true` yields SSE tokens through `Agent.accept_stream`. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk. v1 binds localhost only.
 
-The first browser face lives in `web/` (Chat, Agents, Settings). It talks only to this server.
+The first browser face lives in `web/` (Chat, Agents, Settings). It talks only to this server. Chat is three independent panes: **Agents** (templates and descriptions on the left), **Messages** (composer in the middle, with file and audio attach), and **Workspace** (screen dock and Chrome-extension dock on the right). Each pane can be opened or closed. The workspace dock is present; a live screen share or installed extension is not connected in this cut.
 
 ## Environment variables
 

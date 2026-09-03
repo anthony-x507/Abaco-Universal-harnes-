@@ -37,12 +37,12 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-svh flex-col bg-bg md:flex-row">
-      <aside className="flex shrink-0 items-center justify-between border-b border-border bg-surface px-3 py-2 md:w-56 md:flex-col md:items-stretch md:border-b-0 md:border-r md:px-3 md:py-4">
-        <div className="flex items-center gap-2 md:mb-6">
+      <aside className="flex shrink-0 items-center justify-between border-b border-border bg-surface px-3 py-2 md:w-16 md:flex-col md:items-stretch md:border-b-0 md:border-r md:px-2 md:py-4 xl:w-56 xl:px-3">
+        <div className="flex items-center justify-center gap-2 md:mb-6">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-bold text-bg">
             U
           </div>
-          <div className="hidden leading-tight md:block">
+          <div className="hidden leading-tight xl:block">
             <div className="text-sm font-semibold">Universal</div>
             <div className="text-[11px] text-muted">Platform</div>
           </div>
@@ -53,15 +53,16 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               end={item.end}
+              title={item.label}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink',
+                  'flex items-center justify-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink xl:justify-start',
                   isActive && 'bg-surface-2 text-accent',
                 )
               }
             >
               <item.icon size={16} />
-              <span className="hidden md:inline">{item.label}</span>
+              <span className="hidden xl:inline">{item.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -92,7 +93,7 @@ export function AppShell() {
             {connected === false ? 'Offline' : demo ? 'Demo' : 'Live'}
           </div>
         </header>
-        <main className="min-h-0 flex-1 overflow-auto">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <Outlet />
         </main>
       </div>
