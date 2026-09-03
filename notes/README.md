@@ -28,8 +28,11 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `12.md` | Domain 9 / Part 15: Embedded Systems & FPGA Development | saved, not integrated |
 | `13.md` | Domain 10 / Part 16: Knowledge Base & Training Platform | saved, not integrated |
 | `14.md` | UI integration via LibreChat / Open WebUI (ChatGPT-style) | saved, **historical — do not use those faces** |
+| `15.md` | Part 17: FastAPI backend for ChatGPT-style UIs | saved, **historical — do not implement as product face** |
+| `16.md` | Part 18: LibreChat + Docker Compose stack | saved, **historical — do not use that face** |
+| `17.md` | Part 19: Streaming, file upload, sandbox code exec API | saved, **historical — do not implement for those UIs** |
 
-Expected: 51. Received: 14.
+Expected: 51. Received: 17.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -40,6 +43,7 @@ Expected: 51. Received: 14.
 - Note 06 adds five live channels. Lock: one working channel in v1 (CLI already exists). More channels later as plugins, one at a time, with channel chosen at `create`.
 - Face/app is greenfield from zero — do not implement pywebview ChatGPT clones from these notes.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
+- Notes 15–17 (FastAPI for clones, LibreChat compose/Mongo, fake-stream SSE + `/code/execute`) are **historical only**. Do not add `api/` as a second factory (`AgentFactory()` in `main.py` would fork registry/lifecycle). Do not ship LibreChat, Mongo for that UI, or a dummy `sk-dummy` OpenAI shim. A later HTTP layer for the from-zero face may reuse endpoint *ideas* only if it injects the existing `Universal` root.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
 - Note 08 (vehicle / RF) describes relay/replay attacks, CAN inject, ECU flash, key-fob decode. Archive only. Do not implement attack or unauthorized-access tooling. Legal OBD diagnostics on a vehicle the owner controls can be considered later as a separate, scoped plugin.
 - Note 09 (drones) includes live MAVLink control, RF detection, and later jammers/EW. Archive only. Do not implement jamming, spoofing, or unauthorized drone control. Simulation / mission-file planning can be reviewed later as a scoped plugin.
