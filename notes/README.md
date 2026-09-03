@@ -53,8 +53,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `37.md` | Part 38: Aegis README + clone-stack API reference | saved, **historical — do not replace Universal README** |
 | `38.md` | UI Step 1: Aegis design language / tokens | saved, not implemented |
 | `39.md` | UI Step 2: Vite/React scaffold `ui/aegis-ui` | saved, **do not scaffold yet** |
+| `40.md` | UI Step 3: Codex-like chat page against clone `/v1` | saved, **do not implement** |
 
-Expected: 51. Received: 39.
+Expected: 51. Received: 40.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -84,6 +85,7 @@ Expected: 51. Received: 39.
 - Note 36 (custom UI vs LibreChat) agrees with the owner lock: face from zero. Do **not** write live `docs/decision_ui.md` under the Aegis name, and do not start the “10-step React + Tailwind” face until the note set is complete. A later from-zero face talks to the existing `Universal` factory.
 - Note 38 (design tokens, ChatGPT-familiar mission-control chrome, named Aegis) is archived only. Tokens may inform the later Universal face; do not scaffold that UI or brand it Aegis now.
 - Note 39 (`ui/aegis-ui` Vite + ChatGPT-like sidebar, proxy to clone `:8000`) is **not implemented**. Do not create that package. A later from-zero face can use Vite/TS/Tailwind if chosen, but it must be Universal-branded and talk to the existing factory, not `api.main`.
+- Note 40 (ChatGPT-like conversation list + SSE to `/v1/chat/completions`) is **not implemented**. Same lock: no clone-API chat UI. The CLI remains the v1 channel.
 - Note 37 (Aegis README advertising EW, 25+ providers, browser replay, `ui/factory_panel`) is **historical only**. Do not overwrite the Universal README or add `docs/api_reference.md` for the clone stack.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
 - Notes 15–17 and 19 (FastAPI for clones, LibreChat compose/Mongo, fake-stream SSE + `/code/execute`, hardcoded 25+ option lists including `ew_specialist`) are **historical only**. Do not add `api/` as a second factory (`AgentFactory()` in `main.py` would fork registry/lifecycle). Do not ship LibreChat, Mongo for that UI, or a dummy `sk-dummy` OpenAI shim. A later HTTP layer for the from-zero face may reuse endpoint *ideas* only if it injects the existing `Universal` root. Do not expose placeholder provider/channel lists or EW templates.
