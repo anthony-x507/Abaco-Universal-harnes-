@@ -24,7 +24,7 @@ Process lifetime. No SQLite/JSON registry in v1.
 
 ## Channels
 
-`cli` now. Webhook after the SPA works. No Telegram/Discord stubs.
+`cli` and `webhook`, chosen at `create`. No Telegram/Discord stubs.
 
 ## Explicitly discarded or delayed
 
@@ -45,17 +45,17 @@ Process lifetime. No SQLite/JSON registry in v1.
 0. HTTP factory server on the existing root (`python3 -m universal serve`).
 1. SPA: Chat, Agents, Settings. Full replies, no streaming.
 2. Streaming — authorized (`notes/50.md`). Tokens via factory `/ask?stream`, not `/v1/chat/completions`.
-3. Webhook channel (later).
+3. Webhook channel — shipped (`universal/channels/webhook.py`, factory inbound).
 4. Plugin list + ZIP from the UI (later).
 5. Usage guide + demo (later).
 
 Packet for the designer’s visto final after Hito 0–2 + polish + wiring audit: `docs/designer_final_review.md`.
 
-Designer visto (`notes/51.md`): approved. Immediate corrections before Hito 3: agent-field system prompt only; no default `transcript`; plugin counts not ids; Settings apply to new agents; create reads `default_channel`; demo key copy; one ask at a time; delete-during-ask cancels then deletes; stream errors keep the user turn + Retry. Webhook stays later. Provider and channel stay first-class, not plugins.
+Designer visto (`notes/51.md`): approved. Immediate corrections before Hito 3: agent-field system prompt only; no default `transcript`; plugin counts not ids; Settings apply to new agents; create reads `default_channel`; demo key copy; one ask at a time; delete-during-ask cancels then deletes; stream errors keep the user turn + Retry. Hito 3 webhook is shipped. Provider and channel stay first-class, not plugins.
 
 Engineering notes that do not change the plan:
 
 - There is no `pause` lifecycle state. Agents page uses start / stop / delete.
-- Create takes a single `channel` id (`cli`), not `communication: [webhook]`.
+- Create takes a single `channel` id (`cli` or `webhook`), not `communication: [webhook]`.
 - Settings may update in-memory `UNIVERSAL_LLM_*` on the running server; the API key is never written to the repo.
 - `--demo` on `serve` injects an echo provider so the SPA can be exercised without a live key. It is not a registered “local” model.

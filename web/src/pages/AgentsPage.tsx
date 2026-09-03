@@ -17,7 +17,7 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
-import { pluginCountLabel } from '../lib/utils'
+import { laterChannels, pluginCountLabel } from '../lib/utils'
 
 export function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([])
@@ -26,7 +26,8 @@ export function AgentsPage() {
   const [template, setTemplate] = useState('general')
   const [channel, setChannel] = useState('cli')
   const [channels, setChannels] = useState<string[]>(['cli'])
-  const [coming, setComing] = useState<string[]>(['webhook'])
+  const [coming, setComing] = useState<string[]>([])
+  const [outboundUrl, setOutboundUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState('')
   const [error, setError] = useState('')
@@ -143,8 +144,10 @@ export function AgentsPage() {
                 template,
                 name: name.trim() || undefined,
                 channel,
+                outbound_url: channel === 'webhook' ? outboundUrl.trim() || undefined : undefined,
               })
               setName('')
+              setOutboundUrl('')
             })
           }}
         >
@@ -180,13 +183,24 @@ export function AgentsPage() {
                   {id}
                 </option>
               ))}
-              {coming.map((id) => (
+              {laterChannels(channels, coming).map((id) => (
                 <option key={id} value={id} disabled>
                   {id} (later)
                 </option>
               ))}
             </select>
           </div>
+          {channel === 'webhook' && (
+            <div className="space-y-1 md:col-span-2">
+              <Label htmlFor="agent-outbound">Outbound URL (optional)</Label>
+              <Input
+                id="agent-outbound"
+                value={outboundUrl}
+                onChange={(event) => setOutboundUrl(event.target.value)}
+                placeholder="https://example.com/hooks/universal"
+              />
+            </div>
+          )}
           <Button type="submit" disabled={working === 'create'}>
             {working === 'create' ? 'Creating…' : 'Create'}
           </Button>

@@ -28,6 +28,17 @@ def test_session_create_start_ask_stop_delete(platform: Universal, tmp_path: Pat
     assert session.execute("list") == "(empty)"
 
 
+def test_session_create_webhook(platform: Universal) -> None:
+    session = FactorySession(platform)
+    agent_id = session.execute(
+        "create general --name hook --channel webhook --outbound-url http://example.test/cb"
+    )
+    agent = platform.registry.get(agent_id)
+    assert agent.channel is not None
+    assert agent.channel.name == "webhook"
+    assert getattr(agent.channel, "outbound_url") == "http://example.test/cb"
+
+
 def test_session_unknown_command(platform: Universal) -> None:
     session = FactorySession(platform)
     assert session.execute("explode").startswith("error:")

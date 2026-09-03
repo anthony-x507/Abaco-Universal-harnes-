@@ -65,12 +65,13 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `49.md` | Designer alignment plan (Universal face, factory REST, no Aegis) | accepted — Hito 0–1 shipped |
 | `50.md` | Designer answers + sí on Hito 2 streaming | accepted — Hito 2 shipped |
 | `51.md` | Designer visto final (approve + polish list) | accepted — polish shipped |
-| `52.md` | Confirm polish; wait for sí on Hito 3 | waiting — prep only, see `docs/hito3_webhook_prep.md` |
-| `53.md` | Signs the lock-safe Hito 3 cut; still wait for “sí, Hito 3” | waiting — do not register webhook |
-| `54.md` | Confirm wait; docs/URL design OK, no webhook code | waiting |
-| `55.md` | Repeat wait; still no webhook code | waiting |
-| `56.md` | Repeat wait; trigger remains “sí, Hito 3” | waiting |
-| `57.md` | Integrator still waiting for “sí, Hito 3” | waiting |
+| `52.md` | Confirm polish; wait for sí on Hito 3 | archived — wait loop |
+| `53.md` | Signs the lock-safe Hito 3 cut; still wait for “sí, Hito 3” | archived — cut used for shipping |
+| `54.md` | Confirm wait; docs/URL design OK, no webhook code | archived — wait loop |
+| `55.md` | Repeat wait; still no webhook code | archived — wait loop |
+| `56.md` | Repeat wait; trigger remains “sí, Hito 3” | archived — wait loop |
+| `57.md` | Integrator still waiting for “sí, Hito 3” | superseded by 58 |
+| `58.md` | Owner: sí, Hito 3 | accepted — Hito 3 shipped |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 
@@ -112,7 +113,7 @@ Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original
 - Note 47 (PWA manifest `Aegis Agent Factory`, `aegis-ui-v1` SW, Tauri `com.aegis.agentfactory` / Electron wrap) is **not implemented**. Do not package the clone face. A later Universal desktop shell can reuse Tauri/PWA *ideas* under Universal naming.
 - Note 48 (Aegis assembly order: `requirements.txt` → `core/` → `api/` → `ui/aegis-ui/` → `factory/`) is **historical only**. Do not write live `docs/assembly_guide_es.md`. Do not copy that tree. Universal already has a composition root; the integration plan is `docs/integration_plan.md`.
 - `51.md` is the designer visto final (approve + corrections). Immediate work is the polish list; Hito 3 waits until that list is done.
-- `52.md` confirms the polish and waits for designer **sí** before Hito 3. Suggested path `universal/communication/channels.py` + a handler that POSTs straight into `Agent.accept` is **not** the lock-safe prep. See `docs/hito3_webhook_prep.md`.
+- `52.md` confirmed the polish and waited for designer **sí** before Hito 3. Suggested path `universal/communication/channels.py` + a handler that POSTs straight into `Agent.accept` was **not** the lock-safe cut. See `docs/hito3_webhook_prep.md`. `58.md` authorized the cut; webhook is shipped.
 - Designer final-review packet (not an incoming Aegis note): `docs/designer_final_review.md`. Status of Hito 0–2, plugin vs non-plugin assembly, wiring audit, and numbered questions for the designer’s visto final.
 - Note 49 is the designer alignment plan. Accepted: factory REST (not OpenAI `/v1/chat/completions`), in-memory registry, Chat/Agents/Settings SPA, webhook later, browser/scheduler/EW/40-providers out. `universal.server` did **not** exist when they wrote Hito 0 — engineering builds it on the existing `Universal` root. No pause state (start/stop only). No Aegis chrome.
 - Note 37 (Aegis README advertising EW, 25+ providers, browser replay, `ui/factory_panel`) is **historical only**. Do not overwrite the Universal README or add `docs/api_reference.md` for the clone stack.

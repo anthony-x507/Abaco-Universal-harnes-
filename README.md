@@ -1,6 +1,6 @@
 # Universal platform
 
-Plugin-based agent factory and harness. Agents are assembled from a **model**, a **channel**, and **plugins**. This repository is the first working cut: one agent that answers, one real LLM provider, one working channel, and three templates.
+Plugin-based agent factory and harness. Agents are assembled from a **model**, a **channel**, and **plugins**. This repository is the first working cut: one agent that answers, one real LLM provider, CLI and webhook channels, and three templates.
 
 Package name: `universal`. Product name: **Universal platform**.
 
@@ -34,7 +34,7 @@ python3 -m universal serve --demo
 
 `universal shell` is the factory control plane in one process: `create`, `start`, `stop`, `list`, `delete`, `ask`, `deploy`. That is how those operations stay on the single injected registry.
 
-`universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`). It is not an OpenAI `/v1/chat/completions` clone. `POST /v1/agents/{id}/ask` with `stream: true` yields SSE tokens through `Agent.accept_stream`. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk. v1 binds localhost only.
+`universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is not an OpenAI `/v1/chat/completions` clone. `POST /v1/agents/{id}/ask` with `stream: true` yields SSE tokens through `Agent.accept_stream`. `POST /v1/agents/{id}/webhook` is the webhook **channel** inbound (`handle_text` → `accept`), not a bypass. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk. v1 binds localhost only.
 
 The first browser face lives in `web/` (Chat, Agents, Settings). It talks only to this server. Chat is three independent panes: **Agents** (templates and descriptions on the left), **Messages** (composer in the middle, with file and audio attach), and **Workspace** (screen dock and Chrome-extension dock on the right). Each pane can be opened or closed. The workspace dock is present; a live screen share or installed extension is not connected in this cut.
 
@@ -71,7 +71,7 @@ An **Agent** is `provider + channel + PluginHost`. `Agent.complete(prompt)` is t
 universal/
   core/          Agent, registry, lifecycle, factory, generator, manager
   providers/     OpenAI-compatible HTTP client (the only v1 provider)
-  channels/      BaseCommunication + CLI channel
+  channels/      BaseCommunication + CLI and webhook channels
   plugins/       catalog + system prompt, transcript, tool belt
   templates/     general, researcher, coder
   deploy/        ZIP packager + GitHub stub interface
@@ -107,9 +107,26 @@ Coverage that the brief asked for:
 - three templates load
 - packager writes a zip
 
+## Webhook channel
+
+`create(..., channel="webhook")` is registered. Other systems POST to the factory on localhost:
+
+```bash
+python3 -m universal serve --demo --port 43124
+# create a webhook agent (SPA, shell, or)
+curl -sS http://127.0.0.1:43124/v1/agents \
+  -H 'Content-Type: application/json' \
+  -d '{"template":"general","name":"hook","channel":"webhook"}'
+
+curl -sS http://127.0.0.1:43124/v1/agents/AGENT_ID/webhook \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"hello from another process"}'
+```
+
+The route only accepts agents whose channel is `webhook`. Inbound goes through `Agent.accept` → `WebhookChannel.handle_text`. If you set `outbound_url` at create, the channel POSTs `{ "agent_id", "text" }` there after each reply. An empty URL means no outbound; the JSON response still has `answer`. Serve stays on localhost.
+
 ## Deferred
 
-- Webhook channel (Hito 3) — `create` already chooses a channel; v1 registers `cli` only
 - Hugging Face / MLX as real provider plugins (not fake “local” models)
 - Telegram / Slack (after webhook)
 - GitHub deploy (interface only; calling it does not write a ZIP)
@@ -121,7 +138,7 @@ Designer alignment: `docs/designer_alignment_plan.md`. Engineering order: `docs/
 
 Notes 00–01 are not in this tree. Searched on 2026-09-03: repo, Google Drive, and Gmail. No files titled or containing those design notes. What we have from the original brief: an “Aegis” sketch under `factory/`, many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those conflict with the locks. This repo uses **Universal platform** / package `universal`, core under `universal/`, one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
 
-**Owner lock (2026-09-03): the face / app will be built from zero.** The SPA in `web/` is Universal-branded and talks to `universal serve`. Do not ship LibreChat, Aegis chrome, or `/v1/chat/completions`. `create(..., channel="cli")` is implemented; webhook is not registered yet.
+**Owner lock (2026-09-03): the face / app will be built from zero.** The SPA in `web/` is Universal-branded and talks to `universal serve`. Do not ship LibreChat, Aegis chrome, or `/v1/chat/completions`. `create(..., channel="cli"|"webhook")` is implemented.
 
 ## Integration risks (stopped here)
 
@@ -133,7 +150,7 @@ The owner lock is: if a note is consistent but the integration would break anoth
 
 2. **No `start` / `stop` / `delete` as one-shot CLI commands.** They would look like they persist and would invite a store. Factory methods exist; the shell and the library call them.
 
-3. **No second live channel until it is registered and chosen at `create`.** Webhook is next. Telegram/Slack stay behind `BaseCommunication`. The HTTP server is a control plane, not an agent channel.
+3. **No second live channel until it is registered and chosen at `create`.** Webhook is registered. Telegram/Slack stay behind `BaseCommunication`. The HTTP server is a control plane; `POST /v1/agents/{id}/webhook` is the webhook channel inbound, not a side door.
 
 4. **No extra provider objects per agent.** The generator caches one client and injects it. A per-agent `httpx.Client` would leak and hide the “one provider” wiring.
 

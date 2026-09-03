@@ -4,6 +4,7 @@ import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { getHealth, getSettings, updateSettings } from '../lib/api'
+import { laterChannels } from '../lib/utils'
 
 export function SettingsPage() {
   const [baseUrl, setBaseUrl] = useState('')
@@ -11,7 +12,7 @@ export function SettingsPage() {
   const [model, setModel] = useState('')
   const [channel, setChannel] = useState('cli')
   const [channels, setChannels] = useState<string[]>(['cli'])
-  const [coming, setComing] = useState<string[]>(['webhook'])
+  const [coming, setComing] = useState<string[]>([])
   const [hasKey, setHasKey] = useState(false)
   const [demo, setDemo] = useState(false)
   const [serverOk, setServerOk] = useState<boolean | null>(null)
@@ -148,7 +149,7 @@ export function SettingsPage() {
                   {id}
                 </option>
               ))}
-              {coming.map((id) => (
+              {laterChannels(channels, coming).map((id) => (
                 <option key={id} value={id} disabled>
                   {id} (later)
                 </option>

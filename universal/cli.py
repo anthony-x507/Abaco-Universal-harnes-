@@ -44,7 +44,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     create.add_argument("template", help="Template id: general, researcher, or coder.")
     create.add_argument("--name", help="Optional agent name.")
-    create.add_argument("--channel", default="cli", help="Channel id (v1: cli).")
+    create.add_argument("--channel", default="cli", help="Channel id: cli or webhook.")
+    create.add_argument("--outbound-url", default="", help="Webhook outbound URL (process memory).")
 
     serve = sub.add_parser(
         "serve",
@@ -127,7 +128,12 @@ def _cmd_chat(args: argparse.Namespace) -> int:
 
 def _cmd_create(args: argparse.Namespace) -> int:
     platform = _platform()
-    agent = platform.factory.create(args.template, args.name, channel=args.channel)
+    agent = platform.factory.create(
+        args.template,
+        args.name,
+        channel=args.channel,
+        outbound_url=args.outbound_url or None,
+    )
     print(agent.id)
     return 0
 

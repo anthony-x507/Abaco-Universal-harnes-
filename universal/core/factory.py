@@ -65,8 +65,15 @@ class AgentFactory:
         *,
         provider: Provider | None = None,
         channel: str = "cli",
+        outbound_url: str | None = None,
     ) -> Agent:
-        return self.generator.generate(template_id, name, provider=provider, channel=channel)
+        return self.generator.generate(
+            template_id,
+            name,
+            provider=provider,
+            channel=channel,
+            outbound_url=outbound_url,
+        )
 
     def start(self, agent_id: str) -> Agent:
         return self.manager.start(agent_id)

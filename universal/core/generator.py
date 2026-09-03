@@ -71,10 +71,14 @@ class AgentGenerator:
         *,
         provider: Provider | None = None,
         channel: str = "cli",
+        outbound_url: str | None = None,
     ) -> Agent:
         template = self.templates.get(template_id)
         agent_name = name or f"{template.id}-{template.name.lower()}"
-        transport = self.channels.create(channel)
+        extra: dict[str, object] = {}
+        if outbound_url:
+            extra["outbound_url"] = outbound_url
+        transport = self.channels.create(channel, **extra)
         agent = Agent(
             name=agent_name,
             provider=provider or self.provider(),
@@ -82,6 +86,8 @@ class AgentGenerator:
             system_prompt=template.system_prompt,
             channel=transport,
         )
+        if hasattr(transport, "agent_id"):
+            transport.agent_id = agent.id
         self._install_default_plugins(agent, template.default_plugins, template.system_prompt)
         agent.bind_channel()
         self.registry.add(agent)

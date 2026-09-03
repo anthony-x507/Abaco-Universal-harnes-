@@ -9,3 +9,7 @@ export function pluginCountLabel(count: number) {
   if (count <= 0) return 'no plugins'
   return count === 1 ? '1 plugin' : `${count} plugins`
 }
+
+export function laterChannels(available: string[], coming: string[]) {
+  return coming.filter((id) => !available.includes(id))
+}

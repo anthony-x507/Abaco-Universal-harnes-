@@ -1,8 +1,8 @@
-# Hito 3 webhook — prepared, not activated
+# Hito 3 webhook — shipped
 
-Status: **waiting for an explicit designer “sí, Hito 3”.** Note 51 approved the polish and said to ask again before webhook. Note 52 confirms the polish and repeats that wait. This file is the lock-safe prep so we do not implement the wrong spine.
+Status: **shipped** after the owner wrote **sí, Hito 3**. Implementation matches this cut. Do not add a second channels tree or a handler that skips `handle_text`.
 
-Do **not** register `webhook` in `ChannelCatalog` until that sí. A registered empty channel would be a placeholder (stop question 8).
+This document was the prep while we waited. The signed cut below is what shipped.
 
 ## What we will not do (note 52 sketch vs locks)
 
@@ -39,7 +39,7 @@ Webhook is a **channel**, same class of citizen as `cli`. It is not a plugin. It
 
 The inbound factory route, when sí arrives, is `POST /v1/agents/{id}/webhook` (channel-owned, then `handle_text` → `accept`). Outbound URL is per-agent, in memory. UI enables webhook only after `GET /v1/channels` lists it.
 
-## External URL design (docs only — no webhook code yet)
+## External URL design (implemented)
 
 Serve stays localhost-only. An external system talks to Universal on the same machine (or via the owner’s own tunnel). Universal never binds `0.0.0.0` in this cut.
 
@@ -82,7 +82,7 @@ Content-Type: application/json
 
 If `outbound_url` is empty, `WebhookChannel.send` is a no-op (inbound still works; the HTTP response carries `answer`). That matches “configure an external endpoint when you have one.”
 
-Create sketch (not implemented):
+Create body:
 
 ```
 POST /v1/agents
@@ -96,6 +96,6 @@ POST /v1/agents
 - Create + Settings: `webhook` is a normal option, not `(later)`.
 - Chat can still talk to a webhook agent through `/ask` (factory control plane). The webhook route is the *channel* inbound for other systems.
 
-## Activation phrase
+## Activation
 
-Implement only after: **sí, Hito 3** (designer or owner). Until then, this document is the prep. Note 54: more ground-prep (this section) is allowed; webhook source files are not.
+Owner wrote **sí, Hito 3** in `notes/58.md`. The cut above is live: `WebhookChannel`, catalog registration, factory inbound, per-agent outbound URL, SPA option from `GET /v1/channels`.

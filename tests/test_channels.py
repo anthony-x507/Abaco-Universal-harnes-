@@ -7,11 +7,13 @@ from universal.core.platform import Universal
 from universal.exceptions import ChannelNotFound
 
 
-def test_default_catalog_registers_cli_only() -> None:
+def test_default_catalog_registers_cli_and_webhook() -> None:
     catalog = default_channel_catalog()
-    assert catalog.ids() == ["cli"]
+    assert catalog.ids() == ["cli", "webhook"]
     channel = catalog.create("cli")
     assert channel.name == "cli"
+    hook = catalog.create("webhook")
+    assert hook.name == "webhook"
 
 
 def test_unknown_channel_raises() -> None:
@@ -33,7 +35,7 @@ def test_create_uses_cli_channel(platform: Universal) -> None:
 
 def test_create_rejects_unknown_channel(platform: Universal) -> None:
     try:
-        platform.factory.create("general", channel="webhook")
+        platform.factory.create("general", channel="telegram")
     except ChannelNotFound:
         assert platform.factory.list() == []
         return

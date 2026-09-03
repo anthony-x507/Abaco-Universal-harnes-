@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from universal.channels.base import BaseCommunication
 from universal.channels.cli import CLIChannel
+from universal.channels.webhook import WebhookChannel
 from universal.exceptions import ChannelNotFound
 
 ChannelFactory = Callable[..., BaseCommunication]
@@ -38,9 +39,15 @@ def _cli_channel(**_kwargs: object) -> CLIChannel:
     return CLIChannel()
 
 
+def _webhook_channel(**kwargs: object) -> WebhookChannel:
+    url = str(kwargs.get("outbound_url") or "")
+    return WebhookChannel(outbound_url=url)
+
+
 def default_channel_catalog() -> ChannelCatalog:
     catalog = ChannelCatalog()
     catalog.register("cli", _cli_channel)
+    catalog.register("webhook", _webhook_channel)
     return catalog
 
 

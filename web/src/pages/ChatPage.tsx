@@ -20,7 +20,7 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
-import { pluginCountLabel } from '../lib/utils'
+import { laterChannels, pluginCountLabel } from '../lib/utils'
 import { loadPaneState, savePaneState, type PaneId, type PaneState } from '../lib/layout'
 import { cn } from '../lib/utils'
 
@@ -38,7 +38,8 @@ export function ChatPage() {
   const [template, setTemplate] = useState('general')
   const [channel, setChannel] = useState('cli')
   const [channels, setChannels] = useState<string[]>(['cli'])
-  const [comingChannels, setComingChannels] = useState<string[]>(['webhook'])
+  const [comingChannels, setComingChannels] = useState<string[]>([])
+  const [outboundUrl, setOutboundUrl] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const { beginAsk, endAsk, showToast } = useAskSession()
   const [loadingList, setLoadingList] = useState(true)
@@ -304,8 +305,10 @@ export function ChatPage() {
         template,
         name: name.trim() || undefined,
         channel,
+        outbound_url: channel === 'webhook' ? outboundUrl.trim() || undefined : undefined,
       })
       setName('')
+      setOutboundUrl('')
       await refresh()
       setSearchParams({ agent: agent.id })
     } catch (err) {
@@ -383,12 +386,23 @@ export function ChatPage() {
                       {id}
                     </option>
                   ))}
-                  {comingChannels.map((id) => (
+                  {laterChannels(channels, comingChannels).map((id) => (
                     <option key={id} value={id} disabled>
                       {id} (later)
                     </option>
                   ))}
                 </select>
+                {channel === 'webhook' && (
+                  <>
+                    <Label htmlFor="new-outbound">Outbound URL (optional)</Label>
+                    <Input
+                      id="new-outbound"
+                      value={outboundUrl}
+                      onChange={(event) => setOutboundUrl(event.target.value)}
+                      placeholder="https://example.com/hooks/universal"
+                    />
+                  </>
+                )}
                 <Button size="sm" onClick={() => void create()} disabled={creating}>
                   {creating ? 'Creating…' : `Create ${templates.find((item) => item.id === template)?.name ?? 'agent'}`}
                 </Button>

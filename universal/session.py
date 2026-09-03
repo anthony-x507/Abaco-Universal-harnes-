@@ -52,7 +52,7 @@ class FactorySession:
 
     def _help(self, _args: list[str]) -> str:
         return (
-            "commands: templates | create <template> [--name NAME] [--channel cli] | list | "
+            "commands: templates | create <template> [--name NAME] [--channel cli|webhook] [--outbound-url URL] | list | "
             "start <id> | stop <id> | delete <id> | ask <id> <prompt> | "
             "deploy <id> [--out PATH] | help | quit"
         )
@@ -66,7 +66,10 @@ class FactorySession:
         template = args[0]
         name = _option(args[1:], "--name")
         channel = _option(args[1:], "--channel") or "cli"
-        agent = self.platform.factory.create(template, name, channel=channel)
+        outbound_url = _option(args[1:], "--outbound-url")
+        agent = self.platform.factory.create(
+            template, name, channel=channel, outbound_url=outbound_url
+        )
         return agent.id
 
     def _list(self, _args: list[str]) -> str:

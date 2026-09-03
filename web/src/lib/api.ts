@@ -17,6 +17,7 @@ export type Agent = {
   model: string
   history?: HistoryTurn[]
   answer?: string
+  outbound_url?: string
 }
 
 export type Template = {
@@ -103,6 +104,7 @@ export async function createAgent(body: {
   template: string
   name?: string
   channel?: string
+  outbound_url?: string
 }): Promise<Agent> {
   return request('/v1/agents', { method: 'POST', body: JSON.stringify(body) })
 }

@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from universal.channels.catalog import list_channels
 from universal.channels.cli import CLIChannel
+from universal.channels.webhook import WebhookChannel
 from universal.config import Settings
 from universal.core.platform import Universal
 from universal.exceptions import (
@@ -30,13 +31,19 @@ from universal.exceptions import (
 from universal.templates.catalog import list_templates
 
 
-COMING_CHANNELS = ("webhook",)
+COMING_CHANNELS: tuple[str, ...] = ()
 
 
 class CreateAgentBody(BaseModel):
     template: str = Field(default="general")
     name: str | None = None
     channel: str | None = None
+    outbound_url: str | None = None
+
+
+class WebhookBody(BaseModel):
+    text: str
+    sender_id: str | None = None
 
 
 class AskBody(BaseModel):
@@ -67,6 +74,9 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     payload["history"] = [
         {"role": message.role, "content": message.content} for message in agent.history
     ]
+    channel = agent.channel
+    if isinstance(channel, WebhookChannel):
+        payload["outbound_url"] = channel.outbound_url
     return payload
 
 
@@ -169,7 +179,12 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     @app.post("/v1/agents")
     def create_agent(body: CreateAgentBody) -> dict[str, Any]:
         channel = body.channel or state.default_channel
-        agent = state.platform.factory.create(body.template, body.name, channel=channel)
+        agent = state.platform.factory.create(
+            body.template,
+            body.name,
+            channel=channel,
+            outbound_url=body.outbound_url,
+        )
         return _agent_payload(state.platform, agent.id)
 
     @app.get("/v1/agents/{agent_id}")
@@ -249,6 +264,22 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             return payload
         finally:
             _finish_ask(agent.id)
+
+    @app.post("/v1/agents/{agent_id}/webhook")
+    def webhook_inbound(agent_id: str, body: WebhookBody) -> dict[str, Any]:
+        text = body.text.strip()
+        agent = state.platform.registry.get(agent_id)
+        channel = agent.channel
+        if not isinstance(channel, WebhookChannel):
+            raise HTTPException(status_code=400, detail="Agent is not on the webhook channel")
+        prepared = _prepare_ask(agent_id, text)
+        try:
+            answer = prepared.accept(text)
+            payload = _agent_payload(state.platform, prepared.id)
+            payload["answer"] = answer
+            return payload
+        finally:
+            _finish_ask(prepared.id)
 
     @app.post("/v1/agents/{agent_id}/deploy")
     def deploy_agent(agent_id: str) -> FileResponse:
