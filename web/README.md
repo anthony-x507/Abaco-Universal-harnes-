@@ -12,6 +12,8 @@ python3 -m universal serve --demo --port 43124
 cd web
 bun install
 bun run dev
+# tests (mocked fetch, no live server)
+bun test
 ```
 
 Open `http://127.0.0.1:43123`. Tab title: **Universal – Agents**.

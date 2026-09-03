@@ -44,6 +44,10 @@ class OpenAICompatProvider(Provider):
         self._client = client or httpx.Client(timeout=timeout)
 
     @property
+    def base_url(self) -> str:
+        return self._base_url
+
+    @property
     def model(self) -> str:
         return self._model
 

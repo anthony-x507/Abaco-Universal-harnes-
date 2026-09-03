@@ -74,10 +74,13 @@ Do this path only:
 | Designer | Visual / IA of the face | Factory wiring, Aegis, clone API |
 | Engineering | Hito 0–1 maintenance, test fixes | Starting 2–5 without owner sí |
 
+Quality-gate ids and how to run them: `docs/testing_guide.md` (`notes/59.md`).
+
 ## Run (unchanged)
 
 ```bash
 python3 -m pytest
+cd web && bun test
 python3 -m universal serve --demo --port 43124
 cd web && bun run dev   # http://127.0.0.1:43123
 ```

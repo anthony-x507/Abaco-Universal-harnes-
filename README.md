@@ -98,7 +98,10 @@ web/             Universal SPA (Chat, Agents, Settings)
 
 ```bash
 python3 -m pytest
+cd web && bun test
 ```
+
+Quality-gate ids T01–T17 and W01–W05: `docs/testing_guide.md`. CI uses `FakeProvider` / `EchoProvider` and mocked `fetch` / `httpx.post` — never a live LLM.
 
 Coverage that the brief asked for:
 
@@ -106,6 +109,7 @@ Coverage that the brief asked for:
 - agent answers via a mocked provider (and a recorded HTTP provider test)
 - three templates load
 - packager writes a zip
+- factory polish, isolated histories, 409 lock, webhook inbound/outbound
 
 ## Webhook channel
 

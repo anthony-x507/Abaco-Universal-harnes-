@@ -34,6 +34,7 @@ class WebhookChannel(BaseCommunication):
     ) -> None:
         self.outbound_url = outbound_url.strip()
         self.agent_id = ""
+        self.last_outbound_error = ""
         self._poster = poster
         self._timeout = timeout
         self._handler: MessageHandler | None = None
@@ -57,16 +58,18 @@ class WebhookChannel(BaseCommunication):
         self._handler = handler
 
     def send(self, message: OutboundMessage) -> None:
+        self.last_outbound_error = ""
         if not self.outbound_url:
             return
         payload = {"agent_id": self.agent_id, "text": message.text}
-        if self._poster is not None:
-            self._poster(self.outbound_url, payload)
-            return
         try:
-            httpx.post(self.outbound_url, json=payload, timeout=self._timeout)
-        except httpx.HTTPError:
-            return
+            if self._poster is not None:
+                self._poster(self.outbound_url, payload)
+                return
+            response = httpx.post(self.outbound_url, json=payload, timeout=self._timeout)
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            self.last_outbound_error = str(exc)
 
     def handle(self, inbound: InboundMessage) -> str:
         if self._handler is None:

@@ -77,6 +77,8 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     channel = agent.channel
     if isinstance(channel, WebhookChannel):
         payload["outbound_url"] = channel.outbound_url
+        if channel.last_outbound_error:
+            payload["outbound_error"] = channel.last_outbound_error
     return payload
 
 
