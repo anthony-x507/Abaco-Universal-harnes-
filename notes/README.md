@@ -25,8 +25,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `09.md` | Domain 6 / Part 12: Robotics & Drone Technology | saved, not integrated |
 | `10.md` | Domain 7 / Part 13: Jammers & Electronic Warfare | saved, **never integrate jammer TX** |
 | `11.md` | Domain 8 / Part 14: Mesh Networking & IoT Protocols | saved, not integrated |
+| `12.md` | Domain 9 / Part 15: Embedded Systems & FPGA Development | saved, not integrated |
 
-Expected: 51. Received: 11.
+Expected: 51. Received: 12.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -41,3 +42,4 @@ Expected: 51. Received: 11.
 - Note 09 (drones) includes live MAVLink control, RF detection, and later jammers/EW. Archive only. Do not implement jamming, spoofing, or unauthorized drone control. Simulation / mission-file planning can be reviewed later as a scoped plugin.
 - Note 10 (EW/jammers) includes working `hackrf_transfer` jamming and counter-drone TX. **Never integrate into `universal/`.** Defensive recommendations-only text may be discussed later; transmit/jam/spoof code will not be built.
 - Note 11 (mesh) is mostly placeholders plus host `ip`/`iw`/`batctl`/`tshark` commands. Archive only. A later scoped plugin may document owner-controlled mesh setup; do not auto-run root wireless changes.
+- Note 12 (embedded/FPGA) compiles and flashes via `arduino-cli` / `iceprog`. Archive only. A later scoped plugin may compile firmware the owner writes; do not auto-flash USB devices or run privileged Docker for hardware.
