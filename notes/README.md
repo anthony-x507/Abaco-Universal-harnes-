@@ -33,8 +33,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `17.md` | Part 19: Streaming, file upload, sandbox code exec API | saved, **historical — do not implement for those UIs** |
 | `18.md` | Part 20: 25+ LLM providers and 25+ communication channels | saved, not integrated |
 | `19.md` | Part 21: Wire 25+ options into Factory/API (LibreChat path) | saved, **historical — do not implement clone API** |
+| `20.md` | Part 22: Static Aegis factory panel (HTML/CSS/JS) | saved, **historical — do not use as product face** |
 
-Expected: 51. Received: 19.
+Expected: 51. Received: 20.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -45,6 +46,7 @@ Expected: 51. Received: 19.
 - Note 18 repeats the 25+ provider/channel count with dummy registry entries (`nlpcloud`, `gooseai`, …) and send-only channel skeletons. Same lock: do not register placeholders. More real providers/channels later one at a time; the existing OpenAI-compat client already covers DeepSeek/Groq/Mistral-style bases when pointed at their URL.
 - Note 06 adds five live channels. Lock: one working channel in v1 (CLI already exists). More channels later as plugins, one at a time, with channel chosen at `create`.
 - Face/app is greenfield from zero — do not implement pywebview ChatGPT clones from these notes.
+- Note 20 (static `ui/factory_panel` titled Aegis, includes `ew_specialist`) is **historical only**. Do not ship that HTML as the product face, do not wrap it in pywebview, do not serve it next to LibreChat. The from-zero face comes later and talks to the existing factory.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
 - Notes 15–17 and 19 (FastAPI for clones, LibreChat compose/Mongo, fake-stream SSE + `/code/execute`, hardcoded 25+ option lists including `ew_specialist`) are **historical only**. Do not add `api/` as a second factory (`AgentFactory()` in `main.py` would fork registry/lifecycle). Do not ship LibreChat, Mongo for that UI, or a dummy `sk-dummy` OpenAI shim. A later HTTP layer for the from-zero face may reuse endpoint *ideas* only if it injects the existing `Universal` root. Do not expose placeholder provider/channel lists or EW templates.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
