@@ -49,6 +49,8 @@ Process lifetime. No SQLite/JSON registry in v1.
 4. Plugin list + ZIP from the UI (later).
 5. Usage guide + demo (later).
 
+Packet for the designer’s visto final after Hito 0–2 + polish + wiring audit: `docs/designer_final_review.md`.
+
 Engineering notes that do not change the plan:
 
 - There is no `pause` lifecycle state. Agents page uses start / stop / delete.
