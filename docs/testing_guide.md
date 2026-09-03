@@ -88,3 +88,4 @@ Outbound failure is swallowed for the caller’s `answer`. The optional `outboun
 - [x] Delete-while-answering modal (T07 SPA)
 - [x] Stream error keeps user + Retry (T17)
 - [x] Hito 4: ZIP UI, plugin labels, `/run`, identity sidecar, usage meter (`tests/test_hito4.py`)
+- [x] Hito 5: README + DEMO.md + `demo.sh` (`tests/test_hito5_docs.py`)

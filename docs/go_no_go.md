@@ -11,9 +11,9 @@ A checkpoint process. Three agents reviewed the tree against the designer plan a
 | Hito 2 Streaming | **Sí — authorized in notes/50.md** | Tokens via `accept_stream` + SSE on `/v1/agents/{id}/ask`. |
 | Hito 3 Webhook | **Sí — shipped** | `WebhookChannel` in `universal/channels/webhook.py`, catalog, `POST /v1/agents/{id}/webhook` via `accept`. |
 | Hito 4 Harness (ZIP, Auto/run, snapshot, usage) | **Sí — shipped** | Optional layers on the same spine. No second registry. |
-| Hito 5 Usage guide / owner demo | **Parar** | Wait for owner OK. README already covers Auto + snapshot. |
+| Hito 5 Usage guide / owner demo | **Sí — shipped** | README + DEMO.md + demo.sh. English. No Aegis in product docs. |
 
-**Default after Hito 4: stop.** Do not start Hito 5 without an explicit **sí**.
+**Default after Hito 5: stop.** Wait for the owner OK on the product close.
 
 ## How a checkpoint works
 

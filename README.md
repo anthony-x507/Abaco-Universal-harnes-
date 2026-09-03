@@ -1,42 +1,243 @@
 # Universal platform
 
-Plugin-based agent factory and harness. Agents are assembled from a **model**, a **channel**, and **plugins**. This repository is the first working cut: one agent that answers, one real LLM provider, CLI and webhook channels, and three templates.
+Universal is a **plugin-based agent factory and harness**. You assemble an agent from a **model**, a **channel**, and **plugins**, then run it from a CLI, a localhost HTTP factory, or the browser SPA.
+
+It is for people who want a small, honest runtime: one registry, one lifecycle, one OpenAI-compatible provider, and inbound text that always goes through the agent’s bound channel. It is not a Chat Completions clone and not a bag of placeholder providers.
+
+**What ships today**
+
+- Three templates: `general`, `researcher`, `coder`
+- Live OpenAI-compatible HTTP, plus `--demo` echo for the SPA
+- CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
+- Browser face: Chat, Agents, Settings
+- Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
+- ZIP export with no secrets
 
 Package name: `universal`. Product name: **Universal platform**.
 
-## One-command run
+Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-command setup: **[demo.sh](demo.sh)**.
+
+## Install
+
+Python 3.11+. The supported path is pip (the project uses hatchling; Poetry is not required).
 
 ```bash
 python3 -m pip install -e ".[dev]"
+cp .env.example .env   # then set UNIVERSAL_LLM_* for live calls
+```
 
+The console script `universal` is the same as `python3 -m universal` once your scripts directory is on `PATH`.
+
+Browser face (optional, second terminal):
+
+```bash
+cd web
+bun install
+bun run dev          # http://127.0.0.1:43123  → proxies /v1 to :43124
+```
+
+## Quick start
+
+**Demo (no API key)** — factory + echo provider on localhost:
+
+```bash
+./demo.sh
+# or:
+python3 -m universal serve --demo --host 127.0.0.1 --port 43124
+```
+
+Open `http://127.0.0.1:43123` if Vite is running, or call the factory directly:
+
+```bash
+curl -sS http://127.0.0.1:43124/health
+```
+
+**Live one-shot** — needs `UNIVERSAL_LLM_API_KEY`:
+
+```bash
 export UNIVERSAL_LLM_BASE_URL=https://api.openai.com/v1
 export UNIVERSAL_LLM_API_KEY=sk-...
 export UNIVERSAL_LLM_MODEL=gpt-4o-mini
 
 python3 -m universal ask "What is 2+2?"
-```
-
-That creates a `general` agent, starts it, completes the prompt through the OpenAI-compatible provider, prints the answer, and stops the agent. The `universal` console script is the same as `python3 -m universal` once the scripts directory is on `PATH`.
-
-Other faces:
-
-```bash
 python3 -m universal ask --template researcher "Summarize why event sourcing is used"
 python3 -m universal ask --template coder "Write a Python function that reverses a string"
-python3 -m universal chat --template general
-python3 -m universal templates
-python3 -m universal deploy general --out ./agent.zip
-python3 -m universal shell
-python3 -m universal serve --demo
 ```
 
-`ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept` / `serve_forever`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
+Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollama `/v1`, a company gateway). Hugging Face and MLX are not stubbed here.
 
-`universal shell` is the factory control plane in one process: `create`, `start`, `stop`, `list`, `delete`, `ask`, `deploy`. That is how those operations stay on the single injected registry.
+## CLI
 
-`universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is not an OpenAI `/v1/chat/completions` clone. `POST /v1/agents/{id}/ask` with `stream: true` yields SSE tokens through `Agent.accept_stream`. `POST /v1/agents/{id}/webhook` is the webhook **channel** inbound (`handle_text` → `accept`), not a bypass. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk. v1 binds localhost only.
+| Command | What it does |
+|---|---|
+| `universal ask "…"` | Create, start, `accept` the prompt, print, stop. One process. |
+| `universal chat` | Interactive CLI channel. Type `/quit` to exit. |
+| `universal templates` | List `general`, `researcher`, `coder`. |
+| `universal create <template>` | Print an id. The agent dies when this process exits. |
+| `universal list` | Agents **in this process only**. |
+| `universal deploy [template]` | Create an agent and write a ZIP. |
+| `universal shell` | One process, one registry: `create` / `start` / `stop` / `list` / `delete` / `ask` / `deploy`. |
+| `universal serve [--demo]` | HTTP factory on `127.0.0.1:43124`. Localhost only. |
 
-The first browser face lives in `web/` (Chat, Agents, Settings). It talks only to this server. Chat is three independent panes: **Agents** (templates and descriptions on the left), **Messages** (composer in the middle, with file and audio attach), and **Workspace** (screen dock and Chrome-extension dock on the right). Each pane can be opened or closed. The workspace dock is present; a live screen share or installed extension is not connected in this cut.
+`ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
+
+There is **no** one-shot `universal start` / `stop` / `delete`. Those live on the factory, the shell, and `serve`, so they cannot pretend to persist across CLI processes.
+
+Shell example (one registry for the whole session):
+
+```text
+universal> create researcher --name lab
+universal> start <id>
+universal> ask <id> What time is it in UTC?
+universal> deploy <id> --out ./lab.zip
+universal> quit
+```
+
+## Browser SPA
+
+`python3 -m universal serve` is the control plane (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is **not** `/v1/chat/completions`.
+
+The SPA in `web/` talks only to that factory. Chat is three panes: **Agents**, **Messages**, **Workspace**. Each pane can close. File and audio attach are notes/text in this cut; there is no STT or OCR.
+
+| Control | Behavior |
+|---|---|
+| Send (Auto off) | `POST /v1/agents/{id}/ask` with SSE |
+| **Auto** (toggle, default off) | `POST /v1/agents/{id}/run` — tool loop without extra user turns |
+| Clear history | `POST /v1/agents/{id}/reset` — state unchanged |
+| Download ZIP | `POST /v1/agents/{id}/deploy` |
+| Plugin line | Readable labels such as `Tools: utc_now` |
+| Usage meter | `Tokens: 1,234 \| Cost: $0.002` |
+
+`--demo` injects an echo provider. Settings update the running process only; they are never written to disk. The API key is never packed into a ZIP.
+
+More SPA notes: [web/README.md](web/README.md).
+
+## Webhook
+
+`create(..., channel="webhook")` is registered. Other processes POST inbound to the factory on localhost. The route only accepts agents whose channel is `webhook`. Inbound is `Agent.accept` → `WebhookChannel.handle_text`, not a bypass.
+
+```bash
+python3 -m universal serve --demo --port 43124
+
+curl -sS http://127.0.0.1:43124/v1/agents \
+  -H 'Content-Type: application/json' \
+  -d '{"template":"researcher","name":"hook","channel":"webhook"}'
+
+curl -sS http://127.0.0.1:43124/v1/agents/AGENT_ID/webhook \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"hello from another process"}'
+```
+
+The JSON response includes `answer`. Optional `outbound_url` at create: the channel POSTs `{ "agent_id", "text" }` there after each reply. Empty URL means no outbound. A failed callback sets `outbound_error` and still returns `answer`. Serve stays on localhost.
+
+A webhook agent can still answer in Chat via `/ask`.
+
+## Memory
+
+The researcher template sets `memory=True`. Facts go to `memory.json` under `UNIVERSAL_MEMORY_DIR` (default: a temp folder), keyed by **agent name** — not a second registry.
+
+- Recreate an agent with the same name to reload facts after the process exits.
+- The model sees the last **10** turns plus the system prompt. The UI keeps the full thread until **Clear history**.
+- Chat history is **not** written to the registry snapshot.
+
+`--demo` Echo will not invent remembered names. A provider that reads the injected memory facts will.
+
+## Autonomous loop (Auto)
+
+`Agent.complete` already loops tools. `Agent.run(prompt, max_iterations=5)` is a layer **above** `accept`: same inbound, a cap on that loop. `ask` and `accept` stay one-turn as before.
+
+```bash
+# HTTP (after serve --demo and a started researcher)
+curl -sS http://127.0.0.1:43124/v1/agents/AGENT_ID/run \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"What time is it in UTC? Investigate and summarize."}'
+```
+
+In Chat, leave Auto off for `/ask`. Turn Auto on for `/run`. Demo echo issues `utc_now` when you ask about time; a 2s banner shows the tool and is not stored as a chat turn.
+
+## Registry snapshot
+
+`universal serve` writes agent **identities** to `.universal/registry.json` (or `UNIVERSAL_REGISTRY_FILE`). Same in-memory `AgentRegistry`. No history, no API keys, no auto-start.
+
+After a restart, Agents lists the same names as `stopped` (or `error`). Press **Start**. CLI one-shots do not write this file unless the env is set. An empty `UNIVERSAL_REGISTRY_FILE` keeps serve in memory only.
+
+## Usage meter
+
+Each provider call records prompt tokens, completion tokens, model, latency, and a **fixed-price** estimate (not a billing API). Example: gpt-4o-mini `$0.00015` / `$0.0006` per 1K tokens. Echo and fake models cost `$0`. If the provider omits `usage`, tokens are estimated as `len/4`.
+
+Totals live on the agent (not in the snapshot) and ship in the ZIP as `usage.json`. Chat shows them in the message header.
+
+## Plugins
+
+Templates name plugin ids. `PluginCatalog` turns those ids into instances. The generator does not `if plugin_id == ...`.
+
+Built-in catalog ids: `tools` (ships `utc_now`), `transcript`, `system_prompt`. Templates do **not** install `system_prompt` or `transcript` by default — the system prompt is `agent.system_prompt` from the template. Researcher installs `tools`.
+
+Hot-swap on a live agent:
+
+```python
+from universal.plugins.tools import ToolBeltPlugin, utc_now_tool
+
+belt = ToolBeltPlugin()
+belt.add(utc_now_tool())
+agent.attach_plugin(belt)
+# agent.detach_plugin("tools")
+```
+
+Register a factory so templates can name it:
+
+```python
+from universal.plugins.catalog import PluginCatalog
+from universal.plugins.tools import ToolBeltPlugin, utc_now_tool
+
+def clock_plugin(**_kwargs):
+    belt = ToolBeltPlugin()
+    belt.add(utc_now_tool())
+    return belt
+
+plugins = PluginCatalog()
+plugins.register("tools", clock_plugin)
+```
+
+`utc_now` is a real tool: current UTC as ISO-8601. No network, no secrets. That is the working example — add more `BoundTool`s the same way.
+
+Filesystem plugin discovery is deferred (it would load code the factory did not inject).
+
+## ZIP deploy
+
+`deploy` writes:
+
+`manifest.json` · `config.json` · `system_prompt.txt` · `README.txt` · `usage.json`
+
+API keys are never written. GitHub deploy is a stub: it raises and writes nothing.
+
+```bash
+python3 -m universal deploy researcher --name boxed --out ./boxed.zip
+# or Agents → Download ZIP, or:
+curl -sS -X POST http://127.0.0.1:43124/v1/agents/AGENT_ID/deploy -o agent.zip
+```
+
+Unpack and recreate with `universal create <template> --name <name>` (or the SPA). The ZIP is a portable description, not a second runtime.
+
+## Library
+
+```python
+from universal import Universal
+from universal.config import Settings
+
+platform = Universal(Settings.from_env())
+agent = platform.factory.create("general", name="helper")
+platform.factory.start(agent.id)
+print(agent.accept("What is 2+2?"))
+platform.factory.stop(agent.id)
+platform.factory.deploy(agent.id, dest="helper.zip")
+```
+
+Tests inject a fake provider. Do not construct a second `AgentRegistry` or `AgentLifecycle` — `Universal` builds those once and injects them.
+
+```python
+platform = Universal(settings, provider=my_fake_provider)
+```
 
 ## Environment variables
 
@@ -47,162 +248,87 @@ The first browser face lives in `web/` (Chat, Agents, Settings). It talks only t
 | `UNIVERSAL_LLM_MODEL` | yes | `gpt-4o-mini` |
 | `UNIVERSAL_LLM_TIMEOUT` | no | `60` |
 | `UNIVERSAL_LLM_ORGANIZATION` | no | empty |
-| `UNIVERSAL_REGISTRY_FILE` | no | serve defaults to `.universal/registry.json`; empty disables |
+| `UNIVERSAL_REGISTRY_FILE` | no | serve: `.universal/registry.json`; empty disables |
+| `UNIVERSAL_MEMORY_DIR` | no | temp folder / `universal-memory` |
 
-Copy `.env.example`. **Do not commit secrets.** The ZIP packager redacts the API key.
-
-Any server that speaks the OpenAI Chat Completions API works: OpenAI, OpenRouter, an Ollama `/v1` shim, a company gateway. Hugging Face and MLX are not stubbed here; they land later as real provider plugins.
+Copy `.env.example`. **Do not commit secrets.**
 
 ## Architecture
 
 ```
 Universal          composition root
-  ├── AgentRegistry     constructed once
+  ├── AgentRegistry     constructed once (optional JSON identity sidecar)
   ├── AgentLifecycle    constructed once, holds the registry
-  └── AgentFactory      injected with those two objects
-        ├── AgentGenerator   create — same registry + lifecycle
+  ├── StatsCollector    usage / fixed-price estimates
+  └── AgentFactory      injected with those objects
+        ├── AgentGenerator   create
         └── AgentManager     start / stop / list / delete / deploy
 ```
 
-An **Agent** is `provider + channel + PluginHost`. `Agent.complete(prompt)` is the model path. After `factory.start`, inbound text uses `Agent.accept` so it goes through the bound channel. `PluginCatalog` turns template plugin ids into instances.
-
-**Hot-swap:** `agent.attach_plugin(plugin)` / `agent.detach_plugin(name)` work while the agent is running. Plugins hook `before_complete`, `after_complete`, and optional tools. This is implemented in v1.
+An **Agent** is `provider + channel + PluginHost`. After `factory.start`, inbound uses `accept` / `accept_stream` so it goes through the bound channel.
 
 ```
 universal/
   core/          Agent, registry, lifecycle, factory, generator, manager
   providers/     OpenAI-compatible HTTP client (the only v1 provider)
-  channels/      BaseCommunication + CLI and webhook channels
+  channels/      BaseCommunication + CLI and webhook
   plugins/       catalog + system prompt, transcript, tool belt
   templates/     general, researcher, coder
-  deploy/        ZIP packager + GitHub stub interface
-  session.py     in-process factory shell (one Universal root)
-  server.py      HTTP factory control plane (one Universal root)
-web/             Universal SPA (Chat, Agents, Settings)
+  deploy/        ZIP packager + GitHub stub
+  session.py     in-process factory shell
+  server.py      HTTP factory control plane
+web/             SPA (Chat, Agents, Settings)
 ```
 
-### Templates (the first three faces)
+### Templates
 
 | Id | Role |
 |---|---|
 | `general` | Everyday questions |
-| `researcher` | Known / inferred / missing; ships the `utc_now` tool |
+| `researcher` | Known / inferred / missing; `utc_now` + memory |
 | `coder` | Software-engineering answers |
 
-### Factory operations
+### Design locks (do not “fix” these)
 
-`create` · `start` · `stop` · `list` · `delete` · `deploy`
+1. One in-memory registry and lifecycle, injected into Generator and Manager. The serve JSON file is an identity sidecar, not a second registry. No SQLite. No history or secrets on disk via that file.
+2. Inbound after start uses `Agent.accept`. HTTP does not call the provider.
+3. No `/v1/chat/completions`. Serve binds localhost only.
+4. One live provider object, cached on the generator. `--demo` echo is not a registered “local” model.
+5. Channels are registered and chosen at `create`. Telegram/Slack wait.
+6. Plugin ids go through `PluginCatalog`.
 
-`deploy` writes a ZIP (`manifest.json`, `config.json`, `system_prompt.txt`, `README.txt`, `usage.json`). GitHub deploy is a stub interface that returns “deferred”. The Agents page can download that ZIP.
+## Extend
+
+- **Plugin:** implement `Plugin`, register a factory, name it from a template or `attach_plugin`.
+- **Channel:** subclass `BaseCommunication`, `catalog.register("id", factory)`, choose it at `create`.
+- **Template:** add a dataclass in `universal/templates/catalog.py` (not YAML).
+- **Provider:** later, as a real client — not a dummy registry row.
+
+See `docs/testing_guide.md` and `docs/integration_plan.md` before growing the spine.
 
 ## Tests
 
 ```bash
 python3 -m pytest
-cd web && bun test
+cd web && bun run test
+cd web && bun run build
 ```
 
 Quality-gate ids T01–T17 and W01–W05: `docs/testing_guide.md`. CI uses `FakeProvider` / `EchoProvider` and mocked `fetch` / `httpx.post` — never a live LLM.
 
-Coverage that the brief asked for:
-
-- shared registry/lifecycle injected into Generator and Manager
-- agent answers via a mocked provider (and a recorded HTTP provider test)
-- three templates load
-- packager writes a zip
-- factory polish, isolated histories, 409 lock, webhook inbound/outbound
-
-## Chat, errors, memory
-
-`universal chat` uses `Agent.accept` after `factory.start` (same inbound as HTTP). Chat has **Clear history** (`POST /v1/agents/{id}/reset`); state is unchanged. Provider failures map to 401 / 408 / 429 / 503 with Settings copy in the SPA. Tool and (future) delegate activity show as a 2–3s banner above the composer; they are not chat turns.
-
-The researcher template sets `memory=True`. Facts go to `memory.json` under `UNIVERSAL_MEMORY_DIR` (default: a temp folder), keyed by **agent name** — not a second registry. Recreate an agent with the same name to reload facts after the process exits. The model only sees the last 10 turns plus the system prompt.
-
-## Autonomous loop
-
-`Agent.run(prompt, max_iterations=5)` is a layer above `accept`. It does not replace `complete`. The model path already loops tools; `run` only caps that loop for one inbound turn. Chat keeps **Send** on `/ask` unless **Auto** is on, then it posts `/v1/agents/{id}/run`. Default is off.
-
-Demo (`--demo` + researcher): create the researcher face, start it, turn Auto on, and send `What time is it in UTC? Investigate and summarize.` Echo issues `utc_now` once; the banner shows the tool; the reply comes back without a second user turn.
-
-## Registry snapshot
-
-`universal serve` writes agent **identities** to `.universal/registry.json` (or `UNIVERSAL_REGISTRY_FILE`). Same in-memory `AgentRegistry`. No history, no API keys, no auto-start. After a restart the Agents page lists the same names as `stopped` (or `error`); press Start. CLI one-shots do not write this file unless the env is set. Empty `UNIVERSAL_REGISTRY_FILE` keeps serve in memory only.
-
-## Usage meter
-
-Each provider call records prompt/completion tokens, model, latency, and a fixed-price estimate (for example gpt-4o-mini: `$0.00015` / `$0.0006` per 1K). Echo and fake models cost `$0`. Chat shows `Tokens: 1,234 | Cost: $0.002`. Totals live on the agent and ship in the ZIP as `usage.json`.
-
-## Webhook channel
-
-`create(..., channel="webhook")` is registered. Other systems POST to the factory on localhost:
-
-```bash
-python3 -m universal serve --demo --port 43124
-# create a webhook agent (SPA, shell, or)
-curl -sS http://127.0.0.1:43124/v1/agents \
-  -H 'Content-Type: application/json' \
-  -d '{"template":"general","name":"hook","channel":"webhook"}'
-
-curl -sS http://127.0.0.1:43124/v1/agents/AGENT_ID/webhook \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"hello from another process"}'
-```
-
-The route only accepts agents whose channel is `webhook`. Inbound goes through `Agent.accept` → `WebhookChannel.handle_text`. If you set `outbound_url` at create, the channel POSTs `{ "agent_id", "text" }` there after each reply. An empty URL means no outbound; the JSON response still has `answer`. Serve stays on localhost.
-
 ## Deferred
 
-- Hugging Face / MLX as real provider plugins (not fake “local” models)
+- Hugging Face / MLX as real provider plugins
 - Telegram / Slack (after webhook)
-- GitHub deploy (interface only; calling it does not write a ZIP)
-- Cross-process CLI (`universal create` then `universal list` in another process) — serve has an identity sidecar; CLI one-shots stay in-memory
+- GitHub deploy (interface only)
+- Cross-process CLI (`universal create` then `universal list` in another process)
 
-Designer alignment: `docs/designer_alignment_plan.md`. Engineering order: `docs/integration_plan.md`.
+## Docs
 
-## Conflicts with earlier notes
-
-Notes 00–01 are not in this tree. Searched on 2026-09-03: repo, Google Drive, and Gmail. No files titled or containing those design notes. What we have from the original brief: an “Aegis” sketch under `factory/`, many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those conflict with the locks. This repo uses **Universal platform** / package `universal`, core under `universal/`, one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
-
-**Owner lock (2026-09-03): the face / app will be built from zero.** The SPA in `web/` is Universal-branded and talks to `universal serve`. Do not ship LibreChat, Aegis chrome, or `/v1/chat/completions`. `create(..., channel="cli"|"webhook")` is implemented.
-
-## Integration risks (stopped here)
-
-The owner lock is: if a note is consistent but the integration would break another subsystem or the wiring, stop and report — do not push through. A smaller aligned cut wins.
-
-**Judged against the locked contracts (one registry, one lifecycle, one provider, one channel, plugin assembly).** Notes 00–01 were not available in-repo, so this list is wiring risk, not only name conflicts.
-
-1. **No second registry.** SQLite, a second `AgentRegistry` class, or persisting history/secrets is still stopped. Serve may snapshot **identities** to JSON on the same in-memory registry (`UNIVERSAL_REGISTRY_FILE` / `.universal/registry.json`). That is not a second store and does not auto-start agents. CLI one-shots stay in-memory unless that env is set.
-
-2. **No `start` / `stop` / `delete` as one-shot CLI commands.** They would look like they persist and would invite a store. Factory methods exist; the shell and the library call them.
-
-3. **No second live channel until it is registered and chosen at `create`.** Webhook is registered. Telegram/Slack stay behind `BaseCommunication`. The HTTP server is a control plane; `POST /v1/agents/{id}/webhook` is the webhook channel inbound, not a side door.
-
-4. **No extra provider objects per agent.** The generator caches one client and injects it. A per-agent `httpx.Client` would leak and hide the “one provider” wiring.
-
-5. **GitHub deploy is not a silent ZIP.** `target="github"` raises `DeployError` and writes nothing. The working target is `zip`.
-
-6. **System prompt is the agent field.** `Agent.complete` prepends `agent.system_prompt` from the template. Templates do not install `system_prompt` or `transcript` plugins. Those ids stay in `PluginCatalog` for library hot-swap. Researcher still installs `tools` (`utc_now`).
-
-7. **Plugin ids go through `PluginCatalog`.** Templates name plugins; the generator does not `if plugin_id == ...`. Filesystem plugin discovery is deferred (it would load code the factory did not inject).
-
-If a later note asks for any of the above “because the sketch did”, do not implement it until the registry/lifecycle/channel contracts are redesigned on purpose.
-
-## Library usage
-
-```python
-from universal import Universal
-from universal.config import Settings
-
-platform = Universal(Settings.from_env())
-agent = platform.factory.create("general", name="helper")
-platform.factory.start(agent.id)
-print(agent.complete("What is 2+2?"))
-platform.factory.stop(agent.id)
-platform.factory.deploy(agent.id, dest="helper.zip")
-```
-
-Inject a fake provider in tests:
-
-```python
-platform = Universal(settings, provider=my_fake_provider)
-```
+| File | What |
+|---|---|
+| [DEMO.md](DEMO.md) | Ten-minute walkthrough |
+| [demo.sh](demo.sh) | Install, serve --demo, create sample agents |
+| [web/README.md](web/README.md) | SPA ports and buttons |
+| [docs/testing_guide.md](docs/testing_guide.md) | Quality gates |
+| [docs/go_no_go.md](docs/go_no_go.md) | Slice gate |

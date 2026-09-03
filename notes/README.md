@@ -76,6 +76,7 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `60.md` | Six polish / intelligence adjustments before Hito 4 | accepted — applied lock-safe |
 | `61.md` | Ephemeral tool / delegate activity banners | accepted — SSE status events |
 | `62.md` | Hito 4 consolidated harness (ZIP, run, snapshot, usage) | accepted — shipped |
+| `63.md` | Hito 5 final guide + demo walkthrough | accepted — shipped |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 

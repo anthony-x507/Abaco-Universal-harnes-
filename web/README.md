@@ -13,8 +13,11 @@ cd web
 bun install
 bun run dev
 # tests (mocked fetch, no live server)
-bun test
+bun run test
 ```
+
+Owner walkthrough: [../DEMO.md](../DEMO.md). `./demo.sh` from the repo root starts the factory and sample agents.
+
 
 Open `http://127.0.0.1:43123`. Tab title: **Universal – Agents**.
 
