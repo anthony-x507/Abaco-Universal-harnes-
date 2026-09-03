@@ -10,10 +10,10 @@ A checkpoint process. Three agents reviewed the tree against the designer plan a
 | Hito 1 SPA Chat / Agents / Settings | **Sí — shipped** | `web/` talks to `/v1/agents`. Universal chrome. Demo echo works. |
 | Hito 2 Streaming | **Sí — authorized in notes/50.md** | Tokens via `accept_stream` + SSE on `/v1/agents/{id}/ask`. |
 | Hito 3 Webhook | **Sí — shipped** | `WebhookChannel` in `universal/channels/webhook.py`, catalog, `POST /v1/agents/{id}/webhook` via `accept`. |
-| Hito 4 Plugin attach + ZIP in UI | **Parar** | Deploy API exists; UI must not grow until 2/3 are chosen. |
-| Hito 5 Usage guide / owner demo | **Sí — light, anytime** | README + `web/README.md` already cover run. A short owner walkthrough can wait. |
+| Hito 4 Harness (ZIP, Auto/run, snapshot, usage) | **Sí — shipped** | Optional layers on the same spine. No second registry. |
+| Hito 5 Usage guide / owner demo | **Parar** | Wait for owner OK. README already covers Auto + snapshot. |
 
-**Default after Hito 3: stop.** Do not start Hito 4 (ZIP + plugin list in the UI) without an explicit **sí**.
+**Default after Hito 4: stop.** Do not start Hito 5 without an explicit **sí**.
 
 ## How a checkpoint works
 
@@ -30,7 +30,7 @@ A checkpoint process. Three agents reviewed the tree against the designer plan a
 3. Does inbound skip `Agent.accept` after `factory.start`?
 4. Does it add `/v1/chat/completions` or call the LLM from the HTTP route?
 5. Does it add a live channel that is not in `ChannelCatalog` and not chosen at `create`?
-6. Does it persist agents in JSON/sqlite so CLI one-shots look cross-process?
+6. Does it add SQLite, a second registry class, or persist history/secrets?
 7. Does it brand Aegis, LibreChat, or a ChatGPT clone?
 8. Does it register placeholder providers/channels?
 9. Does it touch browser login-replay, click-all, scheduler-of-replay, or jammer TX?

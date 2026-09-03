@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label'
 import {
   createAgent,
   deleteAgent,
+  downloadAgentZip,
   getSettings,
   listAgents,
   listTemplates,
@@ -17,7 +18,7 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
-import { laterChannels, pluginCountLabel } from '../lib/utils'
+import { laterChannels, pluginListLabel } from '../lib/utils'
 
 export function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([])
@@ -225,7 +226,7 @@ export function AgentsPage() {
                     {askingId === agent.id && <Badge className="border-accent/40 text-accent">answering</Badge>}
                   </div>
                   <div className="mt-1 text-xs text-muted">
-                    {agent.channel} · {pluginCountLabel(agent.plugins.length)}
+                    {agent.channel} · {pluginListLabel(agent.plugin_labels, agent.plugins.length)}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -250,6 +251,18 @@ export function AgentsPage() {
                     onClick={() => void run(`stop-${agent.id}`, async () => { await stopAgent(agent.id) })}
                   >
                     Stop
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={working === `zip-${agent.id}`}
+                    onClick={() =>
+                      void run(`zip-${agent.id}`, async () => {
+                        await downloadAgentZip(agent.id)
+                      })
+                    }
+                  >
+                    {working === `zip-${agent.id}` ? 'Preparing ZIP…' : 'Download ZIP'}
                   </Button>
                   <Button
                     size="sm"

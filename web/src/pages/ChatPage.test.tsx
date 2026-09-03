@@ -44,6 +44,54 @@ describe('Chat page quality tests', () => {
     const ask = calls.find((call) => call.path === '/v1/agents/a1/ask' && call.init?.method === 'POST')
     expect(ask).toBeTruthy()
     expect(askBody(ask?.init)).toEqual({ prompt: 'hello', stream: true })
+    expect(screen.getByTestId('usage-meter')).toHaveTextContent('Tokens: 0 | Cost: $0.000')
+  })
+
+  it('Auto toggle posts /v1/agents/{id}/run', async () => {
+    const user = userEvent.setup()
+    const { calls } = installFetchMock((path, init) => {
+      if (path === '/v1/agents/a1/run' && init?.method === 'POST') {
+        return sseResponse([
+          'data: {"text":"ok"}',
+          `data: ${JSON.stringify({
+            ...agentFixture,
+            history: [
+              { role: 'user', content: 'investigate and summarize' },
+              { role: 'assistant', content: 'ok' },
+            ],
+            answer: 'ok',
+            done: true,
+            usage: {
+              prompt_tokens: 1000,
+              completion_tokens: 234,
+              estimated_cost: 0.002,
+              last_model: 'demo-echo',
+              last_latency_ms: 1,
+              calls: 1,
+            },
+          })}`,
+        ])
+      }
+      return null
+    })
+
+    renderChat()
+    const auto = await screen.findByRole('button', { name: 'Auto' })
+    expect(auto).toHaveAttribute('aria-pressed', 'false')
+    await user.click(auto)
+    expect(auto).toHaveAttribute('aria-pressed', 'true')
+    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'investigate and summarize')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => {
+      expect(calls.some((call) => call.path === '/v1/agents/a1/run')).toBe(true)
+    })
+    const run = calls.find((call) => call.path === '/v1/agents/a1/run' && call.init?.method === 'POST')
+    expect(JSON.parse(String(run?.init?.body))).toEqual({
+      prompt: 'investigate and summarize',
+      stream: true,
+      max_iterations: 5,
+    })
+    expect(await screen.findByTestId('usage-meter')).toHaveTextContent('Tokens: 1,234 | Cost: $0.002')
   })
 
   it('shows an ephemeral tool banner that is not a chat turn', async () => {

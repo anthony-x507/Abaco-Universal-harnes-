@@ -23,7 +23,7 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
-import { laterChannels, pluginCountLabel } from '../lib/utils'
+import { laterChannels, pluginListLabel, usageLabel } from '../lib/utils'
 import { loadPaneState, savePaneState, type PaneId, type PaneState } from '../lib/layout'
 import { cn } from '../lib/utils'
 
@@ -54,6 +54,7 @@ export function ChatPage() {
   const [confirmClear, setConfirmClear] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [activity, setActivity] = useState({ visible: false, text: '' })
+  const [autoMode, setAutoMode] = useState(false)
   const activityTimer = useRef<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -217,6 +218,7 @@ export function ChatPage() {
             showActivity(`📤 Agent sent message to "${status.target || 'another agent'}"`, 3000)
           }
         },
+        { autonomous: autoMode },
       )
       if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
@@ -483,7 +485,7 @@ export function ChatPage() {
                           </div>
                           <p className="text-xs text-muted">{info?.description ?? agent.template_id}</p>
                           <p className="text-[11px] text-muted">
-                            {agent.channel} · {pluginCountLabel(agent.plugins.length)}
+                            {agent.channel} · {pluginListLabel(agent.plugin_labels, agent.plugins.length)}
                           </p>
                         </button>
                       </li>
@@ -505,6 +507,11 @@ export function ChatPage() {
                     ? `${selected.template_id} · ${selected.state} · one thread in memory`
                     : 'Create or pick an agent on the left.'}
                 </div>
+                {selected && (
+                  <div className="mt-1 text-xs text-muted" data-testid="usage-meter">
+                    {usageLabel(selected.usage)}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {selected && (
@@ -651,6 +658,17 @@ export function ChatPage() {
                 >
                   {recording ? <Square size={14} /> : <Mic size={14} />}
                   {recording ? 'Stop audio' : 'Audio'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={autoMode ? 'default' : 'outline'}
+                  disabled={!selected || sending || loadingHistory}
+                  aria-pressed={autoMode}
+                  title="Autonomous tool loop. Off keeps one-turn ask."
+                  onClick={() => setAutoMode((current) => !current)}
+                >
+                  Auto
                 </Button>
                 <Button type="submit" disabled={!selected || sending || loadingHistory || (!prompt.trim() && attachments.length === 0)}>
                   Send

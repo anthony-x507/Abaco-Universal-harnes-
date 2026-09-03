@@ -11,7 +11,7 @@ cd web && bun test
 
 Automatic tests use `FakeProvider` / `EchoProvider` / `vi.mock` / patched `httpx.post`. A fresh `Universal` fixture is created per Python test (`tests/conftest.py`).
 
-Do **not** cover: disk persistence, a second registry, `/v1/chat/completions` as a product API, browser automation, scheduler, 40 providers, Aegis.
+Do **not** cover: a second registry, SQLite, history persistence, `/v1/chat/completions` as a product API, browser automation, scheduler, 40 providers, Aegis. Identity sidecar tests use `tmp_path`.
 
 ## Strategy (no false greens)
 
@@ -87,3 +87,4 @@ Outbound failure is swallowed for the caller’s `answer`. The optional `outboun
 - [x] Double Send / 409 toast (T16)
 - [x] Delete-while-answering modal (T07 SPA)
 - [x] Stream error keeps user + Retry (T17)
+- [x] Hito 4: ZIP UI, plugin labels, `/run`, identity sidecar, usage meter (`tests/test_hito4.py`)

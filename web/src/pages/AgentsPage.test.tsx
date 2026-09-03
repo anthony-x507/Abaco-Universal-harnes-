@@ -25,6 +25,39 @@ describe('Agents page quality tests', () => {
     abortAsk.mockReset()
   })
 
+  it('shows readable plugin labels and downloads a ZIP', async () => {
+    const user = userEvent.setup()
+    const { calls, catalog } = installFetchMock((path, init) => {
+      if (path === `/v1/agents/${agentFixture.id}/deploy` && init?.method === 'POST') {
+        return new Response(new Blob(['PK']), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="alpha-a1.zip"',
+          },
+        })
+      }
+      return null
+    })
+    catalog.agents = {
+      agents: [{ ...agentFixture, plugins: ['tools'], plugin_labels: ['Tools: utc_now'] }],
+    }
+
+    render(
+      <MemoryRouter>
+        <AgentsPage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/Tools: utc_now/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Download ZIP' }))
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === `/v1/agents/${agentFixture.id}/deploy` && call.init?.method === 'POST')).toBe(
+        true,
+      )
+    })
+  })
+
   it('W05 enables webhook in the create selector', async () => {
     installFetchMock(() => null)
     render(

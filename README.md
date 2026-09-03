@@ -47,6 +47,7 @@ The first browser face lives in `web/` (Chat, Agents, Settings). It talks only t
 | `UNIVERSAL_LLM_MODEL` | yes | `gpt-4o-mini` |
 | `UNIVERSAL_LLM_TIMEOUT` | no | `60` |
 | `UNIVERSAL_LLM_ORGANIZATION` | no | empty |
+| `UNIVERSAL_REGISTRY_FILE` | no | serve defaults to `.universal/registry.json`; empty disables |
 
 Copy `.env.example`. **Do not commit secrets.** The ZIP packager redacts the API key.
 
@@ -92,7 +93,7 @@ web/             Universal SPA (Chat, Agents, Settings)
 
 `create` · `start` · `stop` · `list` · `delete` · `deploy`
 
-`deploy` writes a ZIP (`manifest.json`, `config.json`, `system_prompt.txt`, `README.txt`). GitHub deploy is a stub interface that returns “deferred”.
+`deploy` writes a ZIP (`manifest.json`, `config.json`, `system_prompt.txt`, `README.txt`, `usage.json`). GitHub deploy is a stub interface that returns “deferred”. The Agents page can download that ZIP.
 
 ## Tests
 
@@ -117,6 +118,20 @@ Coverage that the brief asked for:
 
 The researcher template sets `memory=True`. Facts go to `memory.json` under `UNIVERSAL_MEMORY_DIR` (default: a temp folder), keyed by **agent name** — not a second registry. Recreate an agent with the same name to reload facts after the process exits. The model only sees the last 10 turns plus the system prompt.
 
+## Autonomous loop
+
+`Agent.run(prompt, max_iterations=5)` is a layer above `accept`. It does not replace `complete`. The model path already loops tools; `run` only caps that loop for one inbound turn. Chat keeps **Send** on `/ask` unless **Auto** is on, then it posts `/v1/agents/{id}/run`. Default is off.
+
+Demo (`--demo` + researcher): create the researcher face, start it, turn Auto on, and send `What time is it in UTC? Investigate and summarize.` Echo issues `utc_now` once; the banner shows the tool; the reply comes back without a second user turn.
+
+## Registry snapshot
+
+`universal serve` writes agent **identities** to `.universal/registry.json` (or `UNIVERSAL_REGISTRY_FILE`). Same in-memory `AgentRegistry`. No history, no API keys, no auto-start. After a restart the Agents page lists the same names as `stopped` (or `error`); press Start. CLI one-shots do not write this file unless the env is set. Empty `UNIVERSAL_REGISTRY_FILE` keeps serve in memory only.
+
+## Usage meter
+
+Each provider call records prompt/completion tokens, model, latency, and a fixed-price estimate (for example gpt-4o-mini: `$0.00015` / `$0.0006` per 1K). Echo and fake models cost `$0`. Chat shows `Tokens: 1,234 | Cost: $0.002`. Totals live on the agent and ship in the ZIP as `usage.json`.
+
 ## Webhook channel
 
 `create(..., channel="webhook")` is registered. Other systems POST to the factory on localhost:
@@ -140,7 +155,7 @@ The route only accepts agents whose channel is `webhook`. Inbound goes through `
 - Hugging Face / MLX as real provider plugins (not fake “local” models)
 - Telegram / Slack (after webhook)
 - GitHub deploy (interface only; calling it does not write a ZIP)
-- Cross-process registry (see integration risks)
+- Cross-process CLI (`universal create` then `universal list` in another process) — serve has an identity sidecar; CLI one-shots stay in-memory
 
 Designer alignment: `docs/designer_alignment_plan.md`. Engineering order: `docs/integration_plan.md`.
 
@@ -156,7 +171,7 @@ The owner lock is: if a note is consistent but the integration would break anoth
 
 **Judged against the locked contracts (one registry, one lifecycle, one provider, one channel, plugin assembly).** Notes 00–01 were not available in-repo, so this list is wiring risk, not only name conflicts.
 
-1. **No second registry.** A file, sqlite, or sidecar store so `universal create` then `universal list` works across processes would duplicate `AgentRegistry` / `AgentLifecycle`. Generator and Manager would no longer share one in-memory pair. **Stopped.** Use `universal shell` or the library in one process.
+1. **No second registry.** SQLite, a second `AgentRegistry` class, or persisting history/secrets is still stopped. Serve may snapshot **identities** to JSON on the same in-memory registry (`UNIVERSAL_REGISTRY_FILE` / `.universal/registry.json`). That is not a second store and does not auto-start agents. CLI one-shots stay in-memory unless that env is set.
 
 2. **No `start` / `stop` / `delete` as one-shot CLI commands.** They would look like they persist and would invite a store. Factory methods exist; the shell and the library call them.
 

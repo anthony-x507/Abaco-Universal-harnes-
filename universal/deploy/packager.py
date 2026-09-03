@@ -49,6 +49,10 @@ class ZipPackager:
                 archive.writestr("config.json", json.dumps(config, indent=2) + "\n")
                 archive.writestr("system_prompt.txt", agent.system_prompt + "\n")
                 archive.writestr(
+                    "usage.json",
+                    json.dumps(agent.usage.to_dict(), indent=2) + "\n",
+                )
+                archive.writestr(
                     "README.txt",
                     (
                         f"Universal platform agent package\n"

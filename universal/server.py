@@ -19,6 +19,7 @@ from universal.channels.cli import CLIChannel
 from universal.channels.webhook import WebhookChannel
 from universal.config import Settings
 from universal.core.platform import Universal
+from universal.core.registry import default_serve_registry_file
 from universal.exceptions import (
     AgentNotFound,
     ChannelNotFound,
@@ -51,6 +52,12 @@ class AskBody(BaseModel):
     stream: bool = False
 
 
+class RunBody(BaseModel):
+    prompt: str
+    stream: bool = False
+    max_iterations: int = 5
+
+
 class SettingsBody(BaseModel):
     llm_base_url: str | None = None
     llm_api_key: str | None = None
@@ -74,6 +81,8 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     payload["history"] = [
         {"role": message.role, "content": message.content} for message in agent.history
     ]
+    payload["plugin_labels"] = agent.plugin_labels()
+    payload["usage"] = agent.usage.to_dict()
     channel = agent.channel
     if isinstance(channel, WebhookChannel):
         payload["outbound_url"] = channel.outbound_url
@@ -225,53 +234,77 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     def _finish_ask(agent_id: str) -> None:
         state.asking.discard(agent_id)
 
-    @app.post("/v1/agents/{agent_id}/ask")
-    def ask_agent(agent_id: str, body: AskBody) -> Any:
-        prompt = body.prompt.strip()
-        agent = _prepare_ask(agent_id, prompt)
+    def _stream_events(agent: Any, prompt: str, *, stream_fn: Any) -> StreamingResponse:
         channel = agent.channel
-        if body.stream:
-            def events() -> Iterator[str]:
-                pieces: list[str] = []
-                try:
-                    def emit() -> Iterator[str]:
-                        for event in agent.accept_stream_events(prompt):
-                            kind = str(event.get("type") or "")
-                            if kind == "token" and event.get("text"):
-                                pieces.append(str(event["text"]))
-                                yield f"data: {json.dumps({'type': 'token', 'text': event['text']})}\n\n"
-                            elif kind in {"tool_execution", "delegating"}:
-                                yield f"data: {json.dumps(event)}\n\n"
 
-                    if isinstance(channel, CLIChannel):
-                        with channel.capture():
-                            yield from emit()
-                    else:
+        def events() -> Iterator[str]:
+            pieces: list[str] = []
+            try:
+                def emit() -> Iterator[str]:
+                    for event in stream_fn(prompt):
+                        kind = str(event.get("type") or "")
+                        if kind == "token" and event.get("text"):
+                            pieces.append(str(event["text"]))
+                            yield f"data: {json.dumps({'type': 'token', 'text': event['text']})}\n\n"
+                        elif kind in {"tool_execution", "delegating"}:
+                            yield f"data: {json.dumps(event)}\n\n"
+
+                if isinstance(channel, CLIChannel):
+                    with channel.capture():
                         yield from emit()
-                    payload = _agent_payload(state.platform, agent.id)
-                    payload["answer"] = "".join(pieces)
-                    payload["done"] = True
-                    payload["type"] = "done"
-                    yield f"data: {json.dumps(payload)}\n\n"
-                except UniversalError as exc:
-                    status = getattr(exc, "status_code", 502)
-                    yield f"data: {json.dumps({'error': str(exc), 'status': status})}\n\n"
-                finally:
-                    _finish_ask(agent.id)
+                else:
+                    yield from emit()
+                payload = _agent_payload(state.platform, agent.id)
+                payload["answer"] = "".join(pieces)
+                payload["done"] = True
+                payload["type"] = "done"
+                yield f"data: {json.dumps(payload)}\n\n"
+            except UniversalError as exc:
+                status = getattr(exc, "status_code", 502)
+                yield f"data: {json.dumps({'error': str(exc), 'status': status})}\n\n"
+            finally:
+                _finish_ask(agent.id)
 
-            return StreamingResponse(events(), media_type="text/event-stream")
+        return StreamingResponse(events(), media_type="text/event-stream")
 
+    def _complete_turn(agent: Any, prompt: str, *, answer_fn: Any) -> dict[str, Any]:
+        channel = agent.channel
         try:
             if isinstance(channel, CLIChannel):
                 with channel.capture():
-                    answer = agent.accept(prompt)
+                    answer = answer_fn(prompt)
             else:
-                answer = agent.accept(prompt)
+                answer = answer_fn(prompt)
             payload = _agent_payload(state.platform, agent.id)
             payload["answer"] = answer
             return payload
         finally:
             _finish_ask(agent.id)
+
+    @app.post("/v1/agents/{agent_id}/ask")
+    def ask_agent(agent_id: str, body: AskBody) -> Any:
+        prompt = body.prompt.strip()
+        agent = _prepare_ask(agent_id, prompt)
+        if body.stream:
+            return _stream_events(agent, prompt, stream_fn=agent.accept_stream_events)
+        return _complete_turn(agent, prompt, answer_fn=agent.accept)
+
+    @app.post("/v1/agents/{agent_id}/run")
+    def run_agent(agent_id: str, body: RunBody) -> Any:
+        prompt = body.prompt.strip()
+        agent = _prepare_ask(agent_id, prompt)
+        max_iterations = max(1, int(body.max_iterations))
+        if body.stream:
+            return _stream_events(
+                agent,
+                prompt,
+                stream_fn=lambda text: agent.run_stream_events(text, max_iterations=max_iterations),
+            )
+        return _complete_turn(
+            agent,
+            prompt,
+            answer_fn=lambda text: agent.run(text, max_iterations=max_iterations),
+        )
 
     @app.post("/v1/agents/{agent_id}/reset")
     def reset_agent(agent_id: str) -> dict[str, Any]:
@@ -312,12 +345,13 @@ def run_server(*, host: str = "127.0.0.1", port: int = 43124, demo: bool = False
         raise ConfigError("v1 serve binds localhost only. Do not pass a public host.")
 
     settings = Settings.from_env()
+    persist_path = default_serve_registry_file()
     if demo:
         from universal.providers.demo import EchoProvider
 
-        platform = Universal(settings, provider=EchoProvider())
+        platform = Universal(settings, provider=EchoProvider(), persist_path=persist_path)
     else:
-        platform = Universal(settings)
+        platform = Universal(settings, persist_path=persist_path)
     app = create_app(platform, demo=demo)
     uvicorn.run(app, host=host, port=port, log_level="info")
     return 0

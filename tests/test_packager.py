@@ -20,7 +20,10 @@ def test_packager_writes_zip(platform: Universal, tmp_path: Path) -> None:
     assert dest.is_file()
     with zipfile.ZipFile(dest) as archive:
         names = set(archive.namelist())
-        assert names == {"manifest.json", "config.json", "system_prompt.txt", "README.txt"}
+        assert names == {"manifest.json", "config.json", "system_prompt.txt", "README.txt", "usage.json"}
+        usage = json.loads(archive.read("usage.json"))
+        assert usage["calls"] == 0
+        assert usage["estimated_cost"] == 0
         manifest = json.loads(archive.read("manifest.json"))
         assert manifest["product"] == "Universal platform"
         assert manifest["agent"]["id"] == agent.id

@@ -7,9 +7,18 @@ export const agentFixture = {
   state: 'running',
   channel: 'cli',
   plugins: [] as string[],
+  plugin_labels: [] as string[],
   created_at: '2026-09-03T00:00:00+00:00',
   model: 'demo-echo',
   history: [] as { role: string; content: string; failed?: boolean }[],
+  usage: {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    estimated_cost: 0,
+    last_model: '',
+    last_latency_ms: 0,
+    calls: 0,
+  },
 }
 
 export function jsonResponse(data: unknown, status = 200) {

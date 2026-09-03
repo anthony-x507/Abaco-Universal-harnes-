@@ -6,6 +6,15 @@ export type HistoryTurn = {
   failed?: boolean
 }
 
+export type Usage = {
+  prompt_tokens: number
+  completion_tokens: number
+  estimated_cost: number
+  last_model: string
+  last_latency_ms: number
+  calls: number
+}
+
 export type Agent = {
   id: string
   name: string
@@ -13,11 +22,13 @@ export type Agent = {
   state: AgentState
   channel: string
   plugins: string[]
+  plugin_labels?: string[]
   created_at: string
   model: string
   history?: HistoryTurn[]
   answer?: string
   outbound_url?: string
+  usage?: Usage
 }
 
 export type Template = {
@@ -147,6 +158,25 @@ export async function askAgent(id: string, prompt: string): Promise<Agent> {
   })
 }
 
+export async function downloadAgentZip(id: string): Promise<void> {
+  const response = await fetch(`/v1/agents/${id}/deploy`, { method: 'POST' })
+  if (!response.ok) {
+    throw new ApiError(response.status, await parseError(response))
+  }
+  const blob = await response.blob()
+  const header = response.headers.get('content-disposition') || ''
+  const match = header.match(/filename="?([^"]+)"?/i)
+  const filename = match?.[1] || `agent-${id}.zip`
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 export type StreamStatusEvent = {
   type: 'tool_execution' | 'delegating'
   tool?: string
@@ -195,11 +225,20 @@ export async function askAgentStream(
   onDelta: (text: string) => void,
   signal?: AbortSignal,
   onStatus?: (event: StreamStatusEvent) => void,
+  options?: { autonomous?: boolean; maxIterations?: number },
 ): Promise<Agent> {
-  const response = await fetch(`/v1/agents/${id}/ask`, {
+  const path = options?.autonomous ? `/v1/agents/${id}/run` : `/v1/agents/${id}/ask`
+  const body: { prompt: string; stream: boolean; max_iterations?: number } = {
+    prompt,
+    stream: true,
+  }
+  if (options?.autonomous) {
+    body.max_iterations = options.maxIterations ?? 5
+  }
+  const response = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, stream: true }),
+    body: JSON.stringify(body),
     signal,
   })
   if (!response.ok) {

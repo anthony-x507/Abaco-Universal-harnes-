@@ -6,14 +6,17 @@ import json
 import os
 import re
 import tempfile
+import time
 import uuid
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from universal.channels.base import InboundMessage
 from universal.core.plugin import Plugin, PluginHost
 from universal.core.types import AgentInfo, AgentState, CompletionResponse, Message, utcnow
+from universal.core.usage import UsageStats, record_provider_call
 from universal.exceptions import ProviderError
 
 _NAME_FACT = re.compile(r"\bmy name is\s+(.+?)(?:[.!?]|$)", re.IGNORECASE)
@@ -63,6 +66,7 @@ class Agent:
         self.memory_data: dict[str, Any] = {"facts": [], "last_conversation": ""}
         self.created_at = utcnow()
         self._history: list[Message] = []
+        self.usage = UsageStats()
         if memory:
             self._load_memory()
 
@@ -131,6 +135,47 @@ class Agent:
             return []
         return self._history[-limit:]
 
+    def plugin_labels(self) -> list[str]:
+        """Readable plugin names for the UI (not internal catalog ids)."""
+        labels: list[str] = []
+        for plugin in self.plugins.all():
+            tools = plugin.tools()
+            names = [spec.name for spec in tools if spec.name]
+            title = plugin.name.replace("_", " ").title()
+            if plugin.name == "tools" and names:
+                labels.append("Tools: " + ", ".join(names))
+            elif names:
+                labels.append(f"{title}: {', '.join(names)}")
+            else:
+                labels.append(title)
+        return labels
+
+    def identity_record(self) -> dict[str, Any]:
+        """Identity fields for the registry sidecar. No history, no secrets."""
+        channel = self.channel
+        outbound = getattr(channel, "outbound_url", "") or ""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "template_id": self.template_id,
+            "channel": channel.name if channel is not None else "cli",
+            "outbound_url": outbound,
+            "memory": self.memory_enabled,
+            "plugins": self.plugins.names(),
+        }
+
+    @contextmanager
+    def tool_iter_limit(self, max_iterations: int | None) -> Iterator[None]:
+        if max_iterations is None:
+            yield
+            return
+        previous = self.max_tool_iters
+        self.max_tool_iters = max(1, int(max_iterations))
+        try:
+            yield
+        finally:
+            self.max_tool_iters = previous
+
     def _prompt_messages(self, prompt: str) -> tuple[Message, list[Message]]:
         user = Message(role="user", content=prompt)
         turn: list[Message] = []
@@ -153,7 +198,14 @@ class Agent:
         working = list(turn)
 
         for _ in range(self.max_tool_iters):
+            started = time.perf_counter()
             response = self.provider.complete(working, tools=tools or None)
+            record_provider_call(
+                self,
+                response,
+                messages=working,
+                latency_ms=(time.perf_counter() - started) * 1000,
+            )
             if response.wants_tools:
                 working.append(
                     Message(
@@ -200,7 +252,14 @@ class Agent:
         if tools:
             response: CompletionResponse | None = None
             for _ in range(self.max_tool_iters):
+                started = time.perf_counter()
                 response = self.provider.complete(working, tools=tools)
+                record_provider_call(
+                    self,
+                    response,
+                    messages=working,
+                    latency_ms=(time.perf_counter() - started) * 1000,
+                )
                 if response.wants_tools:
                     working.append(
                         Message(
@@ -233,11 +292,18 @@ class Agent:
                 yield {"type": "token", "text": assembled}
         else:
             pieces: list[str] = []
+            started = time.perf_counter()
             for piece in self.provider.stream(working, tools=None):
                 pieces.append(piece)
                 yield {"type": "token", "text": piece}
             assembled = "".join(pieces)
             response = CompletionResponse(text=assembled, model=getattr(self.provider, "model", "") or "")
+            record_provider_call(
+                self,
+                response,
+                messages=working,
+                latency_ms=(time.perf_counter() - started) * 1000,
+            )
             response = self.plugins.after_complete(self, working, response)
             assembled = response.text
 
@@ -294,6 +360,21 @@ class Agent:
         bind_stream = getattr(self.channel, "bind_stream", None)
         if callable(bind_stream):
             bind_stream(lambda inbound: self.complete_stream_events(inbound.text))
+
+    def run(self, prompt: str, *, max_iterations: int = 5) -> str:
+        """Autonomous layer above ``accept``: same inbound, tighter tool budget.
+
+        ``complete`` already loops tools. This only caps ``max_tool_iters`` for
+        one inbound turn and still goes through the bound channel.
+        """
+        with self.tool_iter_limit(max_iterations):
+            return self.accept(prompt)
+
+    def run_stream_events(
+        self, prompt: str, *, max_iterations: int = 5
+    ) -> Iterator[dict[str, object]]:
+        with self.tool_iter_limit(max_iterations):
+            yield from self.accept_stream_events(prompt)
 
     def accept(self, text: str) -> str:
         """Inbound path after ``factory.start``: go through the bound channel.

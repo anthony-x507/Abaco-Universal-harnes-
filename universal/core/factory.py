@@ -66,6 +66,9 @@ class AgentFactory:
         provider: Provider | None = None,
         channel: str = "cli",
         outbound_url: str | None = None,
+        plugins: tuple[str, ...] | list[str] | None = None,
+        memory: bool | None = None,
+        agent_id: str | None = None,
     ) -> Agent:
         return self.generator.generate(
             template_id,
@@ -73,6 +76,9 @@ class AgentFactory:
             provider=provider,
             channel=channel,
             outbound_url=outbound_url,
+            plugins=plugins,
+            memory=memory,
+            agent_id=agent_id,
         )
 
     def start(self, agent_id: str) -> Agent:
