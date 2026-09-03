@@ -46,6 +46,35 @@ describe('Chat page quality tests', () => {
     expect(askBody(ask?.init)).toEqual({ prompt: 'hello', stream: true })
   })
 
+  it('shows an ephemeral tool banner that is not a chat turn', async () => {
+    const user = userEvent.setup()
+    installFetchMock((path, init) => {
+      if (path === '/v1/agents/a1/ask' && init?.method === 'POST') {
+        return sseResponse([
+          'data: {"type":"tool_execution","tool":"utc_now"}',
+          'data: {"type":"token","text":"now"}',
+          `data: ${JSON.stringify({
+            ...agentFixture,
+            history: [
+              { role: 'user', content: 'time' },
+              { role: 'assistant', content: 'now' },
+            ],
+            answer: 'now',
+            done: true,
+          })}`,
+        ])
+      }
+      return null
+    })
+
+    renderChat()
+    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'time')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    expect(await screen.findByText('🔧 Executing tool: utc_now...')).toBeInTheDocument()
+    expect(await screen.findByText('now')).toBeInTheDocument()
+    expect(screen.queryByText('🔧 Executing tool: utc_now...', { selector: '.whitespace-pre-wrap' })).not.toBeInTheDocument()
+  })
+
   it('T15 assembles SSE tokens into the assistant turn', async () => {
     const user = userEvent.setup()
     installFetchMock((path, init) => {

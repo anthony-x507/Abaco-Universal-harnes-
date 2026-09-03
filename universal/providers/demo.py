@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from universal.core.types import CompletionResponse, Message, ToolSpec
+from universal.core.types import CompletionResponse, Message, ToolCall, ToolSpec
 from universal.providers.base import Provider
 
 
@@ -23,6 +23,20 @@ class EchoProvider(Provider):
         model: str | None = None,
     ) -> CompletionResponse:
         last = next((m.content for m in reversed(messages) if m.role == "user"), "")
+        already_used_tool = any(message.role == "tool" for message in messages)
+        wants_clock = any(word in last.lower() for word in ("time", "utc", "clock"))
+        if (
+            tools
+            and not already_used_tool
+            and wants_clock
+            and any(spec.name == "utc_now" for spec in tools)
+        ):
+            return CompletionResponse(
+                text="",
+                tool_calls=[ToolCall(id="demo_utc", name="utc_now", arguments="{}")],
+                model=self.model,
+                finish_reason="tool_calls",
+            )
         return CompletionResponse(
             text=f"(demo) {last}",
             model=self.model,

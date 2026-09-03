@@ -53,6 +53,8 @@ export function ChatPage() {
   const [error, setError] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [activity, setActivity] = useState({ visible: false, text: '' })
+  const activityTimer = useRef<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -62,6 +64,12 @@ export function ChatPage() {
   useEffect(() => {
     selectedIdRef.current = selectedId
   }, [selectedId])
+
+  useEffect(() => {
+    return () => {
+      if (activityTimer.current) window.clearTimeout(activityTimer.current)
+    }
+  }, [])
 
   const selected = useMemo(
     () => agents.find((agent) => agent.id === selectedId) ?? null,
@@ -162,6 +170,15 @@ export function ChatPage() {
     return `${text}\n\n${extras}`
   }
 
+  const showActivity = (text: string, ms: number) => {
+    if (activityTimer.current) window.clearTimeout(activityTimer.current)
+    setActivity({ visible: true, text })
+    activityTimer.current = window.setTimeout(() => {
+      setActivity((current) => ({ ...current, visible: false }))
+      activityTimer.current = null
+    }, ms)
+  }
+
   const sendPrompt = async (outbound: string, appendUser: boolean) => {
     if (!selectedId) return
     const controller = beginAsk(selectedId)
@@ -191,6 +208,15 @@ export function ChatPage() {
           })
         },
         controller.signal,
+        (status) => {
+          if (status.type === 'tool_execution') {
+            showActivity(`🔧 Executing tool: ${status.tool || 'tool'}...`, 2000)
+            return
+          }
+          if (status.type === 'delegating') {
+            showActivity(`📤 Agent sent message to "${status.target || 'another agent'}"`, 3000)
+          }
+        },
       )
       if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
@@ -538,6 +564,14 @@ export function ChatPage() {
               )}
             </div>
 
+            {activity.visible && (
+              <div
+                role="status"
+                className="mx-3 mb-0 mt-2 rounded-md border border-border bg-surface px-3 py-1.5 text-center text-sm text-muted"
+              >
+                {activity.text}
+              </div>
+            )}
             <form
               className="border-t border-border bg-surface p-3"
               onSubmit={(event) => {

@@ -188,11 +188,8 @@ class Agent:
             self._update_memory(prompt, response.text)
         return response.text
 
-    def complete_stream(self, prompt: str, *, remember: bool = True) -> Iterator[str]:
-        """Same plugin/tool path as ``complete``, yielding final-text deltas.
-
-        Tool rounds use ``complete``. The last assistant text is streamed.
-        """
+    def complete_stream_events(self, prompt: str, *, remember: bool = True) -> Iterator[dict[str, object]]:
+        """Same path as ``complete_stream``, plus status events for the factory SSE."""
         user, turn = self._prompt_messages(prompt)
         turn = self.plugins.before_complete(self, turn)
 
@@ -213,6 +210,7 @@ class Agent:
                         )
                     )
                     for call in response.tool_calls:
+                        yield self._status_event_for_tool(call)
                         result = self.plugins.invoke_tool(call)
                         working.append(
                             Message(
@@ -232,12 +230,12 @@ class Agent:
             response = self.plugins.after_complete(self, working, response)
             assembled = response.text
             if assembled:
-                yield assembled
+                yield {"type": "token", "text": assembled}
         else:
             pieces: list[str] = []
             for piece in self.provider.stream(working, tools=None):
                 pieces.append(piece)
-                yield piece
+                yield {"type": "token", "text": piece}
             assembled = "".join(pieces)
             response = CompletionResponse(text=assembled, model=getattr(self.provider, "model", "") or "")
             response = self.plugins.after_complete(self, working, response)
@@ -248,6 +246,27 @@ class Agent:
             self._history.append(Message(role="assistant", content=assembled))
         if self.memory_enabled:
             self._update_memory(prompt, assembled)
+
+    def complete_stream(self, prompt: str, *, remember: bool = True) -> Iterator[str]:
+        """Same plugin/tool path as ``complete``, yielding final-text deltas."""
+        for event in self.complete_stream_events(prompt, remember=remember):
+            if event.get("type") == "token" and event.get("text"):
+                yield str(event["text"])
+
+    @staticmethod
+    def _status_event_for_tool(call: object) -> dict[str, object]:
+        name = str(getattr(call, "name", "") or "")
+        if name in {"call_agent", "delegate"}:
+            target = name
+            raw = str(getattr(call, "arguments", "") or "")
+            try:
+                args = json.loads(raw) if raw else {}
+            except ValueError:
+                args = {}
+            if isinstance(args, dict):
+                target = str(args.get("name") or args.get("target") or name)
+            return {"type": "delegating", "target": target}
+        return {"type": "tool_execution", "tool": name}
 
     def info(self, state: AgentState = AgentState.CREATED) -> AgentInfo:
         channel_name = self.channel.name if self.channel is not None else ""
@@ -274,7 +293,7 @@ class Agent:
         self.channel.bind(_handle)
         bind_stream = getattr(self.channel, "bind_stream", None)
         if callable(bind_stream):
-            bind_stream(lambda inbound: self.complete_stream(inbound.text))
+            bind_stream(lambda inbound: self.complete_stream_events(inbound.text))
 
     def accept(self, text: str) -> str:
         """Inbound path after ``factory.start``: go through the bound channel.
@@ -289,11 +308,21 @@ class Agent:
 
     def accept_stream(self, text: str) -> Iterator[str]:
         """Inbound streaming path after ``factory.start``. Still channel-shaped."""
+        for event in self.accept_stream_events(text):
+            if event.get("type") == "token" and event.get("text"):
+                yield str(event["text"])
+
+    def accept_stream_events(self, text: str) -> Iterator[dict[str, object]]:
+        """Inbound stream with status events. Still goes through the bound channel."""
         if self.channel is None:
-            yield from self.complete_stream(text)
+            yield from self.complete_stream_events(text)
             return
         handle_stream = getattr(self.channel, "handle_text_stream", None)
-        if callable(handle_stream):
-            yield from handle_stream(text)
+        if not callable(handle_stream):
+            yield {"type": "token", "text": self.channel.handle_text(text)}
             return
-        yield self.channel.handle_text(text)
+        for piece in handle_stream(text):
+            if isinstance(piece, dict):
+                yield piece
+            elif piece:
+                yield {"type": "token", "text": str(piece)}

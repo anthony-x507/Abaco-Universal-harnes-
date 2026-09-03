@@ -35,7 +35,7 @@ class CLIChannel(BaseCommunication):
         self._stdin = stdin
         self._stdout = stdout
         self._handler: MessageHandler | None = None
-        self._stream_handler: Callable[[InboundMessage], Iterator[str]] | None = None
+        self._stream_handler: Callable[[InboundMessage], Iterator[object]] | None = None
         self._running = False
         self._inbox: list[str] = []
 
@@ -56,7 +56,7 @@ class CLIChannel(BaseCommunication):
     def bind(self, handler: MessageHandler) -> None:
         self._handler = handler
 
-    def bind_stream(self, handler: Callable[[InboundMessage], Iterator[str]]) -> None:
+    def bind_stream(self, handler: Callable[[InboundMessage], Iterator[object]]) -> None:
         self._stream_handler = handler
 
     def send(self, message: OutboundMessage) -> None:
@@ -107,7 +107,7 @@ class CLIChannel(BaseCommunication):
     def handle_text(self, text: str) -> str:
         return self.handle(InboundMessage(text=text, sender_id="local"))
 
-    def handle_text_stream(self, text: str) -> Iterator[str]:
+    def handle_text_stream(self, text: str) -> Iterator[object]:
         """Push one inbound string through the stream handler, then send the full reply."""
         inbound = InboundMessage(text=text, sender_id="local")
         if self._stream_handler is None:
@@ -115,7 +115,13 @@ class CLIChannel(BaseCommunication):
             return
         parts: list[str] = []
         for piece in self._stream_handler(inbound):
-            parts.append(piece)
+            if isinstance(piece, dict):
+                yield piece
+                token = piece.get("text") if piece.get("type") == "token" else None
+                if token:
+                    parts.append(str(token))
+                continue
+            parts.append(str(piece))
             yield piece
         full = "".join(parts)
         if full:

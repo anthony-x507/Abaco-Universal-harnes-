@@ -234,19 +234,24 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             def events() -> Iterator[str]:
                 pieces: list[str] = []
                 try:
-                    stream = agent.accept_stream(prompt)
+                    def emit() -> Iterator[str]:
+                        for event in agent.accept_stream_events(prompt):
+                            kind = str(event.get("type") or "")
+                            if kind == "token" and event.get("text"):
+                                pieces.append(str(event["text"]))
+                                yield f"data: {json.dumps({'type': 'token', 'text': event['text']})}\n\n"
+                            elif kind in {"tool_execution", "delegating"}:
+                                yield f"data: {json.dumps(event)}\n\n"
+
                     if isinstance(channel, CLIChannel):
                         with channel.capture():
-                            for piece in stream:
-                                pieces.append(piece)
-                                yield f"data: {json.dumps({'text': piece})}\n\n"
+                            yield from emit()
                     else:
-                        for piece in stream:
-                            pieces.append(piece)
-                            yield f"data: {json.dumps({'text': piece})}\n\n"
+                        yield from emit()
                     payload = _agent_payload(state.platform, agent.id)
                     payload["answer"] = "".join(pieces)
                     payload["done"] = True
+                    payload["type"] = "done"
                     yield f"data: {json.dumps(payload)}\n\n"
                 except UniversalError as exc:
                     status = getattr(exc, "status_code", 502)

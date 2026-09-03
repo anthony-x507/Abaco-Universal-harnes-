@@ -147,9 +147,16 @@ export async function askAgent(id: string, prompt: string): Promise<Agent> {
   })
 }
 
+export type StreamStatusEvent = {
+  type: 'tool_execution' | 'delegating'
+  tool?: string
+  target?: string
+}
+
 function parseSseBlock(
   part: string,
   onDelta: (text: string) => void,
+  onStatus?: (event: StreamStatusEvent) => void,
 ): (Agent & { done?: boolean }) | null {
   const line = part
     .split('\n')
@@ -157,9 +164,21 @@ function parseSseBlock(
     .map((row) => row.slice(5).trim())
     .join('')
   if (!line) return null
-  const event = JSON.parse(line) as Agent & { text?: string; done?: boolean; error?: string; status?: number }
+  const event = JSON.parse(line) as Agent & {
+    type?: string
+    text?: string
+    tool?: string
+    target?: string
+    done?: boolean
+    error?: string
+    status?: number
+  }
   if (event.error) {
     throw new ApiError(event.status ?? 502, event.error)
+  }
+  if (event.type === 'tool_execution' || event.type === 'delegating') {
+    onStatus?.({ type: event.type, tool: event.tool, target: event.target })
+    return null
   }
   if (event.text) {
     onDelta(event.text)
@@ -175,6 +194,7 @@ export async function askAgentStream(
   prompt: string,
   onDelta: (text: string) => void,
   signal?: AbortSignal,
+  onStatus?: (event: StreamStatusEvent) => void,
 ): Promise<Agent> {
   const response = await fetch(`/v1/agents/${id}/ask`, {
     method: 'POST',
@@ -199,12 +219,12 @@ export async function askAgentStream(
     const parts = buffer.split('\n\n')
     buffer = parts.pop() ?? ''
     for (const part of parts) {
-      const event = parseSseBlock(part, onDelta)
+      const event = parseSseBlock(part, onDelta, onStatus)
       if (event) donePayload = event
     }
   }
   if (buffer.trim()) {
-    const event = parseSseBlock(buffer, onDelta)
+    const event = parseSseBlock(buffer, onDelta, onStatus)
     if (event) donePayload = event
   }
   if (!donePayload) {
