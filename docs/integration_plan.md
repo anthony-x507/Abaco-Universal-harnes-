@@ -184,6 +184,8 @@ Stop and report if the change would:
 
 Accepted. Hito 0–1 are implemented: `ChannelCatalog`, `python3 -m universal serve`, SPA in `web/`. Hito 2+ (streaming, webhook) are not started.
 
+Go / no-go gates: `docs/go_no_go.md`. Default after Hito 0–1 is **parar** until the owner says sí on the next slice.
+
 ## What we will not do “because the notes did”
 
 - Copy `factory/`, `api/`, `ui/aegis-ui/`, `install.sh`, `Dockerfile.full`.
