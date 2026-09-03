@@ -22,8 +22,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `06.md` | Part 5: Communication Channels (Telegram, Discord, Slack, SMTP, webhook) | saved, not integrated |
 | `07.md` | Domain 4 / Part 10: 5G/6G Wireless plugin, sandbox, template | saved, not integrated |
 | `08.md` | Domain 5 / Part 11: Vehicle ECU & RF Security | saved, not integrated |
+| `09.md` | Domain 6 / Part 12: Robotics & Drone Technology | saved, not integrated |
 
-Expected: 51. Received: 8.
+Expected: 51. Received: 9.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -35,3 +36,4 @@ Expected: 51. Received: 8.
 - Face/app is greenfield from zero — do not implement pywebview ChatGPT clones from these notes.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
 - Note 08 (vehicle / RF) describes relay/replay attacks, CAN inject, ECU flash, key-fob decode. Archive only. Do not implement attack or unauthorized-access tooling. Legal OBD diagnostics on a vehicle the owner controls can be considered later as a separate, scoped plugin.
+- Note 09 (drones) includes live MAVLink control, RF detection, and later jammers/EW. Archive only. Do not implement jamming, spoofing, or unauthorized drone control. Simulation / mission-file planning can be reviewed later as a scoped plugin.
