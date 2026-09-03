@@ -107,7 +107,7 @@ Coverage that the brief asked for:
 - GitHub deploy (interface only; calling it does not write a ZIP)
 - Cross-process registry (see integration risks)
 - Streaming tokens
-- A web or ChatGPT-shaped UI — not in scope
+- A web or ChatGPT-shaped UI — not in scope. Integration order after the note archive: `docs/integration_plan.md`.
 
 ## Conflicts with earlier notes
 
