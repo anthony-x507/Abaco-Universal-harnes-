@@ -21,8 +21,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `05.md` | Folder numbering so far / next-step options | saved, not integrated |
 | `06.md` | Part 5: Communication Channels (Telegram, Discord, Slack, SMTP, webhook) | saved, not integrated |
 | `07.md` | Domain 4 / Part 10: 5G/6G Wireless plugin, sandbox, template | saved, not integrated |
+| `08.md` | Domain 5 / Part 11: Vehicle ECU & RF Security | saved, not integrated |
 
-Expected: 51. Received: 7.
+Expected: 51. Received: 8.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -33,3 +34,4 @@ Expected: 51. Received: 7.
 - Note 06 adds five live channels. Lock: one working channel in v1 (CLI already exists). More channels later as plugins, one at a time, with channel chosen at `create`.
 - Face/app is greenfield from zero — do not implement pywebview ChatGPT clones from these notes.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
+- Note 08 (vehicle / RF) describes relay/replay attacks, CAN inject, ECU flash, key-fob decode. Archive only. Do not implement attack or unauthorized-access tooling. Legal OBD diagnostics on a vehicle the owner controls can be considered later as a separate, scoped plugin.
