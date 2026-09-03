@@ -58,8 +58,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `42.md` | UI Step 5: Browser page (launch, replay, click-all, AI login) | saved, **do not implement** |
 | `43.md` | UI Step 6: Plugins page against clone `/plugins` | saved, **do not implement** |
 | `44.md` | UI Step 7: Scheduler page (cron + NL login-skill replay) | saved, **do not implement** |
+| `45.md` | UI Step 8: Settings page (`aegis-settings`, clone `/v1`) | saved, **do not implement** |
 
-Expected: 51. Received: 44.
+Expected: 51. Received: 45.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -94,6 +95,7 @@ Expected: 51. Received: 44.
 - Note 42 (Browser page: Playwright launch, record/replay, click-all, AI “log in to example.com”) is **not implemented**. Same locks as notes 23–33.
 - Note 43 (Plugins page listing/executing against clone `/plugins` and `/plugins/execute`) is **not implemented**. Universal already has a `PluginCatalog`; a later factory UI can surface that catalog through the existing `Universal` root, not a second FastAPI plugin runner.
 - Note 44 (Scheduler page: cron/NL add of browser `skill_name` replay via `/scheduler/*`) is **not implemented**. Same locks as notes 28–33. Do not schedule login/replay skills.
+- Note 45 (Settings page: `aegis-settings` localStorage, default model, `/v1` base, `/health` ping) is **not implemented**. Do not brand settings Aegis or point a client at the clone API. A later Universal face can keep local prefs under a Universal key and talk to the existing factory.
 - Note 37 (Aegis README advertising EW, 25+ providers, browser replay, `ui/factory_panel`) is **historical only**. Do not overwrite the Universal README or add `docs/api_reference.md` for the clone stack.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
 - Notes 15–17 and 19 (FastAPI for clones, LibreChat compose/Mongo, fake-stream SSE + `/code/execute`, hardcoded 25+ option lists including `ew_specialist`) are **historical only**. Do not add `api/` as a second factory (`AgentFactory()` in `main.py` would fork registry/lifecycle). Do not ship LibreChat, Mongo for that UI, or a dummy `sk-dummy` OpenAI shim. A later HTTP layer for the from-zero face may reuse endpoint *ideas* only if it injects the existing `Universal` root. Do not expose placeholder provider/channel lists or EW templates.
