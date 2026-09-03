@@ -180,9 +180,9 @@ Stop and report if the change would:
 8. Register placeholder LLM providers or channels.
 9. Touch jammer / spoof / unauthorized RF / login-replay / click-all.
 
-## Recommended next action
+## Status after designer alignment (`notes/49.md`)
 
-Send `docs/designer_alignment_brief.md` to the designer and wait for their alignment plan. Do not implement Cuts 1–5 until that plan is in. Cut 1 remains the first engineering slice if they confirm the locks.
+Accepted. Hito 0–1 are implemented: `ChannelCatalog`, `python3 -m universal serve`, SPA in `web/`. Hito 2+ (streaming, webhook) are not started.
 
 ## What we will not do “because the notes did”
 

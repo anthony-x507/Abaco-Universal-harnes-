@@ -27,11 +27,16 @@ python3 -m universal chat --template general
 python3 -m universal templates
 python3 -m universal deploy general --out ./agent.zip
 python3 -m universal shell
+python3 -m universal serve --demo
 ```
 
 `ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept` / `serve_forever`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
 
 `universal shell` is the factory control plane in one process: `create`, `start`, `stop`, `list`, `delete`, `ask`, `deploy`. That is how those operations stay on the single injected registry.
+
+`universal serve` is the HTTP control plane on the **same** root (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`). It is not an OpenAI `/v1/chat/completions` clone. `--demo` injects an echo provider so the SPA can run without a live key. The key is never written to disk.
+
+The first browser face lives in `web/` (Chat, Agents, Settings). It talks only to this server.
 
 ## Environment variables
 
@@ -71,6 +76,8 @@ universal/
   templates/     general, researcher, coder
   deploy/        ZIP packager + GitHub stub interface
   session.py     in-process factory shell (one Universal root)
+  server.py      HTTP factory control plane (one Universal root)
+web/             Universal SPA (Chat, Agents, Settings)
 ```
 
 ### Templates (the first three faces)
@@ -102,18 +109,20 @@ Coverage that the brief asked for:
 
 ## Deferred
 
+- Streaming tokens (Hito 2)
+- Webhook channel (Hito 3) — `create` already chooses a channel; v1 registers `cli` only
 - Hugging Face / MLX as real provider plugins (not fake “local” models)
-- Telegram / Slack / HTTP-callback channels (`BaseCommunication` is the slot)
+- Telegram / Slack (after webhook)
 - GitHub deploy (interface only; calling it does not write a ZIP)
 - Cross-process registry (see integration risks)
-- Streaming tokens
-- A web or ChatGPT-shaped UI — not in scope. Integration order after the note archive: `docs/integration_plan.md`.
+
+Designer alignment: `docs/designer_alignment_plan.md`. Engineering order: `docs/integration_plan.md`.
 
 ## Conflicts with earlier notes
 
 Notes 00–01 are not in this tree. Searched on 2026-09-03: repo, Google Drive, and Gmail. No files titled or containing those design notes. What we have from the original brief: an “Aegis” sketch under `factory/`, many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those conflict with the locks. This repo uses **Universal platform** / package `universal`, core under `universal/`, one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
 
-**Owner lock (2026-09-03): the face / app will be built from zero.** Do not implement ChatGPT-shaped screens from the notes. A web face is a new slice: it must talk to the existing factory (same registry/lifecycle), not reimplement agents. That needs a small contract change first — `create` must choose a channel (`cli` today). Shipping a second live I/O channel without that choice would split `factory.start`. Not implemented until that cut is explicit.
+**Owner lock (2026-09-03): the face / app will be built from zero.** The SPA in `web/` is Universal-branded and talks to `universal serve`. Do not ship LibreChat, Aegis chrome, or `/v1/chat/completions`. `create(..., channel="cli")` is implemented; webhook is not registered yet.
 
 ## Integration risks (stopped here)
 
@@ -125,7 +134,7 @@ The owner lock is: if a note is consistent but the integration would break anoth
 
 2. **No `start` / `stop` / `delete` as one-shot CLI commands.** They would look like they persist and would invite a store. Factory methods exist; the shell and the library call them.
 
-3. **No second live channel in this cut.** An HTTP callback next to the CLI channel would mean `factory.start` has to pick a transport or run two. That splits the “one working channel” contract. Telegram/Slack stay behind `BaseCommunication`.
+3. **No second live channel until it is registered and chosen at `create`.** Webhook is next. Telegram/Slack stay behind `BaseCommunication`. The HTTP server is a control plane, not an agent channel.
 
 4. **No extra provider objects per agent.** The generator caches one client and injects it. A per-agent `httpx.Client` would leak and hide the “one provider” wiring.
 
