@@ -12,12 +12,15 @@ import {
   askAgentStream,
   createAgent,
   getAgent,
+  getSettings,
   listAgents,
   listTemplates,
   type Agent,
   type HistoryTurn,
   type Template,
 } from '../lib/api'
+import { useAskSession } from '../lib/ask-session'
+import { pluginCountLabel } from '../lib/utils'
 import { loadPaneState, savePaneState, type PaneId, type PaneState } from '../lib/layout'
 import { cn } from '../lib/utils'
 
@@ -33,7 +36,11 @@ export function ChatPage() {
   const [prompt, setPrompt] = useState('')
   const [name, setName] = useState('')
   const [template, setTemplate] = useState('general')
+  const [channel, setChannel] = useState('cli')
+  const [channels, setChannels] = useState<string[]>(['cli'])
+  const [comingChannels, setComingChannels] = useState<string[]>(['webhook'])
   const [attachments, setAttachments] = useState<Attachment[]>([])
+  const { beginAsk, endAsk, showToast } = useAskSession()
   const [loadingList, setLoadingList] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [sending, setSending] = useState(false)
@@ -67,9 +74,12 @@ export function ChatPage() {
   }
 
   const refresh = async () => {
-    const [rows, tpls] = await Promise.all([listAgents(), listTemplates()])
+    const [rows, tpls, settings] = await Promise.all([listAgents(), listTemplates(), getSettings()])
     setAgents(rows)
     setTemplates(tpls)
+    setChannels(settings.channels.length > 0 ? settings.channels : ['cli'])
+    setComingChannels(settings.channels_coming)
+    setChannel(settings.default_channel || 'cli')
     if (tpls.length > 0 && !tpls.some((item) => item.id === template)) {
       setTemplate(tpls[0].id)
     }
@@ -146,52 +156,85 @@ export function ChatPage() {
     return `${text}\n\n${extras}`
   }
 
-  const send = async () => {
-    const text = prompt.trim()
-    if ((!text && attachments.length === 0) || !selectedId || sending) return
-    const outbound = buildPrompt(text || '(attachment only)')
+  const sendPrompt = async (outbound: string, appendUser: boolean) => {
+    if (!selectedId) return
+    const controller = beginAsk(selectedId)
+    if (!controller) return
     const agentId = selectedId
-    const keptAttachments = attachments
     setSending(true)
     setError('')
-    setPrompt('')
-    setAttachments([])
-    setHistory((current) => [
-      ...current,
-      { role: 'user', content: outbound },
-      { role: 'assistant', content: '' },
-    ])
+    setHistory((current) => {
+      const next = current.filter((turn) => !turn.failed)
+      if (appendUser) next.push({ role: 'user', content: outbound })
+      next.push({ role: 'assistant', content: '' })
+      return next
+    })
     try {
-      const result = await askAgentStream(agentId, outbound, (delta) => {
-        if (selectedIdRef.current !== agentId) return
-        setHistory((current) => {
-          const next = [...current]
-          const last = next[next.length - 1]
-          if (last?.role === 'assistant') {
-            next[next.length - 1] = { role: 'assistant', content: last.content + delta }
-          }
-          return next
-        })
-      })
+      const result = await askAgentStream(
+        agentId,
+        outbound,
+        (delta) => {
+          if (selectedIdRef.current !== agentId) return
+          setHistory((current) => {
+            const next = [...current]
+            const last = next[next.length - 1]
+            if (last?.role === 'assistant' && !last.failed) {
+              next[next.length - 1] = { role: 'assistant', content: last.content + delta }
+            }
+            return next
+          })
+        },
+        controller.signal,
+      )
       if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
       setAgents((current) => current.map((agent) => (agent.id === result.id ? result : agent)))
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      if (err instanceof ApiError && err.status === 409) {
+        showToast('Agent is already answering. Please wait.')
+        setHistory((current) => {
+          const next = [...current]
+          if (next[next.length - 1]?.role === 'assistant' && !next[next.length - 1]?.content) next.pop()
+          return next
+        })
+        return
+      }
       const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Ask failed.'
       if (selectedIdRef.current !== agentId) return
-      setError(message)
-      setPrompt(text)
-      setAttachments(keptAttachments)
       setHistory((current) => {
         const next = [...current]
-        if (next[next.length - 1]?.role === 'assistant') next.pop()
-        const user = next[next.length - 1]
-        if (user?.role === 'user' && user.content === outbound) next.pop()
+        const last = next[next.length - 1]
+        if (last?.role === 'assistant') {
+          next[next.length - 1] = { role: 'assistant', content: message, failed: true }
+        } else {
+          next.push({ role: 'assistant', content: message, failed: true })
+        }
         return next
       })
     } finally {
+      endAsk(agentId)
       if (selectedIdRef.current === agentId) setSending(false)
     }
+  }
+
+  const send = async () => {
+    const text = prompt.trim()
+    if ((!text && attachments.length === 0) || !selectedId) return
+    if (sending) {
+      showToast('Agent is already answering. Please wait.')
+      return
+    }
+    const outbound = buildPrompt(text || '(attachment only)')
+    setPrompt('')
+    setAttachments([])
+    await sendPrompt(outbound, true)
+  }
+
+  const retryLast = async () => {
+    const lastUser = [...history].reverse().find((turn) => turn.role === 'user')
+    if (!lastUser || sending) return
+    await sendPrompt(lastUser.content, false)
   }
 
   const onFiles = async (list: FileList | null) => {
@@ -260,7 +303,7 @@ export function ChatPage() {
       const agent = await createAgent({
         template,
         name: name.trim() || undefined,
-        channel: 'cli',
+        channel,
       })
       setName('')
       await refresh()
@@ -328,6 +371,24 @@ export function ChatPage() {
                 </ul>
                 <Label htmlFor="new-name">New agent</Label>
                 <Input id="new-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Name (optional)" />
+                <Label htmlFor="new-channel">Channel</Label>
+                <select
+                  id="new-channel"
+                  value={channel}
+                  onChange={(event) => setChannel(event.target.value)}
+                  className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
+                >
+                  {channels.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                  {comingChannels.map((id) => (
+                    <option key={id} value={id} disabled>
+                      {id} (later)
+                    </option>
+                  ))}
+                </select>
                 <Button size="sm" onClick={() => void create()} disabled={creating}>
                   {creating ? 'Creating…' : `Create ${templates.find((item) => item.id === template)?.name ?? 'agent'}`}
                 </Button>
@@ -358,7 +419,7 @@ export function ChatPage() {
                           </div>
                           <p className="text-xs text-muted">{info?.description ?? agent.template_id}</p>
                           <p className="text-[11px] text-muted">
-                            {agent.channel} · {agent.plugins.join(', ') || 'no plugins'}
+                            {agent.channel} · {pluginCountLabel(agent.plugins.length)}
                           </p>
                         </button>
                       </li>
@@ -403,11 +464,20 @@ export function ChatPage() {
                         'max-w-3xl rounded-lg px-3 py-2 text-sm leading-relaxed',
                         turn.role === 'user'
                           ? 'ml-auto bg-surface-2 text-ink'
-                          : 'bg-surface text-ink ring-1 ring-border',
+                          : turn.failed
+                            ? 'bg-red-500/10 text-red-100 ring-1 ring-red-500/40'
+                            : 'bg-surface text-ink ring-1 ring-border',
                       )}
                     >
-                      <div className="mb-1 text-[11px] uppercase tracking-wide text-muted">{turn.role}</div>
+                      <div className="mb-1 text-[11px] uppercase tracking-wide text-muted">
+                        {turn.failed ? 'error' : turn.role}
+                      </div>
                       <div className="whitespace-pre-wrap">{turn.content || (turn.role === 'assistant' && sending ? '…' : '')}</div>
+                      {turn.failed && (
+                        <Button size="sm" variant="outline" className="mt-2" onClick={() => void retryLast()} disabled={sending}>
+                          Retry
+                        </Button>
+                      )}
                     </div>
                   ))
               )}
@@ -479,6 +549,7 @@ export function ChatPage() {
                   size="sm"
                   variant="outline"
                   disabled={!selected || sending || loadingHistory}
+                  title="File content is sent as text"
                   onClick={() => fileRef.current?.click()}
                 >
                   <Paperclip size={14} />
@@ -489,6 +560,7 @@ export function ChatPage() {
                   size="sm"
                   variant={recording ? 'danger' : 'outline'}
                   disabled={!selected || sending || loadingHistory}
+                  title="Audio is attached as a note (no STT)"
                   onClick={() => void toggleRecord()}
                 >
                   {recording ? <Square size={14} /> : <Mic size={14} />}
@@ -497,6 +569,9 @@ export function ChatPage() {
                 <Button type="submit" disabled={!selected || sending || loadingHistory || (!prompt.trim() && attachments.length === 0)}>
                   Send
                 </Button>
+                <p className="w-full text-[11px] text-muted">
+                  Files are sent as text. Audio is attached as a note. No speech-to-text or OCR in this cut.
+                </p>
               </div>
             </form>
           </section>

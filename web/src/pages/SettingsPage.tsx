@@ -76,7 +76,8 @@ export function SettingsPage() {
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-sm text-muted">
-          These values update the running Universal process. Leave the API key blank to keep the current secret.
+          These settings will be used for new agents. Existing agents keep their current configuration.
+          Leave the API key blank to keep the current secret. Nothing is written to disk.
         </p>
       </div>
 
@@ -112,13 +113,22 @@ export function SettingsPage() {
             <Input id="base-url" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="api-key">API key {hasKey ? '(set)' : '(missing)'}</Label>
+            <Label htmlFor="api-key">
+              {demo ? 'Demo mode — no API key required' : `API key ${hasKey ? '(set)' : '(required for live completions)'}`}
+            </Label>
             <Input
               id="api-key"
               type="password"
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
-              placeholder={hasKey ? '••••••••  leave blank to keep' : 'Required for live completions'}
+              disabled={demo}
+              placeholder={
+                demo
+                  ? 'Demo mode — no API key required'
+                  : hasKey
+                    ? '••••••••  leave blank to keep'
+                    : 'Required for live completions'
+              }
             />
           </div>
           <div className="space-y-1">

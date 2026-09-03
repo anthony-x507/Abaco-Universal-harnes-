@@ -3,6 +3,7 @@ export type AgentState = 'created' | 'starting' | 'running' | 'stopping' | 'stop
 export type HistoryTurn = {
   role: string
   content: string
+  failed?: boolean
 }
 
 export type Agent = {
@@ -125,15 +126,40 @@ export async function askAgent(id: string, prompt: string): Promise<Agent> {
   })
 }
 
+function parseSseBlock(
+  part: string,
+  onDelta: (text: string) => void,
+): (Agent & { done?: boolean }) | null {
+  const line = part
+    .split('\n')
+    .filter((row) => row.startsWith('data:'))
+    .map((row) => row.slice(5).trim())
+    .join('')
+  if (!line) return null
+  const event = JSON.parse(line) as Agent & { text?: string; done?: boolean; error?: string }
+  if (event.error) {
+    throw new ApiError(502, event.error)
+  }
+  if (event.text) {
+    onDelta(event.text)
+  }
+  if (event.done) {
+    return event
+  }
+  return null
+}
+
 export async function askAgentStream(
   id: string,
   prompt: string,
   onDelta: (text: string) => void,
+  signal?: AbortSignal,
 ): Promise<Agent> {
   const response = await fetch(`/v1/agents/${id}/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, stream: true }),
+    signal,
   })
   if (!response.ok) {
     throw new ApiError(response.status, await parseError(response))
@@ -152,23 +178,13 @@ export async function askAgentStream(
     const parts = buffer.split('\n\n')
     buffer = parts.pop() ?? ''
     for (const part of parts) {
-      const line = part
-        .split('\n')
-        .filter((row) => row.startsWith('data:'))
-        .map((row) => row.slice(5).trim())
-        .join('')
-      if (!line) continue
-      const event = JSON.parse(line) as Agent & { text?: string; done?: boolean; error?: string }
-      if (event.error) {
-        throw new ApiError(502, event.error)
-      }
-      if (event.text) {
-        onDelta(event.text)
-      }
-      if (event.done) {
-        donePayload = event
-      }
+      const event = parseSseBlock(part, onDelta)
+      if (event) donePayload = event
     }
+  }
+  if (buffer.trim()) {
+    const event = parseSseBlock(buffer, onDelta)
+    if (event) donePayload = event
   }
   if (!donePayload) {
     throw new ApiError(502, 'Stream ended without a final agent payload')

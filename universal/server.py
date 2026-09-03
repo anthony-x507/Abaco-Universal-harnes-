@@ -56,6 +56,7 @@ class ServerState:
     platform: Universal
     default_channel: str = "cli"
     demo: bool = False
+    asking: set[str] = field(default_factory=set)
     deploy_dir: Path = field(default_factory=lambda: Path(tempfile.mkdtemp(prefix="universal-deploy-")))
 
 
@@ -188,6 +189,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     @app.delete("/v1/agents/{agent_id}")
     def delete_agent(agent_id: str) -> dict[str, Any]:
         payload = _agent_payload(state.platform, agent_id)
+        state.asking.discard(agent_id)
         state.platform.factory.delete(agent_id)
         return {"deleted": payload}
 
@@ -197,8 +199,14 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         if not state.demo:
             state.platform.settings.require_live()
         agent = state.platform.registry.get(agent_id)
+        if agent.id in state.asking:
+            raise HTTPException(status_code=409, detail="Agent is already answering")
+        state.asking.add(agent.id)
         state.platform.factory.start(agent.id)
         return agent
+
+    def _finish_ask(agent_id: str) -> None:
+        state.asking.discard(agent_id)
 
     @app.post("/v1/agents/{agent_id}/ask")
     def ask_agent(agent_id: str, body: AskBody) -> Any:
@@ -225,17 +233,22 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
                     yield f"data: {json.dumps(payload)}\n\n"
                 except UniversalError as exc:
                     yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+                finally:
+                    _finish_ask(agent.id)
 
             return StreamingResponse(events(), media_type="text/event-stream")
 
-        if isinstance(channel, CLIChannel):
-            with channel.capture():
+        try:
+            if isinstance(channel, CLIChannel):
+                with channel.capture():
+                    answer = agent.accept(prompt)
+            else:
                 answer = agent.accept(prompt)
-        else:
-            answer = agent.accept(prompt)
-        payload = _agent_payload(state.platform, agent.id)
-        payload["answer"] = answer
-        return payload
+            payload = _agent_payload(state.platform, agent.id)
+            payload["answer"] = answer
+            return payload
+        finally:
+            _finish_ask(agent.id)
 
     @app.post("/v1/agents/{agent_id}/deploy")
     def deploy_agent(agent_id: str) -> FileResponse:

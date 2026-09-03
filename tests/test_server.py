@@ -85,3 +85,13 @@ def test_settings_update_stays_in_memory(platform: Universal) -> None:
 def test_no_chat_completions_clone(platform: Universal) -> None:
     client = _client(platform)
     assert client.post("/v1/chat/completions", json={}).status_code == 404
+
+
+def test_second_ask_while_answering_is_409(platform: Universal) -> None:
+    app = create_app(platform, demo=True)
+    client = TestClient(app)
+    agent_id = client.post("/v1/agents", json={"template": "general"}).json()["id"]
+    app.state.universal.asking.add(agent_id)
+    second = client.post(f"/v1/agents/{agent_id}/ask", json={"prompt": "two"})
+    assert second.status_code == 409
+    assert "already answering" in str(second.json()).lower()

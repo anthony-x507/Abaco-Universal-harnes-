@@ -16,6 +16,11 @@ def test_three_templates_load() -> None:
         template = get_template(template_id)
         assert template.system_prompt.strip()
         assert template.name
+        assert "system_prompt" not in template.default_plugins
+        assert "transcript" not in template.default_plugins
+    assert get_template("researcher").default_plugins == ("tools",)
+    assert get_template("general").default_plugins == ()
+    assert get_template("coder").default_plugins == ()
 
 
 def test_templates_have_distinct_prompts() -> None:
@@ -27,7 +32,8 @@ def test_factory_creates_each_template(platform: Universal) -> None:
     for template_id in ("general", "researcher", "coder"):
         agent = platform.factory.create(template_id, name=template_id)
         assert agent.template_id == template_id
-        assert "system_prompt" in agent.plugins
+        assert "system_prompt" not in agent.plugins
+        assert "transcript" not in agent.plugins
         assert agent.system_prompt == get_template(template_id).system_prompt
     assert {info.template_id for info in platform.factory.list()} == {
         "general",
@@ -41,6 +47,13 @@ def test_researcher_includes_tools_plugin(platform: Universal) -> None:
     assert "tools" in agent.plugins
     specs = agent.plugins.collect_tools()
     assert any(spec.name == "utc_now" for spec in specs)
+
+
+def test_general_and_coder_have_no_default_plugins(platform: Universal) -> None:
+    general = platform.factory.create("general")
+    coder = platform.factory.create("coder")
+    assert general.plugins.names() == []
+    assert coder.plugins.names() == []
 
 
 def test_unknown_template_raises(platform: Universal) -> None:

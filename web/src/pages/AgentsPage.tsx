@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label'
 import {
   createAgent,
   deleteAgent,
+  getSettings,
   listAgents,
   listTemplates,
   startAgent,
@@ -15,6 +16,8 @@ import {
   type Agent,
   type Template,
 } from '../lib/api'
+import { useAskSession } from '../lib/ask-session'
+import { pluginCountLabel } from '../lib/utils'
 
 export function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([])
@@ -22,14 +25,21 @@ export function AgentsPage() {
   const [name, setName] = useState('')
   const [template, setTemplate] = useState('general')
   const [channel, setChannel] = useState('cli')
+  const [channels, setChannels] = useState<string[]>(['cli'])
+  const [coming, setComing] = useState<string[]>(['webhook'])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState('')
   const [error, setError] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<Agent | null>(null)
+  const { askingId, abortAsk } = useAskSession()
 
   const refresh = async () => {
-    const [rows, tpls] = await Promise.all([listAgents(), listTemplates()])
+    const [rows, tpls, settings] = await Promise.all([listAgents(), listTemplates(), getSettings()])
     setAgents(rows)
     setTemplates(tpls)
+    setChannels(settings.channels.length > 0 ? settings.channels : ['cli'])
+    setComing(settings.channels_coming)
+    setChannel(settings.default_channel || 'cli')
     if (tpls.length > 0 && !tpls.some((item) => item.id === template)) {
       setTemplate(tpls[0].id)
     }
@@ -65,6 +75,26 @@ export function AgentsPage() {
     } finally {
       setWorking('')
     }
+  }
+
+  const requestDelete = (agent: Agent) => {
+    if (askingId === agent.id) {
+      setPendingDelete(agent)
+      return
+    }
+    void run(`delete-${agent.id}`, async () => {
+      await deleteAgent(agent.id)
+    })
+  }
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    const agent = pendingDelete
+    setPendingDelete(null)
+    abortAsk()
+    await run(`delete-${agent.id}`, async () => {
+      await deleteAgent(agent.id)
+    })
   }
 
   return (
@@ -145,10 +175,16 @@ export function AgentsPage() {
               onChange={(event) => setChannel(event.target.value)}
               className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
             >
-              <option value="cli">cli</option>
-              <option value="webhook" disabled>
-                webhook (later)
-              </option>
+              {channels.map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+              {coming.map((id) => (
+                <option key={id} value={id} disabled>
+                  {id} (later)
+                </option>
+              ))}
             </select>
           </div>
           <Button type="submit" disabled={working === 'create'}>
@@ -172,10 +208,10 @@ export function AgentsPage() {
                     <Badge className={agent.state === 'running' ? 'border-accent/40 text-accent' : ''}>
                       {agent.state}
                     </Badge>
+                    {askingId === agent.id && <Badge className="border-accent/40 text-accent">answering</Badge>}
                   </div>
                   <div className="mt-1 text-xs text-muted">
-                    {agent.template_id} · {agent.channel} · {agent.id}
-                    {agent.plugins.length > 0 ? ` · ${agent.plugins.join(', ')}` : ''}
+                    {agent.channel} · {pluginCountLabel(agent.plugins.length)}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -205,7 +241,7 @@ export function AgentsPage() {
                     size="sm"
                     variant="danger"
                     disabled={working === `delete-${agent.id}`}
-                    onClick={() => void run(`delete-${agent.id}`, async () => { await deleteAgent(agent.id) })}
+                    onClick={() => requestDelete(agent)}
                   >
                     Delete
                   </Button>
@@ -215,6 +251,25 @@ export function AgentsPage() {
           </ul>
         )}
       </Card>
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
+          <Card className="max-w-md space-y-3 p-5">
+            <h2 className="text-sm font-medium">Delete {pendingDelete.name}?</h2>
+            <p className="text-sm text-muted">
+              Agent is currently answering. Deleting will cancel the response. Continue?
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setPendingDelete(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => void confirmDelete()}>
+                Delete
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

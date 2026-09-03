@@ -139,7 +139,7 @@ The owner lock is: if a note is consistent but the integration would break anoth
 
 5. **GitHub deploy is not a silent ZIP.** `target="github"` raises `DeployError` and writes nothing. The working target is `zip`.
 
-6. **System prompt has two honest layers, not a third.** `Agent.complete` prepends `agent.system_prompt` so an agent without plugins still works. `SystemPromptPlugin` replaces leading system messages. The generator sets both from the same template string. A sync service between them would be a third owner — **not added.** Mutate both if you change the prompt, or detach the plugin and set `agent.system_prompt`.
+6. **System prompt is the agent field.** `Agent.complete` prepends `agent.system_prompt` from the template. Templates do not install `system_prompt` or `transcript` plugins. Those ids stay in `PluginCatalog` for library hot-swap. Researcher still installs `tools` (`utc_now`).
 
 7. **Plugin ids go through `PluginCatalog`.** Templates name plugins; the generator does not `if plugin_id == ...`. Filesystem plugin discovery is deferred (it would load code the factory did not inject).
 

@@ -51,6 +51,8 @@ Process lifetime. No SQLite/JSON registry in v1.
 
 Packet for the designer’s visto final after Hito 0–2 + polish + wiring audit: `docs/designer_final_review.md`.
 
+Designer visto (`notes/51.md`): approved. Immediate corrections before Hito 3: agent-field system prompt only; no default `transcript`; plugin counts not ids; Settings apply to new agents; create reads `default_channel`; demo key copy; one ask at a time; delete-during-ask cancels then deletes; stream errors keep the user turn + Retry. Webhook stays later. Provider and channel stay first-class, not plugins.
+
 Engineering notes that do not change the plan:
 
 - There is no `pause` lifecycle state. Agents page uses start / stop / delete.

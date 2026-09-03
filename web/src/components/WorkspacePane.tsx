@@ -57,8 +57,8 @@ export function WorkspacePane({ onClose }: { onClose: () => void }) {
               </p>
             </div>
           </div>
-          <Button size="sm" variant="outline" disabled>
-            Connect screen
+          <Button size="sm" variant="outline" disabled title="coming soon">
+            Connect screen (coming soon)
           </Button>
         </div>
       ) : (
@@ -87,8 +87,8 @@ export function WorkspacePane({ onClose }: { onClose: () => void }) {
               </div>
             </dl>
           </div>
-          <Button size="sm" variant="outline" disabled>
-            Install extension
+          <Button size="sm" variant="outline" disabled title="coming soon">
+            Install extension (coming soon)
           </Button>
         </div>
       )}

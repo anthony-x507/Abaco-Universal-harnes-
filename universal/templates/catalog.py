@@ -28,7 +28,7 @@ class Template:
     name: str
     description: str
     system_prompt: str
-    default_plugins: tuple[str, ...] = ("system_prompt",)
+    default_plugins: tuple[str, ...] = ()
 
 
 def _built_in() -> dict[str, Template]:
@@ -38,21 +38,21 @@ def _built_in() -> dict[str, Template]:
             name="General",
             description="Helpful general-purpose agent for everyday questions.",
             system_prompt=GENERAL_PROMPT,
-            default_plugins=("system_prompt", "transcript"),
+            default_plugins=(),
         ),
         "researcher": Template(
             id="researcher",
             name="Researcher",
             description="Structured research face: known / inferred / missing.",
             system_prompt=RESEARCHER_PROMPT,
-            default_plugins=("system_prompt", "transcript", "tools"),
+            default_plugins=("tools",),
         ),
         "coder": Template(
             id="coder",
             name="Coder",
             description="Software-engineering face: precise code and trade-offs.",
             system_prompt=CODER_PROMPT,
-            default_plugins=("system_prompt", "transcript"),
+            default_plugins=(),
         ),
     }
 
