@@ -27,8 +27,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `11.md` | Domain 8 / Part 14: Mesh Networking & IoT Protocols | saved, not integrated |
 | `12.md` | Domain 9 / Part 15: Embedded Systems & FPGA Development | saved, not integrated |
 | `13.md` | Domain 10 / Part 16: Knowledge Base & Training Platform | saved, not integrated |
+| `14.md` | UI integration via LibreChat / Open WebUI (ChatGPT-style) | saved, **historical — do not use those faces** |
 
-Expected: 51. Received: 13.
+Expected: 51. Received: 14.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -38,6 +39,7 @@ Expected: 51. Received: 13.
 - Note 04 registers many providers including a fake-local style. Lock: one real OpenAI-compatible client first; no 40 fake providers.
 - Note 06 adds five live channels. Lock: one working channel in v1 (CLI already exists). More channels later as plugins, one at a time, with channel chosen at `create`.
 - Face/app is greenfield from zero — do not implement pywebview ChatGPT clones from these notes.
+- Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
 - Note 07 (5G/6G) includes network scan / SDR / security-testing placeholders. Archive only. Do not implement offensive wireless, radio, or unauthorized-access tooling at integrate time.
 - Note 08 (vehicle / RF) describes relay/replay attacks, CAN inject, ECU flash, key-fob decode. Archive only. Do not implement attack or unauthorized-access tooling. Legal OBD diagnostics on a vehicle the owner controls can be considered later as a separate, scoped plugin.
 - Note 09 (drones) includes live MAVLink control, RF detection, and later jammers/EW. Archive only. Do not implement jamming, spoofing, or unauthorized drone control. Simulation / mission-file planning can be reviewed later as a scoped plugin.
