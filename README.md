@@ -111,7 +111,9 @@ Coverage that the brief asked for:
 
 ## Conflicts with earlier notes
 
-Notes 00–01 are not in this tree. What we have from the brief: an “Aegis” sketch under `factory/`, many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those conflict with the locks. This repo uses **Universal platform** / package `universal`, core under `universal/`, one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
+Notes 00–01 are not in this tree. Searched on 2026-09-03: repo, Google Drive, and Gmail. No files titled or containing those design notes. What we have from the original brief: an “Aegis” sketch under `factory/`, many fake LLM providers, a fake local model, and ChatGPT-branded UI clones. Those conflict with the locks. This repo uses **Universal platform** / package `universal`, core under `universal/`, one real OpenAI-compatible client, no fake local model, no ChatGPT UI.
+
+**Owner lock (2026-09-03): the face / app will be built from zero.** Do not implement ChatGPT-shaped screens from the notes. A web face is a new slice: it must talk to the existing factory (same registry/lifecycle), not reimplement agents. That needs a small contract change first — `create` must choose a channel (`cli` today). Shipping a second live I/O channel without that choice would split `factory.start`. Not implemented until that cut is explicit.
 
 ## Integration risks (stopped here)
 
