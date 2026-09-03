@@ -31,8 +31,9 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `15.md` | Part 17: FastAPI backend for ChatGPT-style UIs | saved, **historical — do not implement as product face** |
 | `16.md` | Part 18: LibreChat + Docker Compose stack | saved, **historical — do not use that face** |
 | `17.md` | Part 19: Streaming, file upload, sandbox code exec API | saved, **historical — do not implement for those UIs** |
+| `18.md` | Part 20: 25+ LLM providers and 25+ communication channels | saved, not integrated |
 
-Expected: 51. Received: 17.
+Expected: 51. Received: 18.
 
 ## Integration flags (do not apply until the set is complete)
 
@@ -40,6 +41,7 @@ Expected: 51. Received: 17.
 - Note 02 gives Generator and Manager each their own `AgentRegistry` + `LifecycleManager`. Lock: construct those once and inject.
 - Note 02 JSON file registry would be a second store next to the in-memory registry. Stop and report; do not add silently.
 - Note 04 registers many providers including a fake-local style. Lock: one real OpenAI-compatible client first; no 40 fake providers.
+- Note 18 repeats the 25+ provider/channel count with dummy registry entries (`nlpcloud`, `gooseai`, …) and send-only channel skeletons. Same lock: do not register placeholders. More real providers/channels later one at a time; the existing OpenAI-compat client already covers DeepSeek/Groq/Mistral-style bases when pointed at their URL.
 - Note 06 adds five live channels. Lock: one working channel in v1 (CLI already exists). More channels later as plugins, one at a time, with channel chosen at `create`.
 - Face/app is greenfield from zero — do not implement pywebview ChatGPT clones from these notes.
 - Note 14 (LibreChat / Open WebUI / Chatbot UI / Lobe Chat) is **historical only**. Owner lock: we will not use those faces. Do not save it as live `docs/ui_integration.md`, do not fork those UIs, do not add a FastAPI OpenAI-compat wrapper just to plug a ChatGPT clone in front of the factory. A later HTTP API for a from-zero face can be reviewed separately; it must talk to the existing factory, not a second agent stack.
