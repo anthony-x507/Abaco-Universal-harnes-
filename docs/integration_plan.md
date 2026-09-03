@@ -182,7 +182,7 @@ Stop and report if the change would:
 
 ## Recommended next action
 
-Implement **Cut 1 only**. It is the smallest wiring change that unblocks Cuts 2–4 without forking the factory. Do not start the web app until Cut 1 and Cut 2 exist.
+Send `docs/designer_alignment_brief.md` to the designer and wait for their alignment plan. Do not implement Cuts 1–5 until that plan is in. Cut 1 remains the first engineering slice if they confirm the locks.
 
 ## What we will not do “because the notes did”
 
