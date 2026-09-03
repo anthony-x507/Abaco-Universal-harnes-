@@ -6,7 +6,7 @@ Source: `notes/59.md`. Hito 3 (webhook) is already shipped. This file is the exe
 
 ```bash
 python3 -m pytest
-cd web && bun test
+cd web && bun run test
 ```
 
 Automatic tests use `FakeProvider` / `EchoProvider` / `vi.mock` / patched `httpx.post`. A fresh `Universal` fixture is created per Python test (`tests/conftest.py`).
