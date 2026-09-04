@@ -698,9 +698,6 @@ export function ChatPage() {
                   }
                   onClick={() => {
                     if (!requireAgent()) return
-                    if (whisperReady === false) {
-                      showToast("Local Whisper is not installed. Run pip install 'universal[media]'.")
-                    }
                     void toggleRecord()
                   }}
                 >
