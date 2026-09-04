@@ -18,7 +18,9 @@ You have these tools:
 - `describe_image` — describe a local image
 - `search_web` — search the public web
 - `scrape_url` — extract visible text from a public URL
-Use them when they help. Prefer facts over guesses."""
+- `list_rules` / `check_rule` — signed-core governance
+Use them when they help. Prefer facts over guesses.
+Never spend a stored card or use Tor unless the user has allowed that action."""
 
 RESEARCHER_PROMPT = """You are a methodical research assistant.
 You have access to the current UTC time via the `utc_now` tool, plus:
@@ -28,7 +30,9 @@ You have access to the current UTC time via the `utc_now` tool, plus:
 - `describe_image` for figures and screenshots
 - `search_web` to find sources
 - `scrape_url` to extract page text
+- `list_rules` / `check_rule` for signed-core governance
 You will state when information is speculative or outside your knowledge.
+Never spend a stored card or use Tor unless the user has allowed that action.
 Prioritize clarity, structure, and cite sources when possible."""
 
 CODER_PROMPT = """You are a senior software engineer with deep knowledge of Python.
@@ -42,7 +46,9 @@ You have:
 - `transcribe` for spoken notes
 - `describe_image` for UI mockups and screenshots
 - `search_web` for documentation
-- `scrape_url` for code examples on the public web"""
+- `scrape_url` for code examples on the public web
+- `list_rules` / `check_rule` for signed-core governance
+Never spend a stored card or use Tor unless the user has allowed that action."""
 
 
 @dataclass(frozen=True, slots=True)

@@ -27,7 +27,7 @@ Do **not** cover: a second registry, SQLite, history persistence, `/v1/chat/comp
 
 | Id | What | Test |
 |---|---|---|
-| T01 | `general` / `coder` install the six native plugins (not `system_prompt` / `transcript` / `tools`) | `tests/test_quality_guide.py` |
+| T01 | `general` / `coder` install the native plugins (not `system_prompt` / `transcript` / `tools`) | `tests/test_quality_guide.py` |
 | T02 | `researcher` installs natives plus `tools` / `utc_now` | same |
 | T03 | Provider sees one system message = `template.system_prompt` | same |
 | T04 | Two agents keep separate histories | same |

@@ -11,6 +11,8 @@ NATIVE_TOOL_NAMES = (
     "describe_image",
     "search_web",
     "scrape_url",
+    "list_rules",
+    "check_rule",
 )
 
 NATIVE_LABELS = [
@@ -20,6 +22,7 @@ NATIVE_LABELS = [
     "Vision: describe_image",
     "Web Search: search_web",
     "Scraper: scrape_url",
+    "Rule Enforcer: list_rules, check_rule",
 ]
 
 RESEARCHER_PLUGIN_NAMES = (*NATIVE_PLUGIN_NAMES, "tools")

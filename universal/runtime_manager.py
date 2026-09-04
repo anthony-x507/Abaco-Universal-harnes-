@@ -205,6 +205,7 @@ class RuntimeManager:
             action=f"Write {dest.name} in the evolvable runtime",
             details=f"{reason}\n\n{new_code[:500]}",
             agent=agent,
+            rule_id="ask_before_self_modify",
         )
         if not decision.granted:
             return {"ok": False, "granted": False, "reason": decision.reason, "file": dest.name}

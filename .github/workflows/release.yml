@@ -39,6 +39,6 @@ jobs:
           name: Universal ${{ github.ref_name || 'v0.1.1' }}
           body: |
             Native Mac installer. Open Universal.dmg, drag Universal.app to Applications, launch it.
-            The factory and the six native plugins ship inside the app.
+            The factory and the native plugins ship inside the app.
           generate_release_notes: true
           fail_on_unmatched_files: true

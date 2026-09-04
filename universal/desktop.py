@@ -81,8 +81,10 @@ def run_desktop(
     start_factory_thread(host=host, port=port, demo=demo, persist=True)
     url = f"http://{host}:{port}"
     wait_for_health(url)
+    from universal.rules import ensure_rules_file
     from universal.runtime_manager import default_manager
 
+    ensure_rules_file()
     default_manager().start(core_url=url)
     if not open_window:
         return 0

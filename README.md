@@ -11,7 +11,8 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS (voice + speed), Whisper STT, vision, web search, scraper
+- Native tools on every agent: terminal, TTS (voice + speed), Whisper STT, vision, web search, scraper, rule enforcer
+- Signed-core governance: encrypted card vault (simulated purchases), permission-gated Tor fetch
 - ZIP export with no secrets
 
 Package name: `universal`. Product name: **Universal platform**.
@@ -188,7 +189,8 @@ Built-in catalog ids:
 | `vision` | `describe_image` | Demo caption without a vision method. Live `OpenAICompatProvider.complete_vision` uses the same HTTP client (not a second provider). |
 | `web_search` | `search_web` | DuckDuckGo Instant Answer. No API key. |
 | `scraper` | `scrape_url` | BeautifulSoup. http(s) only; localhost and private IPs are rejected. |
-| `tools` | `utc_now` | Researcher only, in addition to the six natives. |
+| `rule_enforcer` | `list_rules`, `check_rule` | Signed-core catalog. The user file may only flip `enforced`. |
+| `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
 Hot-swap on a live agent:
@@ -269,7 +271,19 @@ Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips
 
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
-Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the six tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
+Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
+
+### Governance, wallet, and Tor
+
+The signed factory is the supervisor. There is no fourth “mother” YAML template.
+
+Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, and Tor. You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list.
+
+`wallet` (Node) and `POST /v1/wallet/*` store card aliases. The core encrypts PAN/CVV with a local key (`wallet.key`) into `wallet.json` (mode 0600). Listing returns names only. **Purchases are simulated** after an allow when `no_purchase_without_permission` is on. Nothing is sent to a merchant.
+
+`tor_browser` (Node) calls `POST /v1/browse/tor`. The core asks first when `no_dark_web_without_permission` is on, then runs `torsocks curl` if both are installed. Search uses DuckDuckGo over Tor (clearnet). Saves are **text only** under the app data dir, not `~/Downloads`. This is not a marketplace.
+
+Set `UNIVERSAL_PERMISSION_MODE=allow` or `deny` in tests. On macOS, a native dialog is the grant.
 
 Self-update (packaged Mac app only): the repo `anthony-x507/Abaco-Universal-harnes-` is baked into `version.json`. On launch the SPA checks silently and prompts if a newer `.dmg` exists. Settings → **Check for Updates**. **Download now** replaces `/Applications/Universal.app` and relaunches. Nothing is overwritten until you confirm. If the app is not in `/Applications`, Settings warns that updates will fail. Gatekeeper override is required until signing exists.
 
@@ -314,6 +328,8 @@ platform = Universal(settings, provider=my_fake_provider)
 | `UNIVERSAL_WEB_DIST` | no | `web/dist` (or the PyInstaller extract dir) |
 | `UNIVERSAL_TERMINAL_DIR` | no | process cwd for `run_command` |
 | `UNIVERSAL_USER_DATA` | no | override Application Support / XDG data dir (tests) |
+| `UNIVERSAL_RULES_FILE` | no | override path for the governance JSON (tests) |
+| `UNIVERSAL_PERMISSION_MODE` | no | `allow` / `deny` — tests only; never set in production |
 
 Copy `.env.example`. **Do not commit secrets.**
 

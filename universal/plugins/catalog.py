@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
+from universal.plugins.rules import RuleEnforcerPlugin
 from universal.plugins.scraper import ScraperPlugin
 from universal.plugins.stt import STTPlugin
 from universal.plugins.system_prompt import SystemPromptPlugin
@@ -25,6 +26,7 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "vision",
     "web_search",
     "scraper",
+    "rule_enforcer",
 )
 
 
@@ -98,6 +100,10 @@ def _scraper_plugin(**_kwargs: object) -> ScraperPlugin:
     return ScraperPlugin()
 
 
+def _rules_plugin(**_kwargs: object) -> RuleEnforcerPlugin:
+    return RuleEnforcerPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
@@ -109,6 +115,7 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("vision", _vision_plugin)
     catalog.register("web_search", _web_search_plugin)
     catalog.register("scraper", _scraper_plugin)
+    catalog.register("rule_enforcer", _rules_plugin)
     return catalog
 
 

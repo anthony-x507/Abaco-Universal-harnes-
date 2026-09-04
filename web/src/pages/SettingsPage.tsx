@@ -4,7 +4,16 @@ import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { useModels } from '../hooks/useModels'
-import { applyUpdate, getHealth, getSettings, getUpdateStatus, updateSettings, type RuntimeStatus } from '../lib/api'
+import {
+  applyUpdate,
+  getHealth,
+  getRules,
+  getSettings,
+  getUpdateStatus,
+  updateSettings,
+  type GovernanceRule,
+  type RuntimeStatus,
+} from '../lib/api'
 import { laterChannels } from '../lib/utils'
 
 export function SettingsPage() {
@@ -29,16 +38,18 @@ export function SettingsPage() {
   const [pendingUpdate, setPendingUpdate] = useState<{ latest: string; current: string } | null>(null)
   const [preset, setPreset] = useState('OpenAI (GPT-5.6 Sol)')
   const [runtime, setRuntime] = useState<RuntimeStatus | null>(null)
+  const [rules, setRules] = useState<GovernanceRule[]>([])
   const { models } = useModels()
 
   const load = useCallback(async () => {
     setLoading(true)
     setMessage('')
     try {
-      const [settings, health, update] = await Promise.all([
+      const [settings, health, update, governance] = await Promise.all([
         getSettings(),
         getHealth(),
         getUpdateStatus().catch(() => null),
+        getRules().catch(() => null),
       ])
       if (update?.install_warning) setUpdateWarn(update.install_warning)
       else setUpdateWarn('')
@@ -51,6 +62,7 @@ export function SettingsPage() {
       setDemo(settings.demo)
       setServerOk(health.status === 'ok')
       setRuntime(health.runtime ?? null)
+      setRules(governance?.rules ?? [])
       setLoadedOnce(true)
       setError('')
     } catch (err) {
@@ -227,6 +239,31 @@ export function SettingsPage() {
             {saving ? 'Saving…' : 'Save'}
           </Button>
           {message && <p className="text-sm text-accent">{message}</p>}
+        </Card>
+      )}
+
+      {loadedOnce && (
+        <Card className="space-y-3 p-5">
+          <h2 className="text-sm font-semibold">Governance</h2>
+          <p className="text-sm text-muted">
+            The signed core enforces these rules. Flip <code>enforced</code> in the rules file to relax one. Purchases
+            are simulated. Tor fetches need an allow when that rule is on.
+          </p>
+          {rules.length ? (
+            <ul className="space-y-2 text-sm">
+              {rules.map((rule) => (
+                <li key={rule.id}>
+                  <span className={rule.enforced ? 'text-accent' : 'text-muted'}>
+                    {rule.enforced ? 'On' : 'Off'}
+                  </span>
+                  <span className="text-ink"> {rule.id}</span>
+                  <div className="text-muted">{rule.description}</div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">Rules are not available.</p>
+          )}
         </Card>
       )}
 

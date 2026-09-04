@@ -31,6 +31,7 @@ from universal.exceptions import (
 )
 from universal.providers.catalog import PROVIDERS, get_provider
 from universal.release import current_version
+from universal.rules import rules_payload
 from universal.runtime_api import register_runtime_routes
 from universal.runtime_manager import default_manager
 from universal.templates.catalog import list_templates
@@ -187,6 +188,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "version": current_version(),
             "whisper": _whisper_ready(),
             "runtime": default_manager().status(),
+            "rules": [str(rule["id"]) for rule in rules_payload()["rules"] if isinstance(rule, dict)],
         }
 
     @app.get("/v1/update")
@@ -557,6 +559,9 @@ def run_server(*, host: str = "127.0.0.1", port: int = 43124, demo: bool = False
         raise ConfigError("v1 serve binds localhost only. Do not pass a public host.")
 
     app = build_serve_app(demo=demo)
+    from universal.rules import ensure_rules_file
+
+    ensure_rules_file()
     runtime = default_manager()
     runtime.start(core_url=f"http://{host}:{port}")
     try:

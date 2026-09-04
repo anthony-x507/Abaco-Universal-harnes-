@@ -24,6 +24,31 @@ class PermissionBody(BaseModel):
     action: str = "The runtime wants to do something"
     details: str = ""
     agent: str = "Runtime"
+    rule_id: str | None = None
+
+
+class WalletSaveBody(BaseModel):
+    card_name: str
+    card_number: str
+    expiry: str
+    cvv: str
+
+
+class WalletDeleteBody(BaseModel):
+    card_name: str
+
+
+class WalletBuyBody(BaseModel):
+    card_name: str
+    amount: float
+    merchant: str
+
+
+class TorBody(BaseModel):
+    action: str = "navegar"
+    url: str = ""
+    query: str = ""
+    timeout: int = 30
 
 
 class EvolveBody(BaseModel):
@@ -123,9 +148,75 @@ def register_runtime_routes(app: FastAPI, state: Any) -> None:
             "finish_reason": response.finish_reason,
         }
 
+    @app.get("/v1/rules")
+    def get_rules() -> dict[str, Any]:
+        from universal.rules import rules_payload
+
+        return rules_payload()
+
     @app.post("/v1/permission/ask")
     def permission_ask(body: PermissionBody) -> dict[str, Any]:
-        return ask_permission(action=body.action, details=body.details, agent=body.agent).to_dict()
+        return ask_permission(
+            action=body.action,
+            details=body.details,
+            agent=body.agent,
+            rule_id=body.rule_id,
+        ).to_dict()
+
+    @app.get("/v1/wallet/cards")
+    def wallet_list() -> dict[str, Any]:
+        from universal.wallet_store import list_cards
+
+        return list_cards()
+
+    @app.post("/v1/wallet/list")
+    def wallet_list_post() -> dict[str, Any]:
+        from universal.wallet_store import list_cards
+
+        return list_cards()
+
+    @app.post("/v1/wallet/cards")
+    def wallet_save(body: WalletSaveBody) -> dict[str, Any]:
+        from universal.wallet_store import save_card
+
+        return save_card(
+            card_name=body.card_name,
+            card_number=body.card_number,
+            expiry=body.expiry,
+            cvv=body.cvv,
+        )
+
+    @app.post("/v1/wallet/cards/delete")
+    def wallet_delete(body: WalletDeleteBody) -> dict[str, Any]:
+        from universal.wallet_store import delete_card
+
+        return delete_card(body.card_name)
+
+    @app.post("/v1/wallet/purchase")
+    def wallet_purchase(body: WalletBuyBody) -> dict[str, Any]:
+        from universal.wallet_store import simulate_purchase
+
+        return simulate_purchase(card_name=body.card_name, amount=body.amount, merchant=body.merchant)
+
+    @app.post("/v1/browse/tor")
+    def browse_tor(body: TorBody) -> dict[str, Any]:
+        from universal.tor_access import fetch_via_tor, save_via_tor
+        from urllib.parse import quote
+
+        action = body.action.strip().lower()
+        if action == "buscar":
+            query = body.query.strip()
+            if not query:
+                raise HTTPException(status_code=400, detail="query is required")
+            url = f"https://duckduckgo.com/html/?q={quote(query)}"
+            return fetch_via_tor(url=url, timeout=body.timeout, action="search")
+        if action == "descargar":
+            if not body.url.strip():
+                raise HTTPException(status_code=400, detail="url is required")
+            return save_via_tor(url=body.url, timeout=body.timeout)
+        if not body.url.strip():
+            raise HTTPException(status_code=400, detail="url is required")
+        return fetch_via_tor(url=body.url, timeout=body.timeout, action="fetch")
 
     @app.post("/v1/runtime/evolve")
     def runtime_evolve(body: EvolveBody) -> dict[str, Any]:

@@ -85,6 +85,18 @@ export function defaultCatalog() {
       in_applications: true,
       install_warning: '',
     },
+    rules: {
+      version: '1.0',
+      file: '/tmp/abaco_rules.json',
+      rules: [
+        { id: 'no_system_delete', description: 'Do not delete system files without confirmation.', enforced: true },
+        { id: 'ask_before_self_modify', description: 'Ask before changing the evolvable runtime.', enforced: true },
+        { id: 'no_external_sharing', description: 'Do not share user data with third parties.', enforced: true },
+        { id: 'no_ui_modification', description: 'Do not change the signed UI without consent.', enforced: true },
+        { id: 'no_purchase_without_permission', description: 'Never spend stored card details without an explicit allow.', enforced: true },
+        { id: 'no_dark_web_without_permission', description: 'Use Tor only after the user allows that fetch.', enforced: true },
+      ],
+    },
     models: {
       models: [
         {
@@ -129,6 +141,7 @@ export function installFetchMock(
     if (path === '/v1/settings') return jsonResponse(catalog.settings)
     if (path === '/v1/models') return jsonResponse(catalog.models)
     if (path === '/v1/update') return jsonResponse(catalog.update)
+    if (path === '/v1/rules') return jsonResponse(catalog.rules)
     if (path === '/v1/templates') return jsonResponse(catalog.templates)
     if (path === '/v1/agents') return jsonResponse(catalog.agents)
     if (path === `/v1/agents/${agentFixture.id}`) return jsonResponse(catalog.agent)

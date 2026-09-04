@@ -27,7 +27,7 @@ Without `--demo`, set `UNIVERSAL_LLM_*` or paste a key in Settings. Settings upd
 
 Create can choose `cli` or `webhook` once `GET /v1/channels` lists both. A webhook agent still answers in Chat via `/ask`. Other processes POST `{ "text": "…" }` to `/v1/agents/{id}/webhook`. Optional outbound URL is per agent, in memory.
 
-Agents page: **Download ZIP** calls `POST /v1/agents/{id}/deploy` and saves the archive. Cards show readable plugin names (`Terminal: run_command`, `Tools: utc_now`, …), not catalog ids. Every created agent includes the six native tools.
+Agents page: **Download ZIP** calls `POST /v1/agents/{id}/deploy` and saves the archive. Cards show readable plugin names (`Terminal: run_command`, `Tools: utc_now`, `Rule Enforcer: list_rules, check_rule`, …), not catalog ids. Every created agent includes the native tools. Settings → Governance lists the signed-core rules.
 
 Chat: **Auto** next to Send is off by default (one-turn `/ask`). On, Send posts `/v1/agents/{id}/run` so the agent can loop tools. The message header shows `Tokens: … | Cost: $…` from the agent usage totals. Drop any document on the write bar. Audio is transcribed with local Whisper via `POST /v1/transcribe` (`pip install 'universal[media]'` if `/health` says `"whisper": false`). The write bar holds about 5,000 words.
 

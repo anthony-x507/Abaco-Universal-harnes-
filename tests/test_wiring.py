@@ -48,6 +48,7 @@ def test_plugin_catalog_creates_known_ids() -> None:
         "vision",
         "web_search",
         "scraper",
+        "rule_enforcer",
     }
     prompt = catalog.create("system_prompt", system_prompt="Stay brief.")
     assert prompt.name == "system_prompt"

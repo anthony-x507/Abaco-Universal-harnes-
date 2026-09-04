@@ -135,6 +135,16 @@ export async function getRuntime(): Promise<RuntimeStatus> {
   return request('/v1/runtime')
 }
 
+export type GovernanceRule = {
+  id: string
+  description: string
+  enforced: boolean
+}
+
+export async function getRules(): Promise<{ version: string; file: string; rules: GovernanceRule[] }> {
+  return request('/v1/rules')
+}
+
 export type UpdateStatus = {
   current: string
   latest: string | null

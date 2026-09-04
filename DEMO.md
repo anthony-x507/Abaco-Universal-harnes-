@@ -43,7 +43,7 @@ You should see `"status":"ok"`, `"product":"Universal platform"`, `"demo":true`.
 
 **In the SPA (Design or Agents):** Design → **Create an agent** → template **Researcher**, name `demo-researcher`. Channel and model stay in Settings. Or create on Agents with channel `cli`, then **Start**.
 
-The card should show readable labels (`Terminal: run_command`, …, **Tools: utc_now**), not raw catalog ids. Every template ships the six native tools; researcher adds `utc_now` and turns memory on. Facts go to `memory.json` keyed by this name.
+The card should show readable labels (`Terminal: run_command`, …, **Tools: utc_now**, **Rule Enforcer: list_rules, check_rule**), not raw catalog ids. Every template ships the native tools; researcher adds `utc_now` and turns memory on. Facts go to `memory.json` keyed by this name.
 
 **Or curl:**
 

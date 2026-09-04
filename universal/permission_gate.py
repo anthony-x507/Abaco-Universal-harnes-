@@ -31,8 +31,19 @@ def _truncate(text: str, limit: int = 700) -> str:
     return raw[: limit - 1] + "…"
 
 
-def ask_permission(*, action: str, details: str = "", agent: str = "Runtime") -> PermissionDecision:
+def ask_permission(
+    *,
+    action: str,
+    details: str = "",
+    agent: str = "Runtime",
+    rule_id: str | None = None,
+) -> PermissionDecision:
     """Ask the user. Tests can force allow/deny with UNIVERSAL_PERMISSION_MODE."""
+    if rule_id:
+        from universal.rules import is_enforced
+
+        if not is_enforced(rule_id):
+            return PermissionDecision(True, f"rule {rule_id} is not enforced")
     mode = os.environ.get(ENV_MODE, "").strip().lower()
     if mode == "allow" or os.environ.get(ENV_GRANT, "").strip() == "1":
         return PermissionDecision(True, "allowed by environment")
