@@ -49,12 +49,26 @@ describe('Design page', () => {
     await user.type(screen.getByLabelText('Skill step'), 'Open invoices')
     await user.click(screen.getByRole('button', { name: 'Add step' }))
     await user.click(screen.getByRole('button', { name: 'Stop' }))
-    expect(screen.getByText(/Create a skill from these 1 step/)).toBeInTheDocument()
+    expect(screen.getByText(/Create a skill from these 2 steps/)).toBeInTheDocument()
     await user.clear(screen.getByLabelText('Skill name'))
     await user.type(screen.getByLabelText('Skill name'), 'Invoice walkthrough')
     await user.click(screen.getByRole('button', { name: 'Create skill' }))
     expect(loadSkills()[0]?.title).toBe('Invoice walkthrough')
-    expect(loadSkills()[0]?.steps[0]?.action).toBe('Open invoices')
+    expect(loadSkills()[0]?.steps.map((step) => step.action)).toEqual([
+      'Opened https://example.com',
+      'Open invoices',
+    ])
+  })
+
+  it('keeps a first step when Record then Stop with no extra clicks', async () => {
+    const user = userEvent.setup()
+    installFetchMock(() => null)
+    renderDesign()
+    await user.click(screen.getByRole('button', { name: /Teach skill/ }))
+    await user.click(screen.getByRole('button', { name: 'Record' }))
+    await user.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(screen.getByText(/Create a skill from these 1 step/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create skill' })).toBeEnabled()
   })
 
   it('PDF tile responds instead of sitting dead', async () => {

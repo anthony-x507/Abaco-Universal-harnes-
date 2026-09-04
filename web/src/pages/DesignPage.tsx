@@ -328,20 +328,19 @@ function SkillRecorder({
     setNote('')
   }
 
-  const openUrl = (next = url) => {
+  const openUrl = (next = url, record = recording) => {
     const target = next.trim()
     if (!target) return
     setFrameUrl(target)
-    if (recording) addStep(`Opened ${target}`)
+    if (record) addStep(`Opened ${target}`)
   }
 
   const startRecording = () => {
     setPending(false)
     setRecording(true)
-    setSteps((current) =>
-      current.length === 0 && frameUrl ? [{ id: makeSkillId(), at: Date.now(), action: `Opened ${frameUrl}` }] : current,
-    )
-    if (!frameUrl && url.trim()) openUrl()
+    const target = (frameUrl || url).trim()
+    if (target) openUrl(target, true)
+    else addStep('Started recording')
     pushActivity('Skill recording started. Do the steps in the browser frame.', 'skill')
     showToast('Recording. Do the steps, then stop.')
   }
