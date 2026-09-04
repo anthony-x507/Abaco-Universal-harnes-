@@ -14,6 +14,7 @@ import {
   type GovernanceRule,
   type RuntimeStatus,
 } from '../lib/api'
+import { AuditReport } from '../components/AuditReport'
 import { StrategistReport } from '../components/StrategistReport'
 import { laterChannels } from '../lib/utils'
 
@@ -272,6 +273,12 @@ export function SettingsPage() {
       {loadedOnce && (
         <Card className="space-y-3 p-5">
           <StrategistReport />
+        </Card>
+      )}
+
+      {loadedOnce && (
+        <Card className="space-y-3 p-5">
+          <AuditReport />
         </Card>
       )}
 

@@ -435,6 +435,28 @@ export async function scanDeepSeek(): Promise<DeepSeekReport> {
   return request('/v1/strategist/deepseek/scan', { method: 'POST' })
 }
 
+export type AuditSummary = {
+  id?: string
+  verdict?: string | null
+  status?: string
+  verified?: boolean
+  quantum?: boolean
+  signature?: string | null
+  sealed_at?: string | null
+  contract_id?: string
+  objective?: string
+  engine?: string
+}
+
+export async function getAudit(): Promise<AuditSummary | null> {
+  const data = await request<{ audit: AuditSummary | null }>('/v1/audit')
+  return data.audit
+}
+
+export async function runAudit(): Promise<AuditSummary> {
+  return request('/v1/audit/run', { method: 'POST' })
+}
+
 export async function askAgent(id: string, prompt: string): Promise<Agent> {
   return request(`/v1/agents/${id}/ask`, {
     method: 'POST',

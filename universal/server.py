@@ -644,6 +644,31 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    @app.get("/v1/audit")
+    def get_audit_report() -> dict[str, Any]:
+        from universal.audit import repo_root
+        from universal.proof import latest_audit, summarize
+
+        bundle = latest_audit()
+        if bundle is None:
+            sealed = repo_root() / "audit" / "output" / "proof.sealed.json"
+            if sealed.is_file():
+                try:
+                    raw = json.loads(sealed.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    raw = None
+                if isinstance(raw, dict):
+                    bundle = raw
+        if bundle is None:
+            return {"audit": None}
+        return {"audit": summarize(bundle)}
+
+    @app.post("/v1/audit/run")
+    def run_audit_report() -> dict[str, Any]:
+        from universal.audit import repo_root, run_audit
+
+        return run_audit(output=repo_root() / "audit" / "output")
+
     @app.post("/v1/teams")
     def create_team_route(body: TeamCreateBody) -> dict[str, Any]:
         from universal.teams import create_team

@@ -101,6 +101,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Download and install (packaged Mac app only).",
     )
 
+    audit = sub.add_parser(
+        "audit",
+        help="Run the harness audit and seal an HMAC proof (not quantum, not an npm CLI).",
+    )
+    audit.add_argument("--output", type=Path, help="Directory for proof.sealed.json and report.md.")
+    audit.add_argument("--verify", type=Path, help="Verify a sealed audit bundle and print JSON.")
+    audit.add_argument("--doctor", action="store_true", help="Print local tool checks. Docker is optional.")
+
     return parser
 
 
@@ -217,6 +225,32 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return run_server(host=args.host, port=args.port, demo=args.demo)
 
 
+def _cmd_audit(args: argparse.Namespace) -> int:
+    from universal.audit import doctor, run_audit, verify_audit
+
+    if args.doctor:
+        payload = doctor()
+        print(json.dumps(payload, indent=2))
+        return 0 if payload.get("ok") else 2
+    if args.verify:
+        payload = verify_audit(Path(args.verify))
+        print(json.dumps(payload, indent=2))
+        return 0 if payload.get("verified") else 1
+    summary = run_audit(output=args.output)
+    print(json.dumps(
+        {
+            "verdict": summary.get("verdict"),
+            "id": summary.get("id"),
+            "verified": summary.get("verified"),
+            "quantum": summary.get("quantum"),
+            "signature": summary.get("signature"),
+            "contract_id": summary.get("contract_id"),
+        },
+        indent=2,
+    ))
+    return 0 if summary.get("verdict") == "VERIFIED" else 1
+
+
 def _cmd_update(args: argparse.Namespace) -> int:
     from universal.updater import Updater
 
@@ -292,6 +326,7 @@ _HANDLERS = {
     "serve": _cmd_serve,
     "desktop": _cmd_desktop,
     "update": _cmd_update,
+    "audit": _cmd_audit,
 }
 
 

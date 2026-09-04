@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.1.1",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Sentinel Proof v1. HMAC-sealed mission evidence on the signed factory: contract, independent oracles, adversary challenges, deterministic reducer. Not quantum. Native proof tools on every agent. Last step stays verifying only when sentinel_proof_required is on."
+  "release_notes": "Harness audit: python3 -m universal audit seals an HMAC proof with VERIFIED/PARTIAL/FAILED. Offline oracles. Not quantum. Not @sentinel-proof/cli. Settings shows the last sealed verdict."
 }

@@ -1,0 +1,131 @@
+schema_version: 1
+contract_id: abaco-harness-audit-v1
+engine: sentinel-proof-v1
+signature: hmac-sha256
+quantum: false
+notes: >
+  Executable source is universal/audit.py. This file is the human map.
+  Designer packet items that are not in the product are marked desired
+  and do not fail a VERIFIED verdict.
+
+requirements:
+  - id: R-CORE-001
+    statement: One AgentRegistry and one AgentLifecycle, constructed on Universal and injected.
+    priority: required
+    risk: critical
+  - id: R-CORE-002
+    statement: Provider and Channel are first-class, not plugins. Three templates only.
+    priority: required
+    risk: critical
+  - id: R-PLUGIN-001
+    statement: Native Python plugins ship on every agent (not a Node navigator).
+    priority: required
+    risk: high
+  - id: R-PLUGIN-002
+    statement: wallet encrypts cards; purchases are simulated behind a permission.
+    priority: required
+    risk: critical
+  - id: R-PLUGIN-003
+    statement: Tor fetch is gated in the signed core.
+    priority: required
+    risk: high
+  - id: R-NAV-001
+    statement: MissionPhase lives in situation.py. There is no universal/state.py.
+    priority: required
+    risk: high
+  - id: R-NAV-002
+    statement: Obstacles notify the user.
+    priority: required
+    risk: medium
+  - id: R-ORCH-001
+    statement: Teams group existing agents. No mother.yaml and no child factory.
+    priority: required
+    risk: high
+  - id: R-ORCH-002
+    statement: Delegation uses Agent.accept.
+    priority: required
+    risk: high
+  - id: R-ORCH-003
+    statement: Team notes share only when memory_share_between_agents is on.
+    priority: required
+    risk: medium
+  - id: R-IMPR-001
+    statement: Improvement evaluator (not shipped).
+    priority: desired
+    risk: medium
+  - id: R-STRAT-001
+    statement: Nightly 3 AM Sentinels scan (not shipped).
+    priority: desired
+    risk: medium
+  - id: R-STRAT-002
+    statement: DeepSeek monitor is on-demand public GitHub.
+    priority: required
+    risk: medium
+  - id: R-SPROOF-001
+    statement: Sentinel Proof compiles a contract in Python HMAC.
+    priority: required
+    risk: critical
+  - id: R-SPROOF-002
+    statement: Oracles and challenges are recorded on the bundle.
+    priority: required
+    risk: critical
+  - id: R-SPROOF-003
+    statement: Reducer seals HMAC only. quantum is false. No npm CLI.
+    priority: required
+    risk: critical
+  - id: R-UI-001
+    statement: Mission tab shows SituationPanel and ProofPanel.
+    priority: required
+    risk: medium
+  - id: R-UI-002
+    statement: Notices can be listed and acked.
+    priority: required
+    risk: medium
+  - id: R-MACOS-001
+    statement: Notarization is not verified on Linux CI (desired).
+    priority: desired
+    risk: high
+  - id: R-MACOS-002
+    statement: entitlements.plist includes microphone audio-input.
+    priority: required
+    risk: medium
+  - id: R-UPDATE-001
+    statement: Updater checks the baked GitHub repo.
+    priority: required
+    risk: high
+  - id: R-UPDATE-002
+    statement: Download and Restart relaunches the Mac app.
+    priority: required
+    risk: medium
+  - id: R-MEM-001
+    statement: Chat history persists under user data, not the registry sidecar.
+    priority: required
+    risk: medium
+  - id: R-MEM-002
+    statement: Hierarchical working/episodic/semantic memory (not shipped).
+    priority: desired
+    risk: medium
+  - id: R-LLM-001
+    statement: Composer picker label is Models.
+    priority: required
+    risk: medium
+  - id: R-LLM-002
+    statement: API key field appears when the preset requires one.
+    priority: required
+    risk: medium
+  - id: R-SEC-001
+    statement: Rule catalog is immutable except enforced.
+    priority: required
+    risk: critical
+  - id: R-SEC-002
+    statement: Wallet secrets are encrypted with wallet.key.
+    priority: required
+    risk: critical
+  - id: R-TEST-001
+    statement: Native plugins, proof, mission, and governance have tests.
+    priority: required
+    risk: high
+  - id: R-TEST-002
+    statement: Audit scripts call python3 -m universal audit, not @sentinel-proof/cli.
+    priority: required
+    risk: critical

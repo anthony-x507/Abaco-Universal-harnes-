@@ -42,6 +42,9 @@ describe('T10 Settings demo mode', () => {
     expect(await screen.findByRole('heading', { name: 'DeepSeek Insights' })).toBeInTheDocument()
     expect(screen.getAllByText('deepseek-ai/deepseek-harness').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Scan DeepSeek' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Harness audit' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Run audit' })).toBeInTheDocument()
+    expect(screen.getByText('VERIFIED')).toBeInTheDocument()
   })
 
   it('Check for Updates shows no-updates copy', async () => {

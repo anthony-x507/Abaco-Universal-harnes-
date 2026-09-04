@@ -1,0 +1,22 @@
+schema_version: 1
+mode: lock-safe
+quantum: false
+completion:
+  required_requirement_coverage: 1.0
+  desired_does_not_fail_verified: true
+  forbid_unreviewed_waivers: true
+oracles:
+  require_negative_control: true
+  families:
+    - code_inspection
+    - architectural
+    - functional_presence
+stability:
+  fixed_seed_recorded: true
+sandbox:
+  network: deny
+  notes: Default oracles are offline file inspection. No GitHub live calls.
+evidence:
+  hash_algorithm: sha256
+  signature: hmac-sha256
+  engine: sentinel-proof-v1

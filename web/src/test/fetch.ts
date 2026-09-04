@@ -133,6 +133,18 @@ export function defaultCatalog() {
       ],
       popularity: { mention_count: 2, twitter: 'not_available' },
     },
+    audit: {
+      audit: {
+        id: 'audit1',
+        verdict: 'VERIFIED',
+        status: 'sealed',
+        verified: true,
+        quantum: false,
+        signature: 'abc123',
+        sealed_at: '2026-09-04T21:00:00+00:00',
+        engine: 'sentinel-proof-v1',
+      },
+    },
     situation: {
       agent_id: 'a1',
       agent: 'alpha',
@@ -206,6 +218,8 @@ export function installFetchMock(
     if (path === '/v1/strategist/deepseek' || path === '/v1/strategist/deepseek/scan') {
       return jsonResponse(catalog.deepseek)
     }
+    if (path === '/v1/audit') return jsonResponse(catalog.audit)
+    if (path === '/v1/audit/run') return jsonResponse(catalog.audit.audit)
     return jsonResponse({ error: `unmocked ${path}` }, 404)
   }
   globalThis.fetch = fetchMock as typeof fetch

@@ -117,18 +117,32 @@ def _req_id(index: int, text: str) -> str:
     return f"r{index + 1}-{slug or 'req'}"
 
 
-def draft_contract(agent_id: str, *, objective: str, requirements: list[str], agent_name: str = "") -> dict[str, Any]:
+def draft_contract(
+    agent_id: str,
+    *,
+    objective: str,
+    requirements: list[str],
+    agent_name: str = "",
+    kind: str = "mission",
+    requirement_ids: list[str] | None = None,
+) -> dict[str, Any]:
     texts = [item.strip() for item in requirements if str(item).strip()]
     if not objective.strip() or not texts:
         raise ValueError("objective and at least one requirement are required")
     proof_id = uuid.uuid4().hex[:12]
+    rows = []
+    for index, text in enumerate(texts):
+        req_id = (requirement_ids[index] if requirement_ids and index < len(requirement_ids) else _req_id(index, text))
+        rows.append({"id": req_id, "text": text})
     payload = {
         "id": proof_id,
         "agent_id": agent_id,
         "agent_name": agent_name,
         "objective": objective.strip(),
+        "kind": kind,
+        "verdict": None,
         "status": "draft",
-        "requirements": [{"id": _req_id(index, text), "text": text} for index, text in enumerate(texts)],
+        "requirements": rows,
         "oracles": [],
         "challenges": [],
         "created_at": _now(),
@@ -139,13 +153,14 @@ def draft_contract(agent_id: str, *, objective: str, requirements: list[str], ag
         "quantum": False,
         "engine": "sentinel-proof-v1",
     }
-    from universal.situation import MissionPhase, Situation
+    if kind != "audit":
+        from universal.situation import MissionPhase, Situation
 
-    sit = Situation.load(agent_id, agent_name=agent_name)
-    sit.proof_id = proof_id
-    if sit.phase.value in {"completed", "executing", "planning", "evaluating"}:
-        sit.phase = MissionPhase.VERIFYING
-    sit.save()
+        sit = Situation.load(agent_id, agent_name=agent_name)
+        sit.proof_id = proof_id
+        if sit.phase.value in {"completed", "executing", "planning", "evaluating"}:
+            sit.phase = MissionPhase.VERIFYING
+        sit.save()
     return save_proof(payload)
 
 
@@ -273,6 +288,8 @@ def summarize(bundle: dict[str, Any]) -> dict[str, Any]:
         "id": bundle.get("id"),
         "agent_id": bundle.get("agent_id"),
         "objective": bundle.get("objective"),
+        "kind": bundle.get("kind") or "mission",
+        "verdict": bundle.get("verdict"),
         "status": bundle.get("status"),
         "requirements": bundle.get("requirements") or [],
         "oracles": bundle.get("oracles") or [],
@@ -285,3 +302,50 @@ def summarize(bundle: dict[str, Any]) -> dict[str, Any]:
         "engine": bundle.get("engine"),
         "updated_at": bundle.get("updated_at"),
     }
+
+
+def latest_audit() -> dict[str, Any] | None:
+    newest: dict[str, Any] | None = None
+    for path in proofs_dir().glob("*.json"):
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(raw, dict) or raw.get("kind") != "audit":
+            continue
+        if newest is None or str(raw.get("updated_at") or "") > str(newest.get("updated_at") or ""):
+            newest = raw
+    return newest
+
+
+def seal_audit(proof_id: str, *, verdict: str) -> dict[str, Any]:
+    """Seal an audit bundle. HMAC attests the recorded oracles; verdict may be PARTIAL/FAILED."""
+    allowed = {"VERIFIED", "PARTIAL", "BLOCKED", "FAILED"}
+    if verdict not in allowed:
+        raise ValueError(f"verdict must be one of {sorted(allowed)}")
+    bundle = load_proof(proof_id)
+    if bundle is None:
+        raise KeyError(proof_id)
+    reqs = [row["id"] for row in bundle.get("requirements") or [] if isinstance(row, dict) and row.get("id")]
+    oracles = [row for row in bundle.get("oracles") or [] if isinstance(row, dict)]
+    if not reqs:
+        raise ValueError("no requirements")
+    for req_id in reqs:
+        if not any(row.get("requirement_id") == req_id for row in oracles):
+            raise ValueError(f"requirement {req_id} has no oracle")
+    if not any(isinstance(row, dict) for row in bundle.get("challenges") or []):
+        raise ValueError("adversary has not challenged the contract")
+    bundle["verdict"] = verdict
+    bundle["kind"] = "audit"
+    bundle["status"] = "sealed"
+    bundle["sealed_at"] = _now()
+    bundle["updated_at"] = bundle["sealed_at"]
+    bundle["quantum"] = False
+    sign_bundle(bundle)
+    save_proof(bundle)
+    add_notice(
+        agent_id=str(bundle.get("agent_id") or "audit"),
+        kind="audit",
+        message=f"Audit {bundle['id']} sealed as {verdict}. HMAC {str(bundle.get('signature') or '')[:12]}…",
+    )
+    return bundle

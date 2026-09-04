@@ -19,7 +19,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 
 Package name: `universal`. Product name: **Universal platform**.
 
-Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-command setup: **[demo.sh](demo.sh)**.
+Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-command setup: **[demo.sh](demo.sh)**. Integrator audit: **[audit/README.md](audit/README.md)** (`python3 -m universal audit`).
 
 ## Install
 
@@ -88,6 +88,7 @@ Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollam
 | `universal serve [--demo]` | HTTP factory on `127.0.0.1:43124`. Localhost only. |
 | `universal desktop [--demo]` | Native window (pywebview) on the same factory + built SPA. |
 | `universal update` | Check GitHub Releases for a newer `Universal.dmg`. `--apply` on the packaged Mac app. |
+| `universal audit` | Offline harness audit. Seals an HMAC proof (`VERIFIED` / `PARTIAL` / `FAILED`). Not quantum. Not an npm CLI. |
 
 `ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
 
@@ -120,6 +121,7 @@ The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspa
 | Usage meter | `Tokens: 1,234 \| Cost: $0.002` |
 | Mission (Workspace) | `GET /v1/agents/{id}/situation` — objective, current step, blockers, checkpoint, plus Sentinel Proof |
 | Notices | Banner on Chat from `GET /v1/notifications`; dismiss is `POST /v1/notifications/{id}/ack` |
+| Harness audit (Settings) | `GET /v1/audit` / `POST /v1/audit/run` — last sealed HMAC verdict |
 
 `--demo` injects an echo provider. Settings update the running process only; they are never written to disk. The API key is never packed into a ZIP.
 
