@@ -6,7 +6,9 @@ from collections.abc import Callable
 
 from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
+from universal.plugins.navigator import NavigatorPlugin
 from universal.plugins.rules import RuleEnforcerPlugin
+from universal.plugins.team import TeamPlugin
 from universal.plugins.scraper import ScraperPlugin
 from universal.plugins.stt import STTPlugin
 from universal.plugins.system_prompt import SystemPromptPlugin
@@ -27,6 +29,8 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "web_search",
     "scraper",
     "rule_enforcer",
+    "navigator",
+    "team",
 )
 
 
@@ -104,6 +108,14 @@ def _rules_plugin(**_kwargs: object) -> RuleEnforcerPlugin:
     return RuleEnforcerPlugin()
 
 
+def _navigator_plugin(**_kwargs: object) -> NavigatorPlugin:
+    return NavigatorPlugin()
+
+
+def _team_plugin(**_kwargs: object) -> TeamPlugin:
+    return TeamPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
@@ -116,6 +128,8 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("web_search", _web_search_plugin)
     catalog.register("scraper", _scraper_plugin)
     catalog.register("rule_enforcer", _rules_plugin)
+    catalog.register("navigator", _navigator_plugin)
+    catalog.register("team", _team_plugin)
     return catalog
 
 

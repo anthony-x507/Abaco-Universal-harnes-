@@ -101,6 +101,16 @@ class RunBody(BaseModel):
     attachments: list[AttachmentBody] = Field(default_factory=list)
 
 
+class TeamCreateBody(BaseModel):
+    name: str
+    member_ids: list[str] = Field(default_factory=list)
+
+
+class TeamDelegateBody(BaseModel):
+    agent_id: str
+    task: str
+
+
 class SettingsBody(BaseModel):
     llm_base_url: str | None = None
     llm_api_key: str | None = None
@@ -127,6 +137,9 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     payload["plugin_labels"] = agent.plugin_labels()
     payload["usage"] = agent.usage.to_dict()
     payload["system_prompt"] = agent.system_prompt
+    from universal.situation import Situation
+
+    payload["situation"] = Situation.load(agent.id, agent_name=agent.name).to_dict()
     if not payload.get("emoji"):
         from universal.core.faces import face_for
 
@@ -153,7 +166,16 @@ def _settings_payload(state: ServerState) -> dict[str, Any]:
 def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     """Build the FastAPI app around an already-constructed Universal root."""
     state = ServerState(platform=platform, demo=demo)
-    app = FastAPI(title="Universal platform", version="1.0.7")
+    from universal.teams import set_delegate_hook
+
+    def _delegate(agent_id: str, prompt: str) -> str:
+        member = state.platform.registry.get(agent_id)
+        if state.platform.lifecycle.state_of(member.id).value != "running":
+            state.platform.factory.start(member.id)
+        return member.accept(prompt)
+
+    set_delegate_hook(_delegate)
+    app = FastAPI(title="Universal platform", version="1.0.8")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -480,6 +502,79 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         payload = _agent_payload(state.platform, agent.id)
         payload["status"] = "reset"
         return payload
+
+    @app.get("/v1/agents/{agent_id}/situation")
+    def get_situation(agent_id: str) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        from universal.situation import Situation
+
+        return Situation.load(agent.id, agent_name=agent.name).to_dict()
+
+    @app.post("/v1/agents/{agent_id}/situation/reset")
+    def reset_situation(agent_id: str) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        from universal.situation import Situation
+
+        status = Situation.load(agent.id, agent_name=agent.name)
+        status.reset()
+        return status.to_dict()
+
+    @app.get("/v1/notifications")
+    def get_notifications() -> dict[str, Any]:
+        from universal.notifications import list_notices
+
+        return {"notifications": list_notices(unread_only=True)}
+
+    @app.post("/v1/notifications/{notice_id}/ack")
+    def ack_notification(notice_id: str) -> dict[str, Any]:
+        from universal.notifications import ack_notice
+
+        row = ack_notice(notice_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        return row
+
+    @app.post("/v1/teams")
+    def create_team_route(body: TeamCreateBody) -> dict[str, Any]:
+        from universal.teams import create_team
+
+        name = body.name.strip()
+        member_ids = [item.strip() for item in body.member_ids if item.strip()]
+        if not name or not member_ids:
+            raise HTTPException(status_code=400, detail="name and member_ids are required")
+        members = []
+        for member_id in member_ids:
+            member = state.platform.registry.get(member_id)
+            members.append({"id": member.id, "name": member.name})
+        return create_team(name, members)
+
+    @app.get("/v1/teams/{name}")
+    def get_team_route(name: str) -> dict[str, Any]:
+        from universal.teams import load_team
+
+        team = load_team(name)
+        if team is None:
+            raise HTTPException(status_code=404, detail="Team not found")
+        return team
+
+    @app.post("/v1/teams/{name}/delegate")
+    def delegate_team_route(name: str, body: TeamDelegateBody) -> dict[str, Any]:
+        from universal.teams import delegate, load_team
+
+        team = load_team(name)
+        if team is None:
+            raise HTTPException(status_code=404, detail="Team not found")
+        answer = delegate(body.agent_id, body.task)
+        return {"team": name, "agent_id": body.agent_id, "answer": answer}
+
+    @app.post("/v1/teams/{name}/checkpoint")
+    def checkpoint_team_route(name: str) -> dict[str, Any]:
+        from universal.teams import checkpoint_team
+
+        try:
+            return checkpoint_team(name)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Team not found") from exc
 
     @app.post("/v1/agents/{agent_id}/webhook")
     def webhook_inbound(agent_id: str, body: WebhookBody) -> dict[str, Any]:

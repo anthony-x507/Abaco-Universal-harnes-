@@ -31,6 +31,34 @@ export type Agent = {
   usage?: Usage
   emoji?: string
   system_prompt?: string
+  situation?: Situation
+}
+
+export type Situation = {
+  agent_id: string
+  agent: string
+  phase: string
+  objective: string
+  current_step: string
+  steps_remaining: string[]
+  steps_completed: string[]
+  steps_blocked: string[]
+  obstacles: { step?: string; obstacle?: string }[]
+  deviations: unknown[]
+  alternatives: { step?: string; path?: string }[]
+  attempts: number
+  max_attempts: number
+  team: string | null
+  last_checkpoint: string | null
+}
+
+export type Notice = {
+  id: string
+  agent_id: string
+  kind: string
+  message: string
+  at: string
+  acked?: boolean
 }
 
 export type ModelPreset = {
@@ -264,6 +292,23 @@ export async function deleteAgent(id: string): Promise<void> {
 
 export async function resetAgent(id: string): Promise<Agent> {
   return request(`/v1/agents/${id}/reset`, { method: 'POST' })
+}
+
+export async function getSituation(id: string): Promise<Situation> {
+  return request(`/v1/agents/${id}/situation`)
+}
+
+export async function resetSituation(id: string): Promise<Situation> {
+  return request(`/v1/agents/${id}/situation/reset`, { method: 'POST' })
+}
+
+export async function listNotifications(): Promise<Notice[]> {
+  const data = await request<{ notifications: Notice[] }>('/v1/notifications')
+  return data.notifications
+}
+
+export async function ackNotification(id: string): Promise<Notice> {
+  return request(`/v1/notifications/${id}/ack`, { method: 'POST' })
 }
 
 export async function askAgent(id: string, prompt: string): Promise<Agent> {

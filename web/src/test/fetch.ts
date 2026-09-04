@@ -95,7 +95,28 @@ export function defaultCatalog() {
         { id: 'no_ui_modification', description: 'Do not change the signed UI without consent.', enforced: true },
         { id: 'no_purchase_without_permission', description: 'Never spend stored card details without an explicit allow.', enforced: true },
         { id: 'no_dark_web_without_permission', description: 'Use Tor only after the user allows that fetch.', enforced: true },
+        { id: 'navigator_auto_notify', description: 'Notify the user when a mission is blocked.', enforced: true },
+        { id: 'navigator_allow_deviations', description: 'Ask before a planned step is replaced.', enforced: true },
+        { id: 'navigator_no_false_promises', description: 'Do not claim a result you did not produce.', enforced: true },
+        { id: 'memory_share_between_agents', description: 'Share team notes only after an explicit allow.', enforced: false },
       ],
+    },
+    situation: {
+      agent_id: 'a1',
+      agent: 'alpha',
+      phase: 'idle',
+      objective: '',
+      current_step: '',
+      steps_remaining: [] as string[],
+      steps_completed: [] as string[],
+      steps_blocked: [] as string[],
+      obstacles: [] as { step?: string; obstacle?: string }[],
+      deviations: [] as unknown[],
+      alternatives: [] as { step?: string; path?: string }[],
+      attempts: 0,
+      max_attempts: 3,
+      team: null,
+      last_checkpoint: null,
     },
     models: {
       models: [
@@ -142,9 +163,11 @@ export function installFetchMock(
     if (path === '/v1/models') return jsonResponse(catalog.models)
     if (path === '/v1/update') return jsonResponse(catalog.update)
     if (path === '/v1/rules') return jsonResponse(catalog.rules)
+    if (path === '/v1/notifications') return jsonResponse({ notifications: [] })
     if (path === '/v1/templates') return jsonResponse(catalog.templates)
     if (path === '/v1/agents') return jsonResponse(catalog.agents)
     if (path === `/v1/agents/${agentFixture.id}`) return jsonResponse(catalog.agent)
+    if (path === `/v1/agents/${agentFixture.id}/situation`) return jsonResponse(catalog.situation)
     return jsonResponse({ error: `unmocked ${path}` }, 404)
   }
   globalThis.fetch = fetchMock as typeof fetch

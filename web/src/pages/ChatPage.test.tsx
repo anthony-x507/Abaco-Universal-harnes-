@@ -227,6 +227,73 @@ describe('Chat page quality tests', () => {
     expect(screen.queryByText('No screen connected')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Workspace' }))
     expect(screen.getByText('No screen connected')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Mission' }))
+    expect(await screen.findByText('None yet')).toBeInTheDocument()
+    expect(screen.getByText('idle')).toBeInTheDocument()
+  })
+
+  it('shows a mission notice and dismisses it', async () => {
+    const user = userEvent.setup()
+    let unread = true
+    const { calls } = installFetchMock((path, init) => {
+      if (path === '/v1/notifications' && init?.method !== 'POST') {
+        return jsonResponse({
+          notifications: unread
+            ? [
+                {
+                  id: 'n1',
+                  agent_id: 'a1',
+                  kind: 'blocked',
+                  message: 'alpha is blocked on “research”: paywall.',
+                  at: '2026-09-04T00:00:00+00:00',
+                  acked: false,
+                },
+              ]
+            : [],
+        })
+      }
+      if (path === '/v1/notifications/n1/ack' && init?.method === 'POST') {
+        unread = false
+        return jsonResponse({
+          id: 'n1',
+          agent_id: 'a1',
+          kind: 'blocked',
+          message: 'alpha is blocked on “research”: paywall.',
+          at: '2026-09-04T00:00:00+00:00',
+          acked: true,
+        })
+      }
+      if (path === '/v1/agents/a1/situation') {
+        return jsonResponse({
+          agent_id: 'a1',
+          agent: 'alpha',
+          phase: 'blocked',
+          objective: 'Finish the report',
+          current_step: 'research',
+          steps_remaining: ['research', 'write'],
+          steps_completed: [],
+          steps_blocked: ['research'],
+          obstacles: [{ step: 'research', obstacle: 'paywall' }],
+          deviations: [],
+          alternatives: [],
+          attempts: 1,
+          max_attempts: 3,
+          team: null,
+          last_checkpoint: null,
+        })
+      }
+      return null
+    })
+    renderChat()
+    expect(await screen.findByTestId('mission-notice')).toHaveTextContent('alpha is blocked on “research”: paywall.')
+    await user.click(screen.getByRole('button', { name: 'Dismiss notice' }))
+    await waitFor(() => {
+      expect(calls.some((call) => call.path === '/v1/notifications/n1/ack' && call.init?.method === 'POST')).toBe(true)
+    })
+    expect(screen.queryByTestId('mission-notice')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Mission' }))
+    expect(await screen.findByText('Finish the report')).toBeInTheDocument()
+    expect(screen.getByText('blocked')).toBeInTheDocument()
   })
 
   it('shows an API key field on the composer when the model needs one', async () => {

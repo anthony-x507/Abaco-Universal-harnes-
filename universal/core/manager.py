@@ -61,6 +61,9 @@ class AgentManager:
         agent = self.registry.remove(agent_id)
         self.lifecycle.forget(agent_id)
         agent.discard_persisted_history()
+        from universal.situation import discard_situation
+
+        discard_situation(agent.id)
         return agent
 
     def deploy(self, agent_id: str, dest: Path | None = None) -> Path:

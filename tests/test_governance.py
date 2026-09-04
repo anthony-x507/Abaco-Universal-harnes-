@@ -25,9 +25,15 @@ def test_default_rules_include_finance_and_tor() -> None:
     ids = {rule.id for rule in load_rules()}
     assert "no_purchase_without_permission" in ids
     assert "no_dark_web_without_permission" in ids
+    assert "navigator_auto_notify" in ids
+    assert "navigator_allow_deviations" in ids
+    assert "navigator_no_false_promises" in ids
+    assert "memory_share_between_agents" in ids
     assert set(RULE_IDS) <= ids
     assert is_enforced("no_purchase_without_permission")
     assert is_enforced("no_dark_web_without_permission")
+    assert is_enforced("navigator_auto_notify")
+    assert is_enforced("memory_share_between_agents") is False
 
 
 def test_rules_file_can_disable_a_rule(tmp_path: Path, monkeypatch) -> None:

@@ -11,7 +11,8 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS (voice + speed), Whisper STT, vision, web search, scraper, rule enforcer
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team
+- Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Signed-core governance: encrypted card vault (simulated purchases), permission-gated Tor fetch
 - ZIP export with no secrets
 
@@ -114,8 +115,10 @@ The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspa
 | Models + API key | On the write bar. `PATCH /v1/agents/{id}` for the model; `PUT /v1/settings` for the key (process only) |
 | Clear history | `POST /v1/agents/{id}/reset` — also clears the on-disk transcript |
 | Download ZIP | `POST /v1/agents/{id}/deploy` |
-| Plugin line | Readable labels such as `Terminal: run_command`, `Tools: utc_now` |
+| Plugin line | Readable labels such as `Terminal: run_command`, `Navigator: set_objective…`, `Tools: utc_now` |
 | Usage meter | `Tokens: 1,234 \| Cost: $0.002` |
+| Mission (Workspace) | `GET /v1/agents/{id}/situation` — objective, current step, blockers, checkpoint |
+| Notices | Banner on Chat from `GET /v1/notifications`; dismiss is `POST /v1/notifications/{id}/ack` |
 
 `--demo` injects an echo provider. Settings update the running process only; they are never written to disk. The API key is never packed into a ZIP.
 
@@ -148,6 +151,7 @@ The researcher template sets `memory=True`. Facts go to `memory.json` under `UNI
 - Recreate an agent with the same name to reload facts after the process exits.
 - The model sees the last **10** turns plus the system prompt. The UI keeps the full thread until **Clear history**.
 - Chat history is **not** written to the registry snapshot.
+- Mission files live under `situation/{agent_id}.json`. Teams of existing agents are `teams/{name}.json`. Notices are `notifications.json`. None of those are a second registry.
 
 `--demo` Echo will not invent remembered names. A provider that reads the injected memory facts will.
 
@@ -191,6 +195,8 @@ Built-in catalog ids:
 | `web_search` | `search_web` | DuckDuckGo Instant Answer. No API key. |
 | `scraper` | `scrape_url` | BeautifulSoup. http(s) only; localhost and private IPs are rejected. |
 | `rule_enforcer` | `list_rules`, `check_rule` | Signed-core catalog. The user file may only flip `enforced`. |
+| `navigator` | `set_objective`, `plan_steps`, `complete_step`, `report_obstacle`, `report_deviation`, `suggest_path`, `checkpoint`, `mission_status` | Per-agent mission phase. Not the lifecycle `AgentState`. Three failed obstacles mark the mission failed. |
+| `team` | `create_team`, `delegate_task`, `team_status`, `team_checkpoint`, `share_note`, `read_team_notes` | Groups existing agents. Delegate goes through `Agent.accept`. Sharing notes asks when `memory_share_between_agents` is on. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
@@ -272,13 +278,13 @@ Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips
 
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
-Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`history/{agent_id}.json`), and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Settings → **Download & Restart** replaces `/Applications/Universal.app` and relaunches it. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
+Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`history/{agent_id}.json`), mission files (`situation/{agent_id}.json`), team files, notices, and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Settings → **Download & Restart** replaces `/Applications/Universal.app` and relaunches it. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
 
 ### Governance, wallet, and Tor
 
 The signed factory is the supervisor. There is no fourth “mother” YAML template.
 
-Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, and Tor. You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list.
+Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, and team memory sharing. You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
 
 `wallet` (Node) and `POST /v1/wallet/*` store card aliases. The core encrypts PAN/CVV with a local key (`wallet.key`) into `wallet.json` (mode 0600). Listing returns names only. **Purchases are simulated** after an allow when `no_purchase_without_permission` is on. Nothing is sent to a merchant.
 

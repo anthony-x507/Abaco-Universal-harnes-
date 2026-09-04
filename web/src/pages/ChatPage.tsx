@@ -14,6 +14,8 @@ import {
   getHealth,
   getSettings,
   listAgents,
+  listNotifications,
+  ackNotification,
   resetAgent,
   startHostRecording,
   stopHostRecording,
@@ -22,6 +24,7 @@ import {
   updateSettings,
   type Agent,
   type HistoryTurn,
+  type Notice,
 } from '../lib/api'
 import { blobToWav, getUserMedia, MIC_UNAVAILABLE, speechRecognitionCtor, wordCount } from '../lib/audio'
 import { useModels } from '../hooks/useModels'
@@ -85,6 +88,7 @@ export function ChatPage() {
   const [composerKey, setComposerKey] = useState('')
   const [hasApiKey, setHasApiKey] = useState(false)
   const [demoMode, setDemoMode] = useState(false)
+  const [notices, setNotices] = useState<Notice[]>([])
   const { models } = useModels()
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -191,6 +195,33 @@ export function ChatPage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const rows = await listNotifications()
+        if (!cancelled) setNotices(rows)
+      } catch {
+        if (!cancelled) setNotices([])
+      }
+    }
+    void load()
+    const timer = window.setInterval(() => void load(), 4000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  const dismissNotice = async (id: string) => {
+    try {
+      await ackNotification(id)
+      setNotices((current) => current.filter((row) => row.id !== id))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not dismiss the notice.')
+    }
+  }
 
   useEffect(() => {
     const box = composerRef.current
@@ -568,6 +599,24 @@ export function ChatPage() {
           </button>
         </div>
       )}
+      {notices.map((notice) => (
+        <div
+          key={notice.id}
+          data-testid="mission-notice"
+          role="status"
+          className="flex items-center justify-between gap-3 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-100"
+        >
+          <span>{notice.message}</span>
+          <button
+            type="button"
+            className="text-amber-100 hover:text-white"
+            onClick={() => void dismissNotice(notice.id)}
+            aria-label="Dismiss notice"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ))}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-transparent">
@@ -889,7 +938,11 @@ export function ChatPage() {
               label="Resize workspace"
               testId="workspace-resize"
             />
-            <WorkspacePane width={layout.rightWidth} onClose={() => updateLayout({ right: false })} />
+            <WorkspacePane
+              width={layout.rightWidth}
+              agentId={selectedId || undefined}
+              onClose={() => updateLayout({ right: false })}
+            />
           </>
         )}
       </div>

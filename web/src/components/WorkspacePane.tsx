@@ -1,14 +1,42 @@
-import { Monitor, PlugZap, Puzzle, X } from 'lucide-react'
-import { useState } from 'react'
+import { Compass, Monitor, PlugZap, Puzzle, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { getSituation, resetSituation, type Situation } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
 import { Button } from './ui/button'
+import { SituationPanel } from './SituationPanel'
 import { cn } from '../lib/utils'
 
-type WorkspaceTab = 'screen' | 'extension'
+type WorkspaceTab = 'screen' | 'extension' | 'mission'
 
-export function WorkspacePane({ onClose, width }: { onClose: () => void; width: number }) {
+export function WorkspacePane({
+  onClose,
+  width,
+  agentId,
+}: {
+  onClose: () => void
+  width: number
+  agentId?: string
+}) {
   const [tab, setTab] = useState<WorkspaceTab>('screen')
+  const [situation, setSituation] = useState<Situation | null>(null)
+  const [busy, setBusy] = useState(false)
   const { showToast } = useAskSession()
+
+  const loadSituation = async () => {
+    if (!agentId) {
+      setSituation(null)
+      return
+    }
+    try {
+      setSituation(await getSituation(agentId))
+    } catch {
+      setSituation(null)
+    }
+  }
+
+  useEffect(() => {
+    void loadSituation()
+  }, [agentId])
 
   return (
     <aside
@@ -45,9 +73,39 @@ export function WorkspacePane({ onClose, width }: { onClose: () => void; width: 
           <Puzzle size={14} />
           Extension
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTab('mission')
+            void loadSituation()
+          }}
+          className={cn(
+            'flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs',
+            tab === 'mission' ? 'bg-surface-2 text-accent' : 'text-muted hover:text-ink',
+          )}
+        >
+          <Compass size={14} />
+          Mission
+        </button>
       </div>
 
-      {tab === 'screen' ? (
+      {tab === 'mission' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <SituationPanel
+            situation={situation}
+            busy={busy}
+            onRefresh={() => void loadSituation()}
+            onReset={() => {
+              if (!agentId) return
+              setBusy(true)
+              void resetSituation(agentId)
+                .then((next) => setSituation(next))
+                .catch((err) => showToast(err instanceof Error ? err.message : 'Could not reset the mission.'))
+                .finally(() => setBusy(false))
+            }}
+          />
+        </div>
+      ) : tab === 'screen' ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
           <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-black p-2">
             <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wide text-muted">

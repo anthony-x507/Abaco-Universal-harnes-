@@ -1,5 +1,5 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native Mac app. Download Universal.dmg only. Chat history survives updates. The write bar has Models plus an API key field. Download & Restart installs the new app and relaunches it."
+  "release_notes": "Native Mac app. Download Universal.dmg only. Workspace Mission tab shows per-agent situation. Agents plan steps, report blockers, and coordinate existing teammates. Notices appear in Chat. Chat history and mission files survive updates."
 }

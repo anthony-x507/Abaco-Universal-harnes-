@@ -42,6 +42,26 @@ DEFAULT_RULES: tuple[dict[str, object], ...] = (
         "description": "Use Tor only after the user allows that fetch.",
         "enforced": True,
     },
+    {
+        "id": "navigator_auto_notify",
+        "description": "Notify the user when a mission is blocked.",
+        "enforced": True,
+    },
+    {
+        "id": "navigator_allow_deviations",
+        "description": "Ask before a planned step is replaced.",
+        "enforced": True,
+    },
+    {
+        "id": "navigator_no_false_promises",
+        "description": "Do not claim a result you did not produce.",
+        "enforced": True,
+    },
+    {
+        "id": "memory_share_between_agents",
+        "description": "Share team notes only after an explicit allow.",
+        "enforced": False,
+    },
 )
 
 RULE_IDS = tuple(str(row["id"]) for row in DEFAULT_RULES)
