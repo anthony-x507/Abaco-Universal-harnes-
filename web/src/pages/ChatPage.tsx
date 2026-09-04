@@ -185,7 +185,6 @@ export function ChatPage() {
     const controller = beginAsk(selectedId)
     if (!controller) return
     const agentId = selectedId
-    const agentName = selected?.name || 'Agent'
     setSending(true)
     setError('')
     setStatusLine('Thinking…')
