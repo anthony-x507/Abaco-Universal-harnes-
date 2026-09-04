@@ -127,7 +127,6 @@ export function ChatPage() {
         const [rows, settings] = await Promise.all([refresh(), getSettings().catch(() => null)])
         if (cancelled) return
         if (settings) {
-          setHasApiKey(Boolean(settings.llm_api_key))
           setDemoMode(Boolean(settings.demo))
         }
         setError('')
@@ -163,6 +162,8 @@ export function ChatPage() {
         const agent = await getAgent(requested)
         if (cancelled || selectedIdRef.current !== requested) return
         setHistory(agent.history ?? [])
+        setHasApiKey(Boolean(agent.has_api_key))
+        setAgents((current) => current.map((row) => (row.id === agent.id ? { ...row, ...agent } : row)))
       } catch (err) {
         if (!cancelled && selectedIdRef.current === requested) {
           setHistory([])
@@ -335,6 +336,7 @@ export function ChatPage() {
       showToast('Agent is already answering. Please wait.')
       return
     }
+    if (composerKey.trim()) await saveComposerKey()
     const pending = attachments
     const outbound = text || (pending.length ? '' : '(attachment only)')
     setPrompt('')
@@ -846,7 +848,7 @@ export function ChatPage() {
                       <input
                         type="password"
                         autoComplete="off"
-                        placeholder={hasApiKey ? 'API key saved' : 'API key'}
+                        placeholder={selected?.has_api_key || hasApiKey ? 'API key saved' : 'API key'}
                         value={composerKey}
                         disabled={sending}
                         onChange={(event) => setComposerKey(event.target.value)}

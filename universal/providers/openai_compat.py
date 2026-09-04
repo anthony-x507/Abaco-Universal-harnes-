@@ -12,6 +12,10 @@ from universal.core.types import CompletionResponse, Message, ToolCall, ToolSpec
 from universal.exceptions import ProviderError
 from universal.providers.base import Provider
 
+EMPTY_KEY_MESSAGE = (
+    "No API key for this agent. Save one in Chat, Settings, or the agent's Settings tab."
+)
+
 
 class OpenAICompatProvider(Provider):
     """POST ``{base_url}/chat/completions`` with a Bearer token.
@@ -51,6 +55,12 @@ class OpenAICompatProvider(Provider):
     def model(self) -> str:
         return self._model
 
+    def apply_api_key(self, api_key: str) -> None:
+        """Stamp a saved key onto this live client. Does not rebuild HTTP."""
+        cleaned = (api_key or "").strip()
+        if cleaned:
+            self._api_key = cleaned
+
     @property
     def completions_url(self) -> str:
         if self._base_url.endswith("/chat/completions"):
@@ -65,9 +75,7 @@ class OpenAICompatProvider(Provider):
         model: str | None = None,
     ) -> CompletionResponse:
         if not self._api_key:
-            raise ProviderError(
-                "UNIVERSAL_LLM_API_KEY is empty. Set it before calling a live model."
-            )
+            raise ProviderError(EMPTY_KEY_MESSAGE)
         payload: dict[str, Any] = {
             "model": model or self._model,
             "messages": [message.to_openai() for message in messages],
@@ -88,9 +96,7 @@ class OpenAICompatProvider(Provider):
     ) -> str:
         """One multimodal completion on the same HTTP client. Not a second provider."""
         if not self._api_key:
-            raise ProviderError(
-                "UNIVERSAL_LLM_API_KEY is empty. Set it before calling a live model."
-            )
+            raise ProviderError(EMPTY_KEY_MESSAGE)
         payload: dict[str, Any] = {
             "model": model or self._model,
             "messages": [
@@ -147,9 +153,7 @@ class OpenAICompatProvider(Provider):
             yield from super().stream(messages, tools=tools, model=model)
             return
         if not self._api_key:
-            raise ProviderError(
-                "UNIVERSAL_LLM_API_KEY is empty. Set it before calling a live model."
-            )
+            raise ProviderError(EMPTY_KEY_MESSAGE)
         payload: dict[str, Any] = {
             "model": model or self._model,
             "messages": [message.to_openai() for message in messages],

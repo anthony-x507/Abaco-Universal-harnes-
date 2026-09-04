@@ -170,13 +170,8 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     from universal.situation import Situation
 
     payload["situation"] = Situation.load(agent.id, agent_name=agent.name).to_dict()
-    from universal.llm_store import load_agent_api_key
-
-    payload["has_api_key"] = bool(
-        load_agent_api_key(agent.id)
-        or platform.settings.llm_api_key
-        or str(getattr(agent.provider, "_api_key", "") or "")
-    )
+    platform.factory.ensure_live_client(agent)
+    payload["has_api_key"] = bool(str(getattr(agent.provider, "_api_key", "") or ""))
     payload["llm_provider"] = agent.llm_provider
     if not payload.get("emoji"):
         from universal.core.faces import face_for
@@ -448,9 +443,12 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         return {"deleted": payload}
 
     def _prepare_ask(agent_id: str, prompt: str, attachments: list[AttachmentBody] | None = None) -> tuple[Any, str]:
-        if not state.demo:
-            state.platform.settings.require_live()
         agent = state.platform.registry.get(agent_id)
+        if not state.demo:
+            state.platform.factory.ensure_live_client(agent)
+            live_key = str(getattr(agent.provider, "_api_key", "") or "")
+            if not live_key:
+                state.platform.settings.require_live()
         from universal.attachments import apply_attachments
 
         text = apply_attachments(agent, prompt, [item.model_dump() for item in attachments or []])

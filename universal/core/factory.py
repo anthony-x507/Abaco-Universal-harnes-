@@ -216,6 +216,31 @@ class AgentFactory:
                 continue
             self.bind_model(agent, llm_model=agent.llm_model or None)
 
+    def ensure_live_client(self, agent: Agent) -> None:
+        """Stamp a saved key onto this agent right before a live call.
+
+        The Chat UI can show “API key saved” from Settings while this agent
+        still holds an older empty client. Hydrate from the agent secret,
+        ``llm.json``, or process settings, then apply it in place.
+        """
+        if self.generator._provider_injected:
+            return
+        self.bind_model(
+            agent,
+            llm_model=agent.llm_model or None,
+            preset_name=agent.llm_provider or None,
+        )
+        from universal.llm_store import resolve_api_key
+
+        key = resolve_api_key(agent.id) or self.settings.llm_api_key
+        apply = getattr(agent.provider, "apply_api_key", None)
+        if key and callable(apply):
+            apply(key)
+        shared = self.generator.provider()
+        shared_apply = getattr(shared, "apply_api_key", None)
+        if key and callable(shared_apply) and not getattr(shared, "_api_key", ""):
+            shared_apply(key)
+
     def start(self, agent_id: str) -> Agent:
         return self.manager.start(agent_id)
 

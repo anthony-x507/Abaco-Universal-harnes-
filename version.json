@@ -1,5 +1,5 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Persist Grok/OpenAI API keys and chat history in user data. Saving Settings rebinds existing agents. Agent settings can store a key. GitHub updates replace the app only."
+  "release_notes": "Stamp a saved API key onto the live agent before each ask. Chat no longer shows API key saved unless that agent can actually call the model."
 }

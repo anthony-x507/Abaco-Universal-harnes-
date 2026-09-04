@@ -89,6 +89,15 @@ def load_agent_api_key(agent_id: str) -> str:
     return _secrets_map().get(agent_id, {}).get("llm_api_key", "")
 
 
+def resolve_api_key(agent_id: str | None = None) -> str:
+    """Agent secret first, then the persisted process default."""
+    if agent_id:
+        secret = load_agent_api_key(agent_id)
+        if secret:
+            return secret
+    return str(load_llm_settings().get("llm_api_key") or "").strip()
+
+
 def save_agent_api_key(agent_id: str, api_key: str) -> None:
     cleaned = api_key.strip()
     rows = _secrets_map()

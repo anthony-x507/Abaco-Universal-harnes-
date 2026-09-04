@@ -56,7 +56,7 @@ def test_openai_compat_http_error() -> None:
 
 def test_openai_compat_refuses_empty_key() -> None:
     provider = OpenAICompatProvider("https://example.test/v1", "", "fake-model")
-    with pytest.raises(ProviderError, match="API_KEY"):
+    with pytest.raises(ProviderError, match="No API key"):
         provider.complete([Message(role="user", content="ping")])
 
 

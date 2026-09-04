@@ -27,6 +27,20 @@ def _live_settings(**extra: str) -> Settings:
     return Settings(**values)
 
 
+def test_stale_empty_client_picks_up_the_saved_key() -> None:
+    """Photo bug: UI said the key was saved, but ninja still had an empty client."""
+    root = Universal(_live_settings(llm_api_key="xai-stale"))
+    agent = root.factory.create("general", name="ninja")
+    agent.llm_provider = "xAI (Grok 4.6)"
+    agent.llm_model = "grok-4.6"
+    agent.provider._api_key = ""
+    client = TestClient(create_app(root, demo=False))
+    body = client.get(f"/v1/agents/{agent.id}").json()
+    assert body["has_api_key"] is True
+    assert agent.provider._api_key == "xai-stale"
+    assert agent.provider.base_url.rstrip("/") == "https://api.x.ai/v1"
+
+
 def test_put_key_rebinds_the_existing_shared_client() -> None:
     root = Universal(_live_settings())
     agent = root.factory.create("general", name="ninja")

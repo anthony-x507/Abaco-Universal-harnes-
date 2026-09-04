@@ -303,6 +303,7 @@ class Agent:
         else:
             pieces: list[str] = []
             started = time.perf_counter()
+            self._hydrate_provider_key()
             for piece in self.provider.stream(working, tools=None, model=self.llm_model or None):
                 pieces.append(piece)
                 yield {"type": "token", "text": piece}
@@ -328,6 +329,20 @@ class Agent:
             if event.get("type") == "token" and event.get("text"):
                 yield str(event["text"])
 
+    def _hydrate_provider_key(self) -> None:
+        """If this client is empty, use the key saved for the agent or process."""
+        current = str(getattr(self.provider, "_api_key", "") or "")
+        if current:
+            return
+        apply = getattr(self.provider, "apply_api_key", None)
+        if not callable(apply):
+            return
+        from universal.llm_store import resolve_api_key
+
+        key = resolve_api_key(self.id)
+        if key:
+            apply(key)
+
     def _provider_complete(
         self, working: list[Message], tools: list[Any] | None
     ) -> CompletionResponse:
@@ -336,6 +351,7 @@ class Agent:
         def _call() -> CompletionResponse:
             started = time.perf_counter()
             try:
+                self._hydrate_provider_key()
                 response = self.provider.complete(
                     working, tools=tools or None, model=self.llm_model or None
                 )
