@@ -18,6 +18,8 @@ NATIVE_TOOL_NAMES = (
     "create_team",
     "delegate_task",
     "deepseek_monitor",
+    "draft_contract",
+    "seal_proof",
 )
 
 NATIVE_LABELS = [
@@ -31,6 +33,7 @@ NATIVE_LABELS = [
     "Navigator: set_objective, plan_steps, complete_step, report_obstacle, report_deviation, suggest_path, checkpoint, mission_status",
     "Team: create_team, delegate_task, team_status, team_checkpoint, resume_team, share_note, read_team_notes",
     "Strategist: deepseek_monitor",
+    "Proof: draft_contract, record_oracle, challenge_requirement, seal_proof, proof_status",
 ]
 
 RESEARCHER_PLUGIN_NAMES = (*NATIVE_PLUGIN_NAMES, "tools")

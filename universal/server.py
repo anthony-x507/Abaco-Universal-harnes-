@@ -111,6 +111,23 @@ class TeamDelegateBody(BaseModel):
     task: str
 
 
+class ProofDraftBody(BaseModel):
+    objective: str
+    requirements: list[str] = Field(default_factory=list)
+
+
+class ProofOracleBody(BaseModel):
+    requirement_id: str
+    passed: bool
+    evidence: str = ""
+
+
+class ProofChallengeBody(BaseModel):
+    requirement_id: str
+    mutation: str
+    still_holds: bool
+
+
 class SettingsBody(BaseModel):
     llm_base_url: str | None = None
     llm_api_key: str | None = None
@@ -175,7 +192,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         return member.accept(prompt)
 
     set_delegate_hook(_delegate)
-    app = FastAPI(title="Universal platform", version="1.0.8")
+    app = FastAPI(title="Universal platform", version=current_version())
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -553,6 +570,79 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         from universal.strategist import scan_deepseek
 
         return scan_deepseek(refresh=True)
+
+    @app.get("/v1/agents/{agent_id}/proof")
+    def get_agent_proof(agent_id: str) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        from universal.proof import latest_for_agent, summarize
+
+        bundle = latest_for_agent(agent.id)
+        if bundle is None:
+            return {"proof": None}
+        return {"proof": summarize(bundle)}
+
+    @app.post("/v1/agents/{agent_id}/proof")
+    def draft_agent_proof(agent_id: str, body: ProofDraftBody) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        from universal.proof import draft_contract, summarize
+
+        try:
+            bundle = draft_contract(
+                agent.id,
+                objective=body.objective,
+                requirements=body.requirements,
+                agent_name=agent.name,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return summarize(bundle)
+
+    @app.post("/v1/proofs/{proof_id}/oracle")
+    def proof_oracle(proof_id: str, body: ProofOracleBody) -> dict[str, Any]:
+        from universal.proof import record_oracle, summarize
+
+        try:
+            return summarize(
+                record_oracle(
+                    proof_id,
+                    requirement_id=body.requirement_id,
+                    passed=body.passed,
+                    evidence=body.evidence,
+                )
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Proof not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/v1/proofs/{proof_id}/challenge")
+    def proof_challenge(proof_id: str, body: ProofChallengeBody) -> dict[str, Any]:
+        from universal.proof import challenge, summarize
+
+        try:
+            return summarize(
+                challenge(
+                    proof_id,
+                    requirement_id=body.requirement_id,
+                    mutation=body.mutation,
+                    still_holds=body.still_holds,
+                )
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Proof not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/v1/proofs/{proof_id}/seal")
+    def proof_seal(proof_id: str) -> dict[str, Any]:
+        from universal.proof import seal, summarize
+
+        try:
+            return summarize(seal(proof_id))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Proof not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/v1/teams")
     def create_team_route(body: TeamCreateBody) -> dict[str, Any]:

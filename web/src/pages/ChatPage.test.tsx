@@ -230,6 +230,10 @@ describe('Chat page quality tests', () => {
     await user.click(screen.getByRole('button', { name: 'Mission' }))
     expect(await screen.findByText('None yet')).toBeInTheDocument()
     expect(screen.getByText('idle')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Sentinel Proof' })).toBeInTheDocument()
+    expect(
+      await screen.findByText('No proof bundle yet. Write atomic requirements for this mission.'),
+    ).toBeInTheDocument()
   })
 
   it('shows a mission notice and dismisses it', async () => {

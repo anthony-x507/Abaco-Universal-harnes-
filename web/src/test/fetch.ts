@@ -100,6 +100,7 @@ export function defaultCatalog() {
         { id: 'navigator_no_false_promises', description: 'Do not claim a result you did not produce.', enforced: true },
         { id: 'memory_share_between_agents', description: 'Share team notes only after an explicit allow.', enforced: false },
         { id: 'strategist_deepseek_tracking', description: 'Scan official DeepSeek Harness repos and keep a comparison report.', enforced: true },
+        { id: 'sentinel_proof_required', description: 'Last mission step stays verifying until a Sentinel Proof is sealed.', enforced: false },
       ],
     },
     deepseek: {
@@ -148,7 +149,9 @@ export function defaultCatalog() {
       max_attempts: 3,
       team: null,
       last_checkpoint: null,
+      proof_id: null,
     },
+    proof: { proof: null as null },
     models: {
       models: [
         {
@@ -199,6 +202,7 @@ export function installFetchMock(
     if (path === '/v1/agents') return jsonResponse(catalog.agents)
     if (path === `/v1/agents/${agentFixture.id}`) return jsonResponse(catalog.agent)
     if (path === `/v1/agents/${agentFixture.id}/situation`) return jsonResponse(catalog.situation)
+    if (path === `/v1/agents/${agentFixture.id}/proof`) return jsonResponse(catalog.proof)
     if (path === '/v1/strategist/deepseek' || path === '/v1/strategist/deepseek/scan') {
       return jsonResponse(catalog.deepseek)
     }

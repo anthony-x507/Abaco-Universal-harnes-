@@ -23,6 +23,7 @@ Use them when they help. Prefer facts over guesses.
 After you call a tool, use the result. Do not call the same tool again with the same arguments. If a tool fails twice, answer with what you know instead of looping.
 On multi-step work use `set_objective` and `plan_steps`, then `complete_step` only after the work succeeded. If you are stuck, `report_obstacle` and tell the user honestly. Never promise a result you cannot produce. Team tools coordinate existing agents only.
 Use `deepseek_monitor` when asked about DeepSeek Harness releases or how they compare with Universal. Do not invent Twitter counts.
+For claims that must be sealed use `draft_contract`, `record_oracle`, `challenge_requirement`, and `seal_proof`. Do not mark a requirement passed unless you checked it. This is HMAC evidence, not quantum.
 Never spend a stored card or use Tor unless the user has allowed that action."""
 
 RESEARCHER_PROMPT = """You are a methodical research assistant.
@@ -38,6 +39,7 @@ You will state when information is speculative or outside your knowledge.
 After you call a tool, use the result. Do not call the same tool again with the same arguments. If a tool fails twice, answer with what you know instead of looping.
 On multi-step work use `set_objective` and `plan_steps`, then `complete_step` only after the work succeeded. If you are stuck, `report_obstacle` and tell the user honestly. Never promise a result you cannot produce. Team tools coordinate existing agents only.
 Use `deepseek_monitor` when asked about DeepSeek Harness releases or how they compare with Universal. Do not invent Twitter counts.
+For claims that must be sealed use `draft_contract`, `record_oracle`, `challenge_requirement`, and `seal_proof`. Do not mark a requirement passed unless you checked it. This is HMAC evidence, not quantum.
 Never spend a stored card or use Tor unless the user has allowed that action.
 Prioritize clarity, structure, and cite sources when possible."""
 
@@ -57,6 +59,7 @@ You have:
 After you call a tool, use the result. Do not call the same tool again with the same arguments. If a tool fails twice, answer with what you know instead of looping.
 On multi-step work use `set_objective` and `plan_steps`, then `complete_step` only after the work succeeded. If you are stuck, `report_obstacle` and tell the user honestly. Never promise a result you cannot produce. Team tools coordinate existing agents only.
 Use `deepseek_monitor` when asked about DeepSeek Harness releases or how they compare with Universal. Do not invent Twitter counts.
+For claims that must be sealed use `draft_contract`, `record_oracle`, `challenge_requirement`, and `seal_proof`. Do not mark a requirement passed unless you checked it. This is HMAC evidence, not quantum.
 Never spend a stored card or use Tor unless the user has allowed that action."""
 
 

@@ -11,8 +11,9 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist (`deepseek_monitor`)
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist (`deepseek_monitor`), proof (`draft_contract` → `seal_proof`)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
+- Sentinel Proof: HMAC-sealed evidence (contract → oracles → challenges → reducer). Not quantum.
 - Signed-core governance: encrypted card vault (simulated purchases), permission-gated Tor fetch
 - ZIP export with no secrets
 
@@ -117,7 +118,7 @@ The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspa
 | Download ZIP | `POST /v1/agents/{id}/deploy` |
 | Plugin line | Readable labels such as `Terminal: run_command`, `Navigator: set_objective…`, `Tools: utc_now` |
 | Usage meter | `Tokens: 1,234 \| Cost: $0.002` |
-| Mission (Workspace) | `GET /v1/agents/{id}/situation` — objective, current step, blockers, checkpoint |
+| Mission (Workspace) | `GET /v1/agents/{id}/situation` — objective, current step, blockers, checkpoint, plus Sentinel Proof |
 | Notices | Banner on Chat from `GET /v1/notifications`; dismiss is `POST /v1/notifications/{id}/ack` |
 
 `--demo` injects an echo provider. Settings update the running process only; they are never written to disk. The API key is never packed into a ZIP.
@@ -151,7 +152,7 @@ The researcher template sets `memory=True`. Facts go to `memory.json` under `UNI
 - Recreate an agent with the same name to reload facts after the process exits.
 - The model sees the last **10** turns plus the system prompt. The UI keeps the full thread until **Clear history**.
 - Chat history is **not** written to the registry snapshot.
-- Mission files live under `situation/{agent_id}.json`. Teams of existing agents are `teams/{name}.json`. Notices are `notifications.json`. None of those are a second registry.
+- Mission files live under `situation/{agent_id}.json`. Teams of existing agents are `teams/{name}.json`. Notices are `notifications.json`. Proof bundles are `proofs/{id}.json`. None of those are a second registry.
 
 `--demo` Echo will not invent remembered names. A provider that reads the injected memory facts will.
 
@@ -198,6 +199,7 @@ Built-in catalog ids:
 | `navigator` | `set_objective`, `plan_steps`, `complete_step`, `report_obstacle`, `report_deviation`, `suggest_path`, `checkpoint`, `mission_status` | Per-agent mission phase. Not the lifecycle `AgentState`. Three failed obstacles mark the mission failed. |
 | `team` | `create_team`, `delegate_task`, `team_status`, `team_checkpoint`, `resume_team`, `share_note`, `read_team_notes` | Groups existing agents. Delegate goes through `Agent.accept`. `resume_team` reloads the checkpoint and each member's mission. Sharing notes asks when `memory_share_between_agents` is on. |
 | `strategist` | `deepseek_monitor` | Public GitHub scan of DeepSeek Harness plus a comparison with Universal. Settings → DeepSeek Insights. Off when `strategist_deepseek_tracking` is off. |
+| `proof` | `draft_contract`, `record_oracle`, `challenge_requirement`, `seal_proof`, `proof_status` | Sentinel Proof stages on the same agent. Seal writes `proofs/{id}.json` with HMAC (`proof.key`). Not quantum. Roles are stages, not extra templates. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
@@ -285,7 +287,9 @@ Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`histo
 
 The signed factory is the supervisor. There is no fourth “mother” YAML template.
 
-Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, team memory sharing, and DeepSeek tracking. You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
+Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, team memory sharing, DeepSeek tracking, and Sentinel Proof (`sentinel_proof_required`, default off). You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
+
+When `sentinel_proof_required` is on, the last mission step stays `verifying` until a bundle is sealed. The reducer signs with HMAC-SHA256. Product copy must not call this quantum.
 
 `wallet` (Node) and `POST /v1/wallet/*` store card aliases. The core encrypts PAN/CVV with a local key (`wallet.key`) into `wallet.json` (mode 0600). Listing returns names only. **Purchases are simulated** after an allow when `no_purchase_without_permission` is on. Nothing is sent to a merchant.
 

@@ -24,8 +24,10 @@ class MissionPhase(str, Enum):
     EVALUATING = "evaluating"
     BLOCKED = "blocked"
     DEVIATING = "deviating"
+    VERIFYING = "verifying"
     COMPLETED = "completed"
     FAILED = "failed"
+    SEALED = "sealed"
 
 
 def situation_dir() -> Path:
@@ -59,6 +61,7 @@ class Situation:
     attempts: int = 0
     team: str = ""
     last_checkpoint: str = ""
+    proof_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         remaining = [step for step in self.steps if step not in self.completed]
@@ -78,6 +81,7 @@ class Situation:
             "max_attempts": MAX_ATTEMPTS,
             "team": self.team or None,
             "last_checkpoint": self.last_checkpoint or None,
+            "proof_id": self.proof_id or None,
         }
 
     def save(self) -> None:
@@ -97,6 +101,7 @@ class Situation:
             "attempts": self.attempts,
             "team": self.team,
             "last_checkpoint": self.last_checkpoint,
+            "proof_id": self.proof_id,
         }
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -130,6 +135,7 @@ class Situation:
             attempts=int(raw.get("attempts") or 0),
             team=str(raw.get("team") or ""),
             last_checkpoint=str(raw.get("last_checkpoint") or ""),
+            proof_id=str(raw.get("proof_id") or ""),
         )
 
     def set_objective(self, objective: str) -> None:
@@ -156,7 +162,16 @@ class Situation:
             self.blocked = [item for item in self.blocked if item != name]
         remaining = [item for item in self.steps if item not in self.completed]
         self.current_step = remaining[0] if remaining else ""
-        self.phase = MissionPhase.COMPLETED if not remaining else MissionPhase.EXECUTING
+        if remaining:
+            self.phase = MissionPhase.EXECUTING
+        else:
+            from universal.proof import is_sealed
+            from universal.rules import is_enforced
+
+            if is_enforced("sentinel_proof_required") and not is_sealed(self.agent_id):
+                self.phase = MissionPhase.VERIFYING
+            else:
+                self.phase = MissionPhase.COMPLETED
         self.save()
 
     def report_obstacle(self, step: str, obstacle: str) -> None:
@@ -195,6 +210,7 @@ class Situation:
         self.attempts = 0
         self.team = ""
         self.last_checkpoint = ""
+        self.proof_id = ""
         self.save()
 
 

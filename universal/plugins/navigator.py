@@ -149,6 +149,11 @@ class NavigatorPlugin(Plugin):
             status.complete_step(step)
             if status.phase.value == "completed":
                 return f"Step done: {step}. Objective reached: {status.objective}"
+            if status.phase.value == "verifying":
+                return (
+                    f"Step done: {step}. Seal a Sentinel Proof before calling this finished "
+                    f"(draft_contract, record_oracle, challenge_requirement, seal_proof)."
+                )
             return f"Step done: {step}. Next: {status.current_step}"
         if call.name == "report_obstacle":
             step = str(args.get("step") or "").strip()

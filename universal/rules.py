@@ -67,6 +67,11 @@ DEFAULT_RULES: tuple[dict[str, object], ...] = (
         "description": "Scan official DeepSeek Harness repos and keep a comparison report.",
         "enforced": True,
     },
+    {
+        "id": "sentinel_proof_required",
+        "description": "Last mission step stays verifying until a Sentinel Proof is sealed.",
+        "enforced": False,
+    },
 )
 
 RULE_IDS = tuple(str(row["id"]) for row in DEFAULT_RULES)

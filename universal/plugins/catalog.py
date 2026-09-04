@@ -7,6 +7,7 @@ from collections.abc import Callable
 from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
 from universal.plugins.navigator import NavigatorPlugin
+from universal.plugins.proof import ProofPlugin
 from universal.plugins.rules import RuleEnforcerPlugin
 from universal.plugins.strategist import StrategistPlugin
 from universal.plugins.team import TeamPlugin
@@ -33,6 +34,7 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "navigator",
     "team",
     "strategist",
+    "proof",
 )
 
 
@@ -122,6 +124,10 @@ def _strategist_plugin(**_kwargs: object) -> StrategistPlugin:
     return StrategistPlugin()
 
 
+def _proof_plugin(**_kwargs: object) -> ProofPlugin:
+    return ProofPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
@@ -137,6 +143,7 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("navigator", _navigator_plugin)
     catalog.register("team", _team_plugin)
     catalog.register("strategist", _strategist_plugin)
+    catalog.register("proof", _proof_plugin)
     return catalog
 
 

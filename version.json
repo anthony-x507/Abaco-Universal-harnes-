@@ -1,5 +1,5 @@
 {
-  "version": "1.0.9",
+  "version": "1.1.0",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native Mac app. Download Universal.dmg only. Settings shows DeepSeek Insights: official DSH GitHub releases compared with Universal. Scan on demand. Mission, teams, and chat history survive updates."
+  "release_notes": "Sentinel Proof v1. HMAC-sealed mission evidence on the signed factory: contract, independent oracles, adversary challenges, deterministic reducer. Not quantum. Native proof tools on every agent. Last step stays verifying only when sentinel_proof_required is on."
 }

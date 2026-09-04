@@ -12,6 +12,8 @@ const PHASE_CLASS: Record<string, string> = {
   deviating: 'text-amber-300',
   completed: 'text-emerald-200',
   failed: 'text-red-300',
+  verifying: 'text-sky-200',
+  sealed: 'text-emerald-300',
 }
 
 export function SituationPanel({
@@ -65,6 +67,7 @@ export function SituationPanel({
       {situation.last_checkpoint && (
         <p className="text-xs text-muted">Checkpoint {situation.last_checkpoint}</p>
       )}
+      {situation.proof_id && <p className="text-xs text-muted">Proof {situation.proof_id}</p>}
       <div className="flex gap-2">
         <Button size="sm" variant="outline" onClick={onRefresh} disabled={busy}>
           Refresh

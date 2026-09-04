@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { getSituation, resetSituation, type Situation } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
 import { Button } from './ui/button'
+import { ProofPanel } from './ProofPanel'
 import { SituationPanel } from './SituationPanel'
 import { cn } from '../lib/utils'
 
@@ -104,6 +105,7 @@ export function WorkspacePane({
                 .finally(() => setBusy(false))
             }}
           />
+          <ProofPanel agentId={agentId} />
         </div>
       ) : tab === 'screen' ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">

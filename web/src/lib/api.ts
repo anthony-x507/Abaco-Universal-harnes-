@@ -50,6 +50,7 @@ export type Situation = {
   max_attempts: number
   team: string | null
   last_checkpoint: string | null
+  proof_id?: string | null
 }
 
 export type Notice = {
@@ -300,6 +301,73 @@ export async function getSituation(id: string): Promise<Situation> {
 
 export async function resetSituation(id: string): Promise<Situation> {
   return request(`/v1/agents/${id}/situation/reset`, { method: 'POST' })
+}
+
+export type ProofRequirement = {
+  id: string
+  text: string
+}
+
+export type ProofOracle = {
+  requirement_id: string
+  passed: boolean
+  evidence: string
+  oracle?: string
+  at?: string
+}
+
+export type ProofChallenge = {
+  requirement_id: string
+  mutation: string
+  still_holds: boolean
+  at?: string
+}
+
+export type ProofSummary = {
+  id: string
+  agent_id?: string
+  objective: string
+  status: string
+  requirements: ProofRequirement[]
+  oracles: ProofOracle[]
+  challenges: ProofChallenge[]
+  sealed_at: string | null
+  signature: string | null
+  payload_hash: string | null
+  verified: boolean
+  quantum: boolean
+  engine?: string
+  updated_at?: string
+}
+
+export async function getAgentProof(id: string): Promise<ProofSummary | null> {
+  const data = await request<{ proof: ProofSummary | null }>(`/v1/agents/${id}/proof`)
+  return data.proof
+}
+
+export async function draftAgentProof(
+  id: string,
+  body: { objective: string; requirements: string[] },
+): Promise<ProofSummary> {
+  return request(`/v1/agents/${id}/proof`, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function recordProofOracle(
+  proofId: string,
+  body: { requirement_id: string; passed: boolean; evidence: string },
+): Promise<ProofSummary> {
+  return request(`/v1/proofs/${proofId}/oracle`, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function challengeProof(
+  proofId: string,
+  body: { requirement_id: string; mutation: string; still_holds: boolean },
+): Promise<ProofSummary> {
+  return request(`/v1/proofs/${proofId}/challenge`, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function sealProof(proofId: string): Promise<ProofSummary> {
+  return request(`/v1/proofs/${proofId}/seal`, { method: 'POST' })
 }
 
 export async function listNotifications(): Promise<Notice[]> {
