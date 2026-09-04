@@ -30,6 +30,7 @@ from universal.exceptions import (
     UniversalError,
 )
 from universal.providers.catalog import PROVIDERS, get_provider
+from universal.release import current_version
 from universal.templates.catalog import list_templates
 from universal.web_dist import resolve_web_dist
 
@@ -144,7 +145,31 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "demo": state.demo,
             "agents": len(state.platform.factory.list()),
             "web": bool(getattr(app.state, "web_dist", None)),
+            "version": current_version(),
         }
+
+    @app.get("/v1/update")
+    def update_status() -> dict[str, Any]:
+        from universal.updater import Updater
+
+        updater = Updater()
+        try:
+            return updater.check().to_dict()
+        finally:
+            updater.close()
+
+    @app.post("/v1/update")
+    def update_apply() -> dict[str, Any]:
+        from universal.updater import Updater
+
+        updater = Updater()
+        try:
+            message = updater.apply()
+        except ConfigError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        finally:
+            updater.close()
+        return {"ok": True, "message": message}
 
     @app.get("/v1/models")
     def list_models() -> dict[str, Any]:

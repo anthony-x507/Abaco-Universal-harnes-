@@ -94,6 +94,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Verify web/dist and factory health without opening a window.",
     )
 
+    update = sub.add_parser("update", help="Check GitHub Releases for a newer Universal.dmg.")
+    update.add_argument(
+        "--apply",
+        action="store_true",
+        help="Download and install (packaged Mac app only).",
+    )
+
     return parser
 
 
@@ -209,6 +216,21 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return run_server(host=args.host, port=args.port, demo=args.demo)
 
 
+def _cmd_update(args: argparse.Namespace) -> int:
+    from universal.updater import Updater
+
+    updater = Updater()
+    try:
+        if args.apply:
+            print(updater.apply())
+            return 0
+        status = updater.check()
+        print(json.dumps(status.to_dict(), indent=2))
+        return 0
+    finally:
+        updater.close()
+
+
 def _cmd_desktop(args: argparse.Namespace) -> int:
     from universal.desktop import main as desktop_main
 
@@ -268,6 +290,7 @@ _HANDLERS = {
     "shell": _cmd_shell,
     "serve": _cmd_serve,
     "desktop": _cmd_desktop,
+    "update": _cmd_update,
 }
 
 

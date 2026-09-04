@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install Universal desktop extra
+        run: |
+          python3 -m pip install -e ".[desktop]"
+          python3 -m pip install "pyinstaller>=6.0"
+      - name: Build app and DMG
+        run: |
+          ./scripts/build_macos.sh
+          ./scripts/create_dmg.sh
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Universal.dmg
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true

@@ -91,4 +91,8 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "aegis" not in build.lower()
     assert "hdiutil" in dmg
     assert "from universal.desktop import main" in app_entry
+    workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "macos-latest" in workflow
+    assert "openai-whisper" not in workflow
+    assert "requirements.txt" not in workflow
     assert "aegis" not in app_entry.lower()

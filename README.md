@@ -82,6 +82,7 @@ Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollam
 | `universal shell` | One process, one registry: `create` / `start` / `stop` / `list` / `delete` / `ask` / `deploy`. |
 | `universal serve [--demo]` | HTTP factory on `127.0.0.1:43124`. Localhost only. |
 | `universal desktop [--demo]` | Native window (pywebview) on the same factory + built SPA. |
+| `universal update` | Check GitHub Releases for a newer `Universal.dmg`. `--apply` on the packaged Mac app. |
 
 `ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
 
@@ -256,6 +257,21 @@ scripts/create_dmg.sh     # Universal.dmg (hdiutil)
 
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
+Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the six tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
+
+Self-update (optional):
+
+```bash
+export UNIVERSAL_UPDATE_REPO=owner/universal   # GitHub repo that publishes Universal.dmg
+universal update                 # GET-equivalent check
+# packaged Mac app only:
+universal update --apply
+```
+
+`GET /v1/update` is the same check. `POST /v1/update` applies only when the process is the frozen Mac app (or `UNIVERSAL_UPDATE_ALLOW_INSTALL=1` in tests). Downloads must be `https` GitHub asset URLs. The app never auto-installs on launch.
+
+A tag `v*` on GitHub runs `.github/workflows/release.yml` (macOS runner, no Whisper) and attaches `Universal.dmg`.
+
 ## Library
 
 ```python
@@ -289,6 +305,8 @@ platform = Universal(settings, provider=my_fake_provider)
 | `UNIVERSAL_MEMORY_DIR` | no | temp folder / `universal-memory` |
 | `UNIVERSAL_WEB_DIST` | no | `web/dist` (or the PyInstaller extract dir) |
 | `UNIVERSAL_TERMINAL_DIR` | no | process cwd for `run_command` |
+| `UNIVERSAL_USER_DATA` | no | override Application Support / XDG data dir (tests) |
+| `UNIVERSAL_UPDATE_REPO` | no | `owner/name` for GitHub Releases |
 
 Copy `.env.example`. **Do not commit secrets.**
 

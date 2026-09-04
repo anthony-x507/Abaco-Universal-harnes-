@@ -70,6 +70,9 @@ def run_desktop(
     demo: bool = False,
     open_window: bool = True,
 ) -> int:
+    from universal.plugins.installer import ensure_plugins_installed
+
+    ensure_plugins_installed()
     dist = resolve_web_dist()
     if dist is None:
         raise ConfigError(

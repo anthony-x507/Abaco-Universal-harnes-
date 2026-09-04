@@ -91,3 +91,4 @@ Outbound failure is swallowed for the caller’s `answer`. The optional `outboun
 - [x] Hito 5: README + DEMO.md + `demo.sh` (`tests/test_hito5_docs.py`)
 - [x] Native plugins on every agent (`tests/test_native_plugins.py`)
 - [x] Desktop wrapper + SPA on the factory (`tests/test_desktop.py`)
+- [x] GitHub update check + user-data persistence (`tests/test_updater.py`)

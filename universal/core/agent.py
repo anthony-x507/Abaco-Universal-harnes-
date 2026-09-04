@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import json
-import os
 import re
-import tempfile
 import time
 import uuid
 from collections.abc import Iterator
@@ -90,9 +88,9 @@ class Agent:
             clear()
 
     def memory_path(self) -> Path:
-        root = self.memory_dir or Path(
-            os.environ.get("UNIVERSAL_MEMORY_DIR", tempfile.gettempdir())
-        ) / "universal-memory"
+        from universal.paths import get_memory_dir
+
+        root = self.memory_dir or get_memory_dir()
         safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in self.name)[:80] or "agent"
         return root / f"{safe}.json"
 

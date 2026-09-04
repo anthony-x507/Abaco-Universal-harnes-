@@ -59,6 +59,7 @@ class FakeProvider(Provider):
 @pytest.fixture(autouse=True)
 def _isolate_memory_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("UNIVERSAL_MEMORY_DIR", str(tmp_path / "universal-memory"))
+    monkeypatch.setenv("UNIVERSAL_USER_DATA", str(tmp_path / "user-data"))
 
 
 @pytest.fixture

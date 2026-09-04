@@ -13,7 +13,7 @@ A checkpoint process. Three agents reviewed the tree against the designer plan a
 | Hito 4 Harness (ZIP, Auto/run, snapshot, usage) | **Sí — shipped** | Optional layers on the same spine. No second registry. |
 | Hito 5 Usage guide / owner demo | **Sí — shipped** | README + DEMO.md + demo.sh. English. No Aegis in product docs. |
 
-**Default after Hito 5: stop.** Native factory plugins shipped. Owner sí on a Universal-branded macOS wrapper (`universal desktop`, `scripts/build_macos.sh`) — same factory, no second registry, no Aegis/PWA clone. Wait for the next OK before another product slice.
+**Default after Hito 5: stop.** Native plugins, desktop wrapper, and GitHub update-check + Application Support user data shipped. Wait for the next OK before another product slice.
 
 ## How a checkpoint works
 

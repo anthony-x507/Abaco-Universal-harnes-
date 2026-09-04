@@ -35,6 +35,11 @@ def default_serve_registry_file() -> Path | None:
     raw = os.environ.get(ENV_REGISTRY_FILE)
     if raw is not None:
         return Path(raw.strip()) if raw.strip() else None
+    from universal.paths import get_registry_file, is_packaged
+    from universal.paths import ENV_USER_DATA
+
+    if is_packaged() or os.environ.get(ENV_USER_DATA, "").strip():
+        return get_registry_file()
     return Path.cwd() / ".universal" / "registry.json"
 
 

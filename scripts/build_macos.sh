@@ -42,6 +42,7 @@ pyinstaller \
   --windowed \
   --name Universal \
   --add-data "web/dist:web/dist" \
+  --add-data "version.json:." \
   --hidden-import=uvicorn.logging \
   --hidden-import=uvicorn.loops.auto \
   --hidden-import=uvicorn.protocols.http.auto \
