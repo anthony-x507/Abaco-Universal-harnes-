@@ -14,7 +14,15 @@ from universal.plugins.catalog import NATIVE_PLUGIN_NAMES
 from universal.plugins.installer import ensure_plugins_installed
 from universal.release import BAKED_REPO, current_version, load_release
 from universal.server import create_app
-from universal.updater import INSTALL_WARNING, UpdateStatus, Updater, install_warning, is_newer, parse_version
+from universal.updater import (
+    INSTALL_WARNING,
+    UpdateStatus,
+    Updater,
+    clear_macos_webview_caches,
+    install_warning,
+    is_newer,
+    parse_version,
+)
 from tests.native_expect import RESEARCHER_PLUGIN_NAMES
 
 
@@ -82,6 +90,7 @@ def test_apply_schedules_relaunch_without_killing_tests(tmp_path: Path, monkeypa
     )
     monkeypatch.setattr(Updater, "_download", lambda self, url, dest: dest.write_bytes(b"dmg"))
     monkeypatch.setattr(Updater, "_install_dmg", lambda self, dmg, dest: None)
+    monkeypatch.setattr(Updater, "_clear_caches_after_install", lambda self: None)
     dest = tmp_path / "Universal.app"
     dest.mkdir()
     updater = Updater(repo="acme/universal")
@@ -100,6 +109,18 @@ def test_apply_refuses_outside_packaged_mac() -> None:
         assert "Install is only allowed" in str(exc)
         return
     raise AssertionError("expected ConfigError")
+
+
+def test_clear_macos_webview_caches(tmp_path: Path) -> None:
+    stale = tmp_path / "Library" / "WebKit" / "Universal"
+    stale.mkdir(parents=True)
+    (stale / "old.html").write_text("Write in the middle column", encoding="utf-8")
+    extra = tmp_path / "Library" / "Caches" / "com.universal.app"
+    extra.mkdir(parents=True)
+    removed = clear_macos_webview_caches(tmp_path)
+    assert not stale.exists()
+    assert not extra.exists()
+    assert any(path.endswith("Universal") for path in removed)
 
 
 def test_install_warning_when_frozen_outside_applications(monkeypatch) -> None:

@@ -303,6 +303,14 @@ Set `UNIVERSAL_PERMISSION_MODE=allow` or `deny` in tests. On macOS, a native dia
 
 Self-update (packaged Mac app only): the repo `anthony-x507/Abaco-Universal-harnes-` is baked into `version.json`. On launch the SPA checks silently and prompts if a newer `.dmg` exists. Settings → **Check for Updates**. **Download now** replaces `/Applications/Universal.app` and relaunches. Nothing is overwritten until you confirm. If the app is not in `/Applications`, Settings warns that updates will fail. Gatekeeper override is required until signing exists.
 
+GitHub Releases always serves the **same** `Universal.dmg` to every computer. Two Macs do not share Application Support, and they cannot mix folders over the network. Leftover copies **on one Mac** can still open the old Chat face: an extra `Universal.app` in Downloads/Desktop, or a WKWebView cache of `http://127.0.0.1:43124/`. After an in-app update the installer now clears those caches. To wipe **this** Mac and start clean (deletes chats and saved keys on that Mac only):
+
+```bash
+bash scripts/wipe_macos.sh
+```
+
+Then download [Universal.dmg v1.2.3](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.3/Universal.dmg), drag it to `/Applications` only, and open it from there. The header must say **Abaco Universal Harness** and **1.2.3**. If you still see “Universal Platform” and Templates/Face on Chat, you opened a leftover `.app`, not `/Applications/Universal.app`.
+
 ```bash
 universal update                 # check
 universal update --apply         # packaged Mac app only

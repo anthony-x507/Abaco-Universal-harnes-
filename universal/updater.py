@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -23,6 +24,34 @@ ALLOWED_HOSTS = {
 ENV_ALLOW_INSTALL = "UNIVERSAL_UPDATE_ALLOW_INSTALL"
 APP_INSTALL = Path("/Applications/Universal.app")
 INSTALL_WARNING = "Universal should be installed in /Applications/ for auto-updates"
+CACHE_GLOBS = (
+    "Library/Caches/com.universal*",
+    "Library/Caches/Universal",
+    "Library/Caches/pywebview",
+    "Library/WebKit/com.universal*",
+    "Library/WebKit/Universal",
+    "Library/HTTPStorages/com.universal*",
+    "Library/HTTPStorages/Universal",
+    "Library/Saved Application State/*Universal*",
+    "Library/Application Support/pywebview",
+)
+
+
+def clear_macos_webview_caches(home: Path | None = None) -> list[str]:
+    """Drop leftover WKWebView / HTTP caches so an update cannot show the old Chat face."""
+    root = home or Path.home()
+    removed: list[str] = []
+    for pattern in CACHE_GLOBS:
+        for path in root.glob(pattern):
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path, ignore_errors=True)
+                elif path.exists():
+                    path.unlink()
+                removed.append(str(path))
+            except OSError:
+                continue
+    return removed
 
 
 def running_from_applications() -> bool:
@@ -190,8 +219,15 @@ class Updater:
         dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Universal_update.dmg"
         self._download(status.url, dmg_path)
         self._install_dmg(dmg_path, dest)
+        self._clear_caches_after_install()
         self._schedule_relaunch(dest)
         return f"Installed {status.latest} to {dest}. The app is relaunching."
+
+    def _clear_caches_after_install(self) -> None:
+        """Packaged Mac installs only. Tests call ``clear_macos_webview_caches`` with a fake home."""
+        if sys.platform != "darwin" or not getattr(sys, "frozen", False):
+            return
+        clear_macos_webview_caches()
 
     def _schedule_relaunch(self, dest: Path) -> None:
         """Open the new app, then exit this process so the user does not quit by hand."""
