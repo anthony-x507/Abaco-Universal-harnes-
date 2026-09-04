@@ -20,6 +20,20 @@ ALLOWED_HOSTS = {
     "release-assets.githubusercontent.com",
 }
 ENV_ALLOW_INSTALL = "UNIVERSAL_UPDATE_ALLOW_INSTALL"
+APP_INSTALL = Path("/Applications/Universal.app")
+INSTALL_WARNING = "Universal should be installed in /Applications/ for auto-updates"
+
+
+def running_from_applications() -> bool:
+    if not getattr(sys, "frozen", False):
+        return True
+    return (sys.executable or "").startswith(str(APP_INSTALL))
+
+
+def install_warning() -> str:
+    if getattr(sys, "frozen", False) and not running_from_applications():
+        return INSTALL_WARNING
+    return ""
 
 
 def parse_version(raw: str) -> tuple[int, ...]:
@@ -66,6 +80,8 @@ class UpdateStatus:
             "repo": self.repo,
             "reason": self.reason,
             "can_apply": can_apply_install(),
+            "in_applications": running_from_applications(),
+            "install_warning": install_warning(),
         }
 
 
@@ -99,7 +115,7 @@ class Updater:
                 url=None,
                 release_notes="",
                 repo=self.repo,
-                reason="Set UNIVERSAL_UPDATE_REPO to owner/name (GitHub Releases).",
+                reason="version.json has no GitHub repo baked in.",
             )
         url = f"https://api.github.com/repos/{self.repo}/releases/latest"
         try:
@@ -166,11 +182,16 @@ class Updater:
         if not status.available or not status.url:
             raise ConfigError(status.reason or "No update available.")
         self._assert_safe_url(status.url)
-        dest = dest_app or Path("/Applications/Universal.app")
+        dest = dest_app or APP_INSTALL
         dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Universal_update.dmg"
         self._download(status.url, dmg_path)
         self._install_dmg(dmg_path, dest)
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", str(dest)])
         return f"Installed {status.latest} to {dest}"
+
+    def check_for_updates(self) -> UpdateStatus:
+        return self.check()
 
     @staticmethod
     def _assert_safe_url(url: str) -> None:

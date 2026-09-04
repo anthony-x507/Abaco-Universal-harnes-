@@ -4,7 +4,7 @@ import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { useModels } from '../hooks/useModels'
-import { getHealth, getSettings, updateSettings } from '../lib/api'
+import { applyUpdate, getHealth, getSettings, getUpdateStatus, updateSettings } from '../lib/api'
 import { laterChannels } from '../lib/utils'
 
 export function SettingsPage() {
@@ -22,6 +22,11 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [updateNote, setUpdateNote] = useState('')
+  const [updateWarn, setUpdateWarn] = useState('')
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [applyingUpdate, setApplyingUpdate] = useState(false)
+  const [pendingUpdate, setPendingUpdate] = useState<{ latest: string; current: string } | null>(null)
   const [preset, setPreset] = useState('OpenAI (GPT-4o-mini)')
   const { models } = useModels()
 
@@ -29,7 +34,13 @@ export function SettingsPage() {
     setLoading(true)
     setMessage('')
     try {
-      const [settings, health] = await Promise.all([getSettings(), getHealth()])
+      const [settings, health, update] = await Promise.all([
+        getSettings(),
+        getHealth(),
+        getUpdateStatus().catch(() => null),
+      ])
+      if (update?.install_warning) setUpdateWarn(update.install_warning)
+      else setUpdateWarn('')
       setBaseUrl(settings.llm_base_url)
       setModel(settings.llm_model)
       setChannel(settings.default_channel)
@@ -208,6 +219,72 @@ export function SettingsPage() {
             {saving ? 'Saving…' : 'Save'}
           </Button>
           {message && <p className="text-sm text-accent">{message}</p>}
+        </Card>
+      )}
+
+      {loadedOnce && (
+        <Card className="space-y-3 p-5">
+          <h2 className="text-sm font-semibold">Updates</h2>
+          <p className="text-sm text-muted">
+            Official install is Universal.dmg → /Applications/Universal.app. Updates replace that copy only.
+          </p>
+          {updateWarn && <p className="text-sm text-amber-200">{updateWarn}</p>}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={checkingUpdate || applyingUpdate}
+            onClick={async () => {
+              setCheckingUpdate(true)
+              setUpdateNote('')
+              setPendingUpdate(null)
+              try {
+                const status = await getUpdateStatus()
+                setUpdateWarn(status.install_warning || '')
+                if (status.available && status.latest) {
+                  setPendingUpdate({ latest: status.latest, current: status.current })
+                } else {
+                  setUpdateNote('No updates available')
+                }
+              } catch (err) {
+                setUpdateNote(err instanceof Error ? err.message : 'Could not check for updates.')
+              } finally {
+                setCheckingUpdate(false)
+              }
+            }}
+          >
+            {checkingUpdate ? 'Checking…' : 'Check for Updates'}
+          </Button>
+          {updateNote && <p className="text-sm text-accent">{updateNote}</p>}
+          {pendingUpdate && (
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <p className="text-sm">
+                Update available. Version {pendingUpdate.latest} (you have {pendingUpdate.current}). Download now?
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setPendingUpdate(null)} disabled={applyingUpdate}>
+                  Later
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={applyingUpdate}
+                  onClick={async () => {
+                    setApplyingUpdate(true)
+                    try {
+                      await applyUpdate()
+                      setUpdateNote('Update installed. The app is relaunching…')
+                      setPendingUpdate(null)
+                    } catch (err) {
+                      setUpdateNote(err instanceof Error ? err.message : 'Update failed.')
+                    } finally {
+                      setApplyingUpdate(false)
+                    }
+                  }}
+                >
+                  {applyingUpdate ? 'Downloading…' : 'Download now'}
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
     </div>

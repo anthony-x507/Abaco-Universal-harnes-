@@ -20,7 +20,7 @@ Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-comman
 
 ## Install
 
-**Mac (app):** download `Universal.dmg` from [Releases](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases), open it, drag **Universal.app** to Applications. That is the native installer (`scripts/build_macos.sh` + `create_dmg.sh` on a Mac runner). A source tree is only for development.
+**Mac:** download **only** `Universal.dmg` from [Releases](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases). Open it and drag **Universal.app** to `/Applications`. That is the official install. Source zips are not a product install and cannot self-update.
 
 Python 3.11+. The supported path is pip (the project uses hatchling; Poetry is not required).
 
@@ -261,16 +261,12 @@ scripts/create_dmg.sh     # Universal.dmg (hdiutil)
 
 Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the six tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
 
-Self-update (optional):
+Self-update (packaged Mac app only): the repo `anthony-x507/Abaco-Universal-harnes-` is baked into `version.json`. On launch the SPA checks silently and prompts if a newer `.dmg` exists. Settings → **Check for Updates**. **Download now** replaces `/Applications/Universal.app` and relaunches. Nothing is overwritten until you confirm. If the app is not in `/Applications`, Settings warns that updates will fail. Gatekeeper override is required until signing exists.
 
 ```bash
-export UNIVERSAL_UPDATE_REPO=owner/universal   # GitHub repo that publishes Universal.dmg
-universal update                 # GET-equivalent check
-# packaged Mac app only:
-universal update --apply
+universal update                 # check
+universal update --apply         # packaged Mac app only
 ```
-
-`GET /v1/update` is the same check. `POST /v1/update` applies only when the process is the frozen Mac app (or `UNIVERSAL_UPDATE_ALLOW_INSTALL=1` in tests). Downloads must be `https` GitHub asset URLs. The app never auto-installs on launch.
 
 A tag `v*` on GitHub runs `.github/workflows/release.yml` (macOS runner, no Whisper) and attaches `Universal.dmg`.
 
@@ -308,7 +304,6 @@ platform = Universal(settings, provider=my_fake_provider)
 | `UNIVERSAL_WEB_DIST` | no | `web/dist` (or the PyInstaller extract dir) |
 | `UNIVERSAL_TERMINAL_DIR` | no | process cwd for `run_command` |
 | `UNIVERSAL_USER_DATA` | no | override Application Support / XDG data dir (tests) |
-| `UNIVERSAL_UPDATE_REPO` | no | `owner/name` for GitHub Releases |
 
 Copy `.env.example`. **Do not commit secrets.**
 

@@ -81,7 +81,8 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `65.md` | Native plugins for every agent (terminal, TTS, STT, vision, search, scraper) | accepted — shipped lock-safe (no YAML, no `os.system` TTS, Whisper optional) |
 | `66.md` | Native plugins packet + macOS PyWebView / DMG | plugins already shipped; desktop wrapper shipped lock-safe (no YAML, no second factory, Whisper not bundled) |
 | `67.md` | Self-update + persistent plugins / Application Support | accepted lock-safe: GitHub check + user-data dirs; no second plugin loader, no `requests`, no auto-install |
-| `68.md` | Designer stop: native `.dmg` vs self-update that cannot run | waiting — do not invent another install path |
+| `68.md` | Designer stop: native `.dmg` vs self-update that cannot run | answered in 69 |
+| `69.md` | Designer sí: baked repo, launch prompt, Settings, /Applications, retire zip | accepted — shipping |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 

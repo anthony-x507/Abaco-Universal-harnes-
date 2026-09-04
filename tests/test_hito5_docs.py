@@ -44,7 +44,8 @@ def test_readme_covers_hito5_surfaces() -> None:
         "universal desktop",
         "Universal.app",
         "universal update",
-        "UNIVERSAL_UPDATE_REPO",
+        "Universal.dmg",
+        "Check for Updates",
         "DEMO.md",
         "demo.sh",
     ):

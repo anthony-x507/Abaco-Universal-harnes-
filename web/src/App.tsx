@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { AskSessionProvider } from './lib/ask-session'
 import { AgentsPage } from './pages/AgentsPage'
 import { ChatPage } from './pages/ChatPage'
@@ -9,6 +10,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AskSessionProvider>
+        <UpdatePrompt />
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<ChatPage />} />

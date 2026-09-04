@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
-  "release_notes": "Native plugins (terminal, TTS, STT, vision, search, scraper), macOS desktop wrapper, and GitHub self-update check. Whisper is optional.",
-  "repo": ""
+  "version": "1.0.0",
+  "repo": "anthony-x507/Abaco-Universal-harnes-",
+  "release_notes": "Native Mac app. Download Universal.dmg only. Updates check GitHub Releases and install to /Applications/Universal.app."
 }

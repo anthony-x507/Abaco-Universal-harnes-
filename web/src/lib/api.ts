@@ -107,6 +107,27 @@ export async function getHealth(): Promise<{ status: string; demo: boolean; agen
   return request('/health')
 }
 
+export type UpdateStatus = {
+  current: string
+  latest: string | null
+  available: boolean
+  url: string | null
+  release_notes: string
+  repo: string
+  reason: string
+  can_apply: boolean
+  in_applications: boolean
+  install_warning: string
+}
+
+export async function getUpdateStatus(): Promise<UpdateStatus> {
+  return request('/v1/update')
+}
+
+export async function applyUpdate(): Promise<{ ok: boolean; message: string }> {
+  return request('/v1/update', { method: 'POST' })
+}
+
 export async function listModels(): Promise<ModelPreset[]> {
   const data = await request<{ models: ModelPreset[] }>('/v1/models')
   return data.models

@@ -12,9 +12,9 @@ from universal.core.platform import Universal
 from universal.paths import get_memory_dir, get_plugins_dir, user_data_dir
 from universal.plugins.catalog import NATIVE_PLUGIN_NAMES
 from universal.plugins.installer import ensure_plugins_installed
-from universal.release import current_version
+from universal.release import BAKED_REPO, current_version, load_release
 from universal.server import create_app
-from universal.updater import Updater, is_newer, parse_version
+from universal.updater import INSTALL_WARNING, UpdateStatus, Updater, install_warning, is_newer, parse_version
 from tests.native_expect import RESEARCHER_PLUGIN_NAMES
 
 
@@ -25,11 +25,13 @@ def test_version_compare() -> None:
     assert is_newer("0.2.0", "0.1.0")
 
 
-def test_check_without_repo() -> None:
-    updater = Updater(repo="")
-    status = updater.check()
-    assert status.available is False
-    assert "UNIVERSAL_UPDATE_REPO" in status.reason
+def test_repo_is_baked_and_ignores_env(monkeypatch) -> None:
+    monkeypatch.setenv("UNIVERSAL_UPDATE_REPO", "evil/other")
+    data = load_release()
+    assert data["repo"] == BAKED_REPO
+    assert current_version() == "1.0.0"
+    updater = Updater()
+    assert updater.repo == BAKED_REPO
 
 
 def test_check_parses_github_payload() -> None:
@@ -48,7 +50,7 @@ def test_check_parses_github_payload() -> None:
     }
     client.get.return_value = response
     updater = Updater(repo="acme/universal", client=client)
-    status = updater.check()
+    status = updater.check_for_updates()
     assert status.available is True
     assert status.latest == "9.9.9"
     assert status.url.endswith(".dmg")
@@ -62,6 +64,12 @@ def test_apply_refuses_outside_packaged_mac() -> None:
         assert "Install is only allowed" in str(exc)
         return
     raise AssertionError("expected ConfigError")
+
+
+def test_install_warning_when_frozen_outside_applications(monkeypatch) -> None:
+    monkeypatch.setattr("universal.updater.sys.frozen", True, raising=False)
+    monkeypatch.setattr("universal.updater.sys.executable", "/Users/me/Downloads/Universal.app/Contents/MacOS/Universal")
+    assert install_warning() == INSTALL_WARNING
 
 
 def test_installer_writes_manifest_not_source(tmp_path: Path, monkeypatch) -> None:
@@ -93,13 +101,26 @@ def test_memory_and_registry_use_user_data(tmp_path: Path, monkeypatch, settings
 
 
 def test_http_update_check(platform: Universal, monkeypatch) -> None:
-    monkeypatch.setenv("UNIVERSAL_UPDATE_REPO", "")
+    def fake_check(self) -> UpdateStatus:  # noqa: ARG001
+        return UpdateStatus(
+            current="1.0.0",
+            latest=None,
+            available=False,
+            url=None,
+            release_notes="",
+            repo=BAKED_REPO,
+            reason="Already up to date.",
+        )
+
+    monkeypatch.setattr(Updater, "check", fake_check)
     client = TestClient(create_app(platform, demo=True))
     health = client.get("/health")
     assert health.json()["version"] == current_version()
     body = client.get("/v1/update").json()
-    assert body["current"] == current_version()
+    assert body["current"] == "1.0.0"
+    assert body["repo"] == BAKED_REPO
     assert body["available"] is False
+    assert "in_applications" in body
     apply = client.post("/v1/update")
     assert apply.status_code == 400
 
@@ -108,3 +129,4 @@ def test_version_json_exists() -> None:
     path = Path(__file__).resolve().parents[1] / "version.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["version"] == current_version()
+    assert data["repo"] == BAKED_REPO

@@ -65,6 +65,18 @@ export function defaultCatalog() {
     },
     agents: { agents: [{ ...agentFixture }] },
     agent: { ...agentFixture },
+    update: {
+      current: '1.0.0',
+      latest: null,
+      available: false,
+      url: null,
+      release_notes: '',
+      repo: 'anthony-x507/Abaco-Universal-harnes-',
+      reason: 'Already up to date.',
+      can_apply: false,
+      in_applications: true,
+      install_warning: '',
+    },
     models: {
       models: [
         {
@@ -106,6 +118,7 @@ export function installFetchMock(
     if (path === '/health') return jsonResponse(catalog.health)
     if (path === '/v1/settings') return jsonResponse(catalog.settings)
     if (path === '/v1/models') return jsonResponse(catalog.models)
+    if (path === '/v1/update') return jsonResponse(catalog.update)
     if (path === '/v1/templates') return jsonResponse(catalog.templates)
     if (path === '/v1/agents') return jsonResponse(catalog.agents)
     if (path === `/v1/agents/${agentFixture.id}`) return jsonResponse(catalog.agent)

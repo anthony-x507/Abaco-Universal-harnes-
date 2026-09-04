@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { SettingsPage } from './SettingsPage'
 import { installFetchMock, jsonResponse } from '../test/fetch'
@@ -29,5 +30,15 @@ describe('T10 Settings demo mode', () => {
     expect(await screen.findByRole('option', { name: 'OpenAI (GPT-4o-mini)' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'webhook' })).toBeEnabled()
     expect(screen.queryByRole('option', { name: /webhook \(later\)/i })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Check for Updates' })).toBeInTheDocument()
+  })
+
+  it('Check for Updates shows no-updates copy', async () => {
+    const user = userEvent.setup()
+    installFetchMock(() => null)
+    render(<SettingsPage />)
+    const button = await screen.findByRole('button', { name: 'Check for Updates' })
+    await user.click(button)
+    expect(await screen.findByText('No updates available')).toBeInTheDocument()
   })
 })

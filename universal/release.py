@@ -1,4 +1,4 @@
-"""Release metadata. ``_version.py`` is the source of truth."""
+"""Release metadata. ``version.json`` is baked into the app; no env override for the repo."""
 
 from __future__ import annotations
 
@@ -8,10 +8,8 @@ from pathlib import Path
 from universal._version import __version__
 from universal.web_dist import resource_root
 
-DEFAULT_NOTES = (
-    "Native plugins, desktop wrapper, and GitHub update check. "
-    "Whisper remains an optional extra."
-)
+BAKED_REPO = "anthony-x507/Abaco-Universal-harnes-"
+DEFAULT_NOTES = "Native Mac app. Download Universal.dmg only."
 
 
 def version_file() -> Path:
@@ -23,7 +21,7 @@ def load_release() -> dict[str, str]:
     data: dict[str, str] = {
         "version": __version__,
         "release_notes": DEFAULT_NOTES,
-        "repo": "",
+        "repo": BAKED_REPO,
     }
     if path.is_file():
         try:
@@ -37,9 +35,6 @@ def load_release() -> dict[str, str]:
                 data["release_notes"] = str(loaded["release_notes"])
             if loaded.get("repo"):
                 data["repo"] = str(loaded["repo"])
-    env_repo = __import__("os").environ.get("UNIVERSAL_UPDATE_REPO", "").strip()
-    if env_repo:
-        data["repo"] = env_repo
     return data
 
 
