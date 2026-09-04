@@ -69,6 +69,7 @@ class AgentFactory:
         plugins: tuple[str, ...] | list[str] | None = None,
         memory: bool | None = None,
         agent_id: str | None = None,
+        emoji: str | None = None,
     ) -> Agent:
         return self.generator.generate(
             template_id,
@@ -79,6 +80,7 @@ class AgentFactory:
             plugins=plugins,
             memory=memory,
             agent_id=agent_id,
+            emoji=emoji,
         )
 
     def start(self, agent_id: str) -> Agent:

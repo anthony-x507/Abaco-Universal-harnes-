@@ -104,6 +104,7 @@ class AgentInfo:
     plugins: list[str]
     created_at: datetime
     model: str = ""
+    emoji: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -115,6 +116,7 @@ class AgentInfo:
             "plugins": list(self.plugins),
             "created_at": self.created_at.isoformat(),
             "model": self.model,
+            "emoji": self.emoji,
         }
 
 

@@ -81,6 +81,7 @@ class Universal:
                         plugins=plugins,
                         memory=bool(memory) if memory is not None else None,
                         agent_id=agent_id,
+                        emoji=str(record.get("emoji") or "") or None,
                     )
                     if str(record.get("state") or "") == "error":
                         self.lifecycle.mark_error(agent.id, "restored in error state")

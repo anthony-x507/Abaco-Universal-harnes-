@@ -38,6 +38,12 @@ def test_list_providers() -> None:
     names = list_providers()
     assert "DeepSeek (V4 Pro)" in names
     assert "Anthropic (Claude Fable 5.1)" in names
+    assert "Zhipu (GLM-5.2)" in names
+    assert "MiniMax (M3)" in names
+    zhipu = get_provider("Zhipu (GLM-5.2)")
+    mini = get_provider("MiniMax (M3)")
+    assert zhipu is not None and zhipu.default_model == "glm-5.2"
+    assert mini is not None and mini.default_model == "MiniMax-M3"
     assert "Custom (URL)" in names
     assert "Custom (URL)" not in list_providers_without_custom()
     assert "Ollama (Llama 3.2)" not in names

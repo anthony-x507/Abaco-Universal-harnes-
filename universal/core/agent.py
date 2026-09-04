@@ -49,10 +49,12 @@ class Agent:
         memory: bool = False,
         memory_dir: Path | None = None,
         max_history_turns: int = DEFAULT_HISTORY_TURNS,
+        emoji: str = "",
     ) -> None:
         self.id = agent_id or new_agent_id()
         self.name = name
         self.template_id = template_id
+        self.emoji = emoji
         self.system_prompt = system_prompt
         self.provider = provider
         self.channel = channel
@@ -160,6 +162,7 @@ class Agent:
             "outbound_url": outbound,
             "memory": self.memory_enabled,
             "plugins": self.plugins.names(),
+            "emoji": self.emoji,
         }
 
     @contextmanager
@@ -344,6 +347,7 @@ class Agent:
             plugins=self.plugins.names(),
             created_at=self.created_at,
             model=str(model),
+            emoji=self.emoji,
         )
 
     def bind_channel(self) -> None:

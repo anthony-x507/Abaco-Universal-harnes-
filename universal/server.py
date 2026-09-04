@@ -44,6 +44,14 @@ class CreateAgentBody(BaseModel):
     channel: str | None = None
     outbound_url: str | None = None
     provider: str | None = None
+    emoji: str | None = None
+
+
+class AttachmentBody(BaseModel):
+    name: str
+    mime: str = "application/octet-stream"
+    data: str = ""
+    kind: str = "file"
 
 
 class WebhookBody(BaseModel):
@@ -52,14 +60,16 @@ class WebhookBody(BaseModel):
 
 
 class AskBody(BaseModel):
-    prompt: str
+    prompt: str = ""
     stream: bool = False
+    attachments: list[AttachmentBody] = Field(default_factory=list)
 
 
 class RunBody(BaseModel):
-    prompt: str
+    prompt: str = ""
     stream: bool = False
     max_iterations: int = 5
+    attachments: list[AttachmentBody] = Field(default_factory=list)
 
 
 class SettingsBody(BaseModel):
@@ -109,7 +119,7 @@ def _settings_payload(state: ServerState) -> dict[str, Any]:
 def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     """Build the FastAPI app around an already-constructed Universal root."""
     state = ServerState(platform=platform, demo=demo)
-    app = FastAPI(title="Universal platform", version="1.0.2")
+    app = FastAPI(title="Universal platform", version="1.0.3")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -179,7 +189,13 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     def templates() -> dict[str, Any]:
         return {
             "templates": [
-                {"id": t.id, "name": t.name, "description": t.description} for t in list_templates()
+                {
+                    "id": t.id,
+                    "name": t.name,
+                    "description": t.description,
+                    "emoji": t.emoji,
+                }
+                for t in list_templates()
             ]
         }
 
@@ -242,6 +258,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             body.name,
             channel=channel,
             outbound_url=body.outbound_url,
+            emoji=body.emoji,
         )
         return _agent_payload(state.platform, agent.id)
 
@@ -266,17 +283,20 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         state.platform.factory.delete(agent_id)
         return {"deleted": payload}
 
-    def _prepare_ask(agent_id: str, prompt: str) -> Any:
-        if not prompt:
-            raise HTTPException(status_code=400, detail="prompt is required")
+    def _prepare_ask(agent_id: str, prompt: str, attachments: list[AttachmentBody] | None = None) -> tuple[Any, str]:
         if not state.demo:
             state.platform.settings.require_live()
         agent = state.platform.registry.get(agent_id)
+        from universal.attachments import apply_attachments
+
+        text = apply_attachments(agent, prompt, [item.model_dump() for item in attachments or []])
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="prompt or an attachment is required")
         if agent.id in state.asking:
             raise HTTPException(status_code=409, detail="Agent is already answering")
         state.asking.add(agent.id)
         state.platform.factory.start(agent.id)
-        return agent
+        return agent, text
 
     def _finish_ask(agent_id: str) -> None:
         state.asking.discard(agent_id)
@@ -330,16 +350,14 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
     @app.post("/v1/agents/{agent_id}/ask")
     def ask_agent(agent_id: str, body: AskBody) -> Any:
-        prompt = body.prompt.strip()
-        agent = _prepare_ask(agent_id, prompt)
+        agent, prompt = _prepare_ask(agent_id, body.prompt.strip(), body.attachments)
         if body.stream:
             return _stream_events(agent, prompt, stream_fn=agent.accept_stream_events)
         return _complete_turn(agent, prompt, answer_fn=agent.accept)
 
     @app.post("/v1/agents/{agent_id}/run")
     def run_agent(agent_id: str, body: RunBody) -> Any:
-        prompt = body.prompt.strip()
-        agent = _prepare_ask(agent_id, prompt)
+        agent, prompt = _prepare_ask(agent_id, body.prompt.strip(), body.attachments)
         max_iterations = max(1, int(body.max_iterations))
         if body.stream:
             return _stream_events(
@@ -368,9 +386,9 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         channel = agent.channel
         if not isinstance(channel, WebhookChannel):
             raise HTTPException(status_code=400, detail="Agent is not on the webhook channel")
-        prepared = _prepare_ask(agent_id, text)
+        prepared, prompt = _prepare_ask(agent_id, text)
         try:
-            answer = prepared.accept(text)
+            answer = prepared.accept(prompt)
             payload = _agent_payload(state.platform, prepared.id)
             payload["answer"] = answer
             return payload

@@ -80,6 +80,7 @@ class AgentGenerator:
         plugins: tuple[str, ...] | list[str] | None = None,
         memory: bool | None = None,
         agent_id: str | None = None,
+        emoji: str | None = None,
     ) -> Agent:
         template = self.templates.get(template_id)
         agent_name = name or f"{template.id}-{template.name.lower()}"
@@ -98,6 +99,7 @@ class AgentGenerator:
             channel=transport,
             memory=memory_flag,
             agent_id=agent_id,
+            emoji=(emoji or template.emoji or "").strip() or template.emoji,
         )
         if hasattr(transport, "agent_id"):
             transport.agent_id = agent.id

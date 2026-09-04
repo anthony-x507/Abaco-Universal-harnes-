@@ -29,6 +29,7 @@ export type Agent = {
   answer?: string
   outbound_url?: string
   usage?: Usage
+  emoji?: string
 }
 
 export type ModelPreset = {
@@ -44,6 +45,7 @@ export type Template = {
   id: string
   name: string
   description: string
+  emoji?: string
 }
 
 export type Settings = {
@@ -161,12 +163,20 @@ export async function getAgent(id: string): Promise<Agent> {
   return request(`/v1/agents/${id}`)
 }
 
+export type ChatAttachment = {
+  name: string
+  mime: string
+  data: string
+  kind: 'file' | 'audio' | 'image'
+}
+
 export async function createAgent(body: {
   template: string
   name?: string
   channel?: string
   outbound_url?: string
   provider?: string
+  emoji?: string
 }): Promise<Agent> {
   return request('/v1/agents', { method: 'POST', body: JSON.stringify(body) })
 }
@@ -261,15 +271,23 @@ export async function askAgentStream(
   onDelta: (text: string) => void,
   signal?: AbortSignal,
   onStatus?: (event: StreamStatusEvent) => void,
-  options?: { autonomous?: boolean; maxIterations?: number },
+  options?: { autonomous?: boolean; maxIterations?: number; attachments?: ChatAttachment[] },
 ): Promise<Agent> {
   const path = options?.autonomous ? `/v1/agents/${id}/run` : `/v1/agents/${id}/ask`
-  const body: { prompt: string; stream: boolean; max_iterations?: number } = {
+  const body: {
+    prompt: string
+    stream: boolean
+    max_iterations?: number
+    attachments?: ChatAttachment[]
+  } = {
     prompt,
     stream: true,
   }
   if (options?.autonomous) {
     body.max_iterations = options.maxIterations ?? 5
+  }
+  if (options?.attachments?.length) {
+    body.attachments = options.attachments
   }
   const response = await fetch(path, {
     method: 'POST',

@@ -14,7 +14,6 @@ import {
   friendlyError,
   PROVIDER_ERROR_COPY,
   getAgent,
-  getSettings,
   listAgents,
   listTemplates,
   resetAgent,
@@ -23,13 +22,34 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
-import { useModels } from '../hooks/useModels'
-import { cn, laterChannels, pluginListLabel, usageLabel } from '../lib/utils'
+import { cn, pluginListLabel, usageLabel } from '../lib/utils'
 import { DragHandle } from '../components/DragHandle'
 import { useLayout } from '../lib/layout-context'
 import { SIZE_LIMITS, type PaneId } from '../lib/layout'
 
-type Attachment = { name: string; kind: 'file' | 'audio'; note: string; body?: string }
+type Attachment = {
+  name: string
+  kind: 'file' | 'audio' | 'image'
+  note: string
+  mime: string
+  data?: string
+  body?: string
+}
+
+const FACE_EMOJIS = ['💬', '🔎', '💻', '😊', '😎', '🤖', '🧠', '🦊', '🐱', '🦉', '🐲', '⭐', '🔥', '🌱', '🎯']
+
+function fileToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = String(reader.result || '')
+      const comma = text.indexOf(',')
+      resolve(comma >= 0 ? text.slice(comma + 1) : text)
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
 
 export function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -42,10 +62,7 @@ export function ChatPage() {
   const [prompt, setPrompt] = useState('')
   const [name, setName] = useState('')
   const [template, setTemplate] = useState('general')
-  const [channel, setChannel] = useState('cli')
-  const [channels, setChannels] = useState<string[]>(['cli'])
-  const [comingChannels, setComingChannels] = useState<string[]>([])
-  const [outboundUrl, setOutboundUrl] = useState('')
+  const [emoji, setEmoji] = useState('💬')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const { beginAsk, endAsk, showToast } = useAskSession()
   const [loadingList, setLoadingList] = useState(true)
@@ -58,12 +75,12 @@ export function ChatPage() {
   const [clearing, setClearing] = useState(false)
   const [activity, setActivity] = useState({ visible: false, text: '' })
   const [autoMode, setAutoMode] = useState(false)
-  const [provider, setProvider] = useState('OpenAI (GPT-5.6 Sol)')
-  const { models } = useModels()
   const activityTimer = useRef<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const speechRef = useRef<{ stop: () => void } | null>(null)
+  const spokenRef = useRef('')
   const selectedIdRef = useRef(selectedId)
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -93,12 +110,9 @@ export function ChatPage() {
   }
 
   const refresh = async () => {
-    const [rows, tpls, settings] = await Promise.all([listAgents(), listTemplates(), getSettings()])
+    const [rows, tpls] = await Promise.all([listAgents(), listTemplates()])
     setAgents(rows)
     setTemplates(tpls)
-    setChannels(settings.channels.length > 0 ? settings.channels : ['cli'])
-    setComingChannels(settings.channels_coming)
-    setChannel(settings.default_channel || 'cli')
     if (tpls.length > 0 && !tpls.some((item) => item.id === template)) {
       setTemplate(tpls[0].id)
     }
@@ -184,7 +198,11 @@ export function ChatPage() {
     }, ms)
   }
 
-  const sendPrompt = async (outbound: string, appendUser: boolean) => {
+  const sendPrompt = async (
+    outbound: string,
+    appendUser: boolean,
+    files: Attachment[] = [],
+  ) => {
     if (!selectedId) return
     const controller = beginAsk(selectedId)
     if (!controller) return
@@ -222,7 +240,17 @@ export function ChatPage() {
             showActivity(`📤 Agent sent message to "${status.target || 'another agent'}"`, 3000)
           }
         },
-        { autonomous: autoMode },
+        {
+          autonomous: autoMode,
+          attachments: files
+            .filter((item) => item.data)
+            .map((item) => ({
+              name: item.name,
+              mime: item.mime,
+              data: item.data as string,
+              kind: item.kind,
+            })),
+        },
       )
       if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
@@ -266,10 +294,11 @@ export function ChatPage() {
       showToast('Agent is already answering. Please wait.')
       return
     }
-    const outbound = buildPrompt(text || '(attachment only)')
+    const pending = attachments
+    const outbound = buildPrompt(text || (pending.length ? '' : '(attachment only)'))
     setPrompt('')
     setAttachments([])
-    await sendPrompt(outbound, true)
+    await sendPrompt(outbound, true, pending)
   }
 
   const clearHistory = async () => {
@@ -298,32 +327,69 @@ export function ChatPage() {
     if (!list) return
     const next: Attachment[] = []
     for (const file of Array.from(list)) {
+      const data = await fileToBase64(file)
+      const image = file.type.startsWith('image/')
       const textLike = file.type.startsWith('text/') || /\.(md|txt|json|csv|py|ts|tsx|js)$/i.test(file.name)
-      if (textLike && file.size < 200_000) {
-        const body = await file.text()
-        next.push({
-          name: file.name,
-          kind: 'file',
-          note: `Attached file ${file.name}`,
-          body,
-        })
-      } else {
-        next.push({
-          name: file.name,
-          kind: 'file',
-          note: `Attached file ${file.name} (${Math.round(file.size / 1024)} KB). Binary content is not sent to the model in this cut.`,
-        })
-      }
+      next.push({
+        name: file.name,
+        kind: image ? 'image' : 'file',
+        mime: file.type || 'application/octet-stream',
+        data,
+        note: image ? `Photo ${file.name}` : `Attached file ${file.name}`,
+        body: textLike && file.size < 200_000 ? await file.text() : undefined,
+      })
     }
     setAttachments((current) => [...current, ...next])
   }
 
   const toggleRecord = async () => {
     if (recording) {
+      speechRef.current?.stop()
+      speechRef.current = null
       recorderRef.current?.stop()
       return
     }
+    spokenRef.current = ''
     try {
+      const SpeechAPI = (
+        window as unknown as {
+          SpeechRecognition?: new () => {
+            continuous: boolean
+            interimResults: boolean
+            lang: string
+            start: () => void
+            stop: () => void
+            onresult: ((event: { resultIndex: number; results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
+            onerror: (() => void) | null
+          }
+          webkitSpeechRecognition?: new () => {
+            continuous: boolean
+            interimResults: boolean
+            lang: string
+            start: () => void
+            stop: () => void
+            onresult: ((event: { resultIndex: number; results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
+            onerror: (() => void) | null
+          }
+        }
+      ).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => never }).webkitSpeechRecognition
+      if (SpeechAPI) {
+        const recognition = new SpeechAPI()
+        recognition.continuous = true
+        recognition.interimResults = true
+        recognition.lang = navigator.language || 'en-US'
+        recognition.onresult = (event) => {
+          let spoken = ''
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            spoken += event.results[i][0].transcript
+          }
+          spokenRef.current = spoken.trim()
+          if (spokenRef.current) setPrompt((current) => (current ? current : spokenRef.current))
+        }
+        recognition.onerror = () => undefined
+        recognition.start()
+        speechRef.current = recognition
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
       chunksRef.current = []
@@ -333,15 +399,21 @@ export function ChatPage() {
       recorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop())
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
-        const seconds = Math.max(1, Math.round(blob.size / 4000))
-        setAttachments((current) => [
-          ...current,
-          {
-            name: `audio-${Date.now()}.webm`,
-            kind: 'audio',
-            note: `Attached audio clip (~${seconds}s). Speech-to-text is not on the server; the model only sees this note.`,
-          },
-        ])
+        void fileToBase64(blob).then((data) => {
+          setAttachments((current) => [
+            ...current,
+            {
+              name: `audio-${Date.now()}.webm`,
+              kind: 'audio',
+              mime: blob.type || 'audio/webm',
+              data,
+              note: spokenRef.current ? `Audio: ${spokenRef.current}` : 'Audio clip ready to transcribe',
+            },
+          ])
+          if (spokenRef.current) {
+            setPrompt((current) => current || spokenRef.current)
+          }
+        })
         setRecording(false)
         recorderRef.current = null
       }
@@ -360,12 +432,9 @@ export function ChatPage() {
       const agent = await createAgent({
         template,
         name: name.trim() || undefined,
-        channel,
-        outbound_url: channel === 'webhook' ? outboundUrl.trim() || undefined : undefined,
-        provider: provider || undefined,
+        emoji,
       })
       setName('')
-      setOutboundUrl('')
       await refresh()
       setSearchParams({ agent: agent.id })
     } catch (err) {
@@ -413,69 +482,54 @@ export function ChatPage() {
               </button>
             </header>
             <div className="min-h-0 flex-1 overflow-auto">
-              <section className="space-y-2 border-b border-border p-3">
+              <section className="space-y-3 border-b border-border p-3">
                 <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Templates</h2>
-                <ul className="space-y-2">
+                <ul className="grid grid-cols-3 gap-2">
                   {templates.map((item) => (
                     <li key={item.id}>
                       <button
                         type="button"
-                        onClick={() => setTemplate(item.id)}
+                        onClick={() => {
+                          setTemplate(item.id)
+                          setEmoji(item.emoji || '💬')
+                        }}
                         className={cn(
-                          'w-full rounded-md border px-2 py-2 text-left',
+                          'flex w-full flex-col items-center rounded-md border px-1 py-2 text-center',
                           template === item.id ? 'border-accent/40 bg-surface-2' : 'border-border hover:bg-surface-2',
                         )}
                       >
-                        <div className="text-sm font-medium">{item.name}</div>
-                        <p className="mt-1 text-xs text-muted">{item.description}</p>
+                        <span className="text-2xl" aria-hidden>
+                          {item.emoji || '💬'}
+                        </span>
+                        <span className="mt-1 text-xs font-medium">{item.name}</span>
+                        <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted">{item.description}</p>
                       </button>
                     </li>
                   ))}
                 </ul>
-                <Label htmlFor="new-name">New agent</Label>
+                <div>
+                  <Label>Face</Label>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {FACE_EMOJIS.map((face) => (
+                      <button
+                        key={face}
+                        type="button"
+                        onClick={() => setEmoji(face)}
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-md border text-lg',
+                          emoji === face ? 'border-accent bg-surface-2' : 'border-border hover:bg-surface-2',
+                        )}
+                        aria-label={`Face ${face}`}
+                        aria-pressed={emoji === face}
+                      >
+                        {face}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Label htmlFor="new-name">Name (optional)</Label>
                 <Input id="new-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Name (optional)" />
-                <Label htmlFor="new-provider">LLM company (latest model)</Label>
-                <select
-                  id="new-provider"
-                  value={provider}
-                  onChange={(event) => setProvider(event.target.value)}
-                  className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
-                >
-                  {models.map((row) => (
-                    <option key={row.name} value={row.name}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-                <Label htmlFor="new-channel">Channel</Label>
-                <select
-                  id="new-channel"
-                  value={channel}
-                  onChange={(event) => setChannel(event.target.value)}
-                  className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
-                >
-                  {channels.map((id) => (
-                    <option key={id} value={id}>
-                      {id}
-                    </option>
-                  ))}
-                  {laterChannels(channels, comingChannels).map((id) => (
-                    <option key={id} value={id} disabled>
-                      {id} (later)
-                    </option>
-                  ))}
-                </select>
-                {channel === 'webhook' && (
-                  <>
-                    <Label htmlFor="new-outbound">Outbound URL (optional)</Label>
-                    <Input
-                      id="new-outbound"
-                      value={outboundUrl}
-                      onChange={(event) => setOutboundUrl(event.target.value)}
-                      placeholder="https://example.com/hooks/universal"
-                    />
-                  </>
-                )}
+                <p className="text-[11px] text-muted">Model and channel live in Settings.</p>
                 <Button size="sm" onClick={() => void create()} disabled={creating}>
                   {creating ? 'Creating…' : `Create ${templates.find((item) => item.id === template)?.name ?? 'agent'}`}
                 </Button>
@@ -499,12 +553,17 @@ export function ChatPage() {
                           )}
                         >
                           <div className="flex w-full items-center justify-between gap-2">
-                            <span className="text-sm font-medium">{agent.name}</span>
+                            <span className="flex items-center gap-2 text-sm font-medium">
+                              <span className="text-xl" aria-hidden>
+                                {agent.emoji || info?.emoji || '💬'}
+                              </span>
+                              {agent.name}
+                            </span>
                             <Badge className={agent.state === 'running' ? 'border-accent/40 text-accent' : ''}>
                               {agent.state}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted">{info?.description ?? agent.template_id}</p>
+                          <p className="text-[11px] leading-snug text-muted">{info?.description ?? agent.template_id}</p>
                           <p className="text-[11px] text-muted">
                             {agent.channel} · {pluginListLabel(agent.plugin_labels, agent.plugins.length)}
                           </p>
@@ -533,7 +592,9 @@ export function ChatPage() {
           <section className="flex min-h-0 min-w-[22rem] flex-1 flex-col bg-bg">
             <header className="flex items-center justify-between border-b border-border px-4 py-3">
               <div>
-                <div className="font-medium">{selected?.name ?? 'Select an agent'}</div>
+                <div className="font-medium">
+                  {selected ? `${selected.emoji || '💬'} ${selected.name}` : 'Select an agent'}
+                </div>
                 <div className="text-xs text-muted">
                   {selected
                     ? `${selected.template_id} · ${selected.state} · one thread in memory`
@@ -699,6 +760,7 @@ export function ChatPage() {
                       ref={fileRef}
                       type="file"
                       multiple
+                      accept="image/*,audio/*,.txt,.md,.json,.csv,.py,.ts,.tsx,.js"
                       className="hidden"
                       onChange={(event) => {
                         void onFiles(event.target.files)
@@ -754,7 +816,7 @@ export function ChatPage() {
                       Send
                     </Button>
                     <p className="w-full text-[11px] text-muted">
-                      Drag the bar above to make this box taller. Files are sent as text. Audio is attached as a note.
+                      Drag the bar above to make this box taller. Photos are sent to the agent. Audio is transcribed.
                     </p>
                   </div>
                 </form>

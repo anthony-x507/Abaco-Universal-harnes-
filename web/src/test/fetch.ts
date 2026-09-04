@@ -58,9 +58,9 @@ export function defaultCatalog() {
     },
     templates: {
       templates: [
-        { id: 'general', name: 'General', description: 'Everyday questions.' },
-        { id: 'researcher', name: 'Researcher', description: 'Research face.' },
-        { id: 'coder', name: 'Coder', description: 'Code face.' },
+        { id: 'general', name: 'General', description: 'Everyday questions.', emoji: '💬' },
+        { id: 'researcher', name: 'Researcher', description: 'Research face.', emoji: '🔎' },
+        { id: 'coder', name: 'Coder', description: 'Code face.', emoji: '💻' },
       ],
     },
     agents: { agents: [{ ...agentFixture }] },

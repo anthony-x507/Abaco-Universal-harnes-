@@ -55,6 +55,7 @@ class Template:
     system_prompt: str
     default_plugins: tuple[str, ...] = ()
     memory: bool = False
+    emoji: str = "💬"
 
 
 def _built_in() -> dict[str, Template]:
@@ -65,6 +66,7 @@ def _built_in() -> dict[str, Template]:
             description="Helpful general-purpose agent for everyday questions.",
             system_prompt=GENERAL_PROMPT,
             default_plugins=NATIVE_PLUGIN_NAMES,
+            emoji="💬",
         ),
         "researcher": Template(
             id="researcher",
@@ -73,6 +75,7 @@ def _built_in() -> dict[str, Template]:
             system_prompt=RESEARCHER_PROMPT,
             default_plugins=(*NATIVE_PLUGIN_NAMES, "tools"),
             memory=True,
+            emoji="🔎",
         ),
         "coder": Template(
             id="coder",
@@ -80,6 +83,7 @@ def _built_in() -> dict[str, Template]:
             description="Software-engineering face: precise code and trade-offs.",
             system_prompt=CODER_PROMPT,
             default_plugins=NATIVE_PLUGIN_NAMES,
+            emoji="💻",
         ),
     }
 

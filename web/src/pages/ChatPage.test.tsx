@@ -192,6 +192,8 @@ describe('Chat page quality tests', () => {
     installFetchMock(() => null)
     renderChat()
     expect(await screen.findByRole('heading', { name: 'Templates' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('LLM company (latest model)')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Channel')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Close agents' }))
     expect(screen.queryByRole('heading', { name: 'Templates' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Agents' }))
