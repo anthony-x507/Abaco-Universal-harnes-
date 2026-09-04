@@ -4,10 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 jobs:
   macos:
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,15 +21,24 @@ jobs:
           bun-version: latest
       - name: Install Universal desktop extra
         run: |
+          python3 -m pip install -U pip
           python3 -m pip install -e ".[desktop]"
           python3 -m pip install "pyinstaller>=6.0"
-      - name: Build app and DMG
+      - name: Build Universal.app and Universal.dmg
         run: |
+          chmod +x scripts/build_macos.sh scripts/create_dmg.sh
           ./scripts/build_macos.sh
           ./scripts/create_dmg.sh
+          test -f Universal.dmg
+          ls -lh Universal.app Universal.dmg
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: Universal.dmg
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name || 'v0.1.1' }}
+          name: Universal ${{ github.ref_name || 'v0.1.1' }}
+          body: |
+            Native Mac installer. Open Universal.dmg, drag Universal.app to Applications, launch it.
+            The factory and the six native plugins ship inside the app.
           generate_release_notes: true
+          fail_on_unmatched_files: true

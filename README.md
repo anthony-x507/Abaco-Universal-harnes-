@@ -20,7 +20,7 @@ Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-comman
 
 ## Install
 
-**Mac (source zip):** unzip the release, then `scripts/install_macos.sh`. That installs the package and builds the SPA. A signed `Universal.dmg` is only produced on a Mac with `scripts/build_macos.sh`.
+**Mac (app):** download `Universal.dmg` from [Releases](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases), open it, drag **Universal.app** to Applications. That is the native installer (`scripts/build_macos.sh` + `create_dmg.sh` on a Mac runner). A source tree is only for development.
 
 Python 3.11+. The supported path is pip (the project uses hatchling; Poetry is not required).
 

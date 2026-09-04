@@ -86,7 +86,7 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     dmg = (ROOT / "scripts" / "create_dmg.sh").read_text(encoding="utf-8")
     app_entry = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "Universal.app" in build
-    assert "pyinstaller" in build
+    assert "PyInstaller" in build or "pyinstaller" in build
     assert "whisper" not in build.lower() or "optional" in build.lower()
     assert "aegis" not in build.lower()
     assert "hdiutil" in dmg

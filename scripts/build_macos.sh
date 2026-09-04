@@ -37,7 +37,7 @@ python3 -m pip install -q 'pyinstaller>=6.0' 'pywebview>=5.0'
 
 # onedir + windowed → a real .app. Do not hide-import whisper (optional extra, huge).
 # Do not add a second factory tree. The package is imported as universal.
-pyinstaller \
+python3 -m PyInstaller \
   --noconfirm \
   --windowed \
   --name Universal \
