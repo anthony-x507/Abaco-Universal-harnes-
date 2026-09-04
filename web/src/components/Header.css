@@ -37,6 +37,16 @@
   text-overflow: ellipsis;
 }
 
+.header-version {
+  flex-shrink: 0;
+  border: 1px solid #2a3344;
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: #8b9bb4;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+}
+
 @media (max-width: 640px) {
   .app-header {
     padding: 10px 16px;

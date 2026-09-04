@@ -15,7 +15,7 @@ describe('Header brand', () => {
     expect(String(mark.getAttribute('src'))).toMatch(/logo/)
   })
 
-  it('is the top-left chrome of the app shell', () => {
+  it('is the top-left chrome of the app shell', async () => {
     installFetchMock(() => null)
     render(
       <MemoryRouter>
@@ -30,6 +30,7 @@ describe('Header brand', () => {
     )
     expect(screen.getByRole('heading', { name: 'Abaco Universal Harness' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Abaco Universal Harness' })).toBeInTheDocument()
+    expect(await screen.findByText('1.2.3')).toBeInTheDocument()
     expect(screen.getByText('chat face')).toBeInTheDocument()
   })
 })

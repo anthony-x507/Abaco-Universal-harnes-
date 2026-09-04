@@ -841,7 +841,8 @@ def _mount_spa(app: FastAPI, dist: Path) -> None:
         if request.method == "GET":
             existing = _safe_file(request.url.path)
             if existing is not None:
-                return FileResponse(existing)
+                headers = _spa_headers(existing)
+                return FileResponse(existing, headers=headers)
         response = await call_next(request)
         if (
             request.method == "GET"
@@ -851,12 +852,23 @@ def _mount_spa(app: FastAPI, dist: Path) -> None:
         ):
             index = root / "index.html"
             if index.is_file():
-                return FileResponse(index)
+                return FileResponse(index, headers=_spa_headers(index))
         return response
 
     @app.get("/")
     def spa_index() -> FileResponse:
-        return FileResponse(root / "index.html")
+        index = root / "index.html"
+        return FileResponse(index, headers=_spa_headers(index))
+
+
+def _spa_headers(path: Path) -> dict[str, str]:
+    """index.html must not stick in WKWebView after a GitHub app update."""
+    if path.name == "index.html":
+        return {
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        }
+    return {"Cache-Control": "public, max-age=60"}
 
 
 def build_serve_app(

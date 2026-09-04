@@ -23,6 +23,18 @@ if [[ ! -f web/dist/index.html ]]; then
   echo "web/dist/index.html missing after build" >&2
   exit 1
 fi
+if ! grep -q "Abaco Universal Harness" web/dist/index.html; then
+  echo "web/dist is the old face (missing Abaco Universal Harness)" >&2
+  exit 1
+fi
+if grep -R -q "Write in the middle column" web/dist; then
+  echo "web/dist still has the pre-Design Chat copy" >&2
+  exit 1
+fi
+if ! grep -R -q "How can I help you today" web/dist; then
+  echo "web/dist is missing the current Chat composer" >&2
+  exit 1
+fi
 
 if ! python3 -c "import universal.desktop" >/dev/null 2>&1; then
   echo "Install the package first: python3 -m pip install -e '.[desktop]'" >&2

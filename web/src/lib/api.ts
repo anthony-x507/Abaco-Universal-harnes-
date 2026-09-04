@@ -156,6 +156,7 @@ export async function getHealth(): Promise<{
   status: string
   demo: boolean
   agents: number
+  version?: string
   whisper?: boolean
   runtime?: RuntimeStatus
 }> {
