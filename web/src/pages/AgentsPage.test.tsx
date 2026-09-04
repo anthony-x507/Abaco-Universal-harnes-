@@ -65,8 +65,8 @@ describe('Agents page quality tests', () => {
         <AgentsPage />
       </MemoryRouter>,
     )
-    expect(await screen.findByLabelText('LLM provider')).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'OpenAI (GPT-4o-mini)' })).toBeInTheDocument()
+    expect(await screen.findByLabelText('LLM company (latest model)')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'OpenAI (GPT-5.6 Sol)' })).toBeInTheDocument()
     const option = await screen.findByRole('option', { name: 'webhook' })
     expect(option).toBeEnabled()
     expect(screen.queryByRole('option', { name: /webhook \(later\)/i })).not.toBeInTheDocument()

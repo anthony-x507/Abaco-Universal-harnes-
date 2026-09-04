@@ -80,18 +80,20 @@ export function defaultCatalog() {
     models: {
       models: [
         {
-          name: 'OpenAI (GPT-4o-mini)',
+          name: 'OpenAI (GPT-5.6 Sol)',
+          company: 'OpenAI',
           base_url: 'https://api.openai.com/v1',
-          default_model: 'gpt-4o-mini',
-          docs: 'https://platform.openai.com/',
+          default_model: 'gpt-5.6-sol',
+          docs: 'https://platform.openai.com/docs/models',
           requires_api_key: true,
         },
         {
-          name: 'Ollama (Llama 3.2)',
-          base_url: 'http://localhost:11434/v1',
-          default_model: 'llama3.2',
-          docs: 'https://ollama.com/',
-          requires_api_key: false,
+          name: 'DeepSeek (V4 Pro)',
+          company: 'DeepSeek',
+          base_url: 'https://api.deepseek.com/v1',
+          default_model: 'deepseek-v4-pro',
+          docs: 'https://api-docs.deepseek.com/',
+          requires_api_key: true,
         },
         {
           name: 'Custom (URL)',

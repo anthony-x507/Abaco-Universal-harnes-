@@ -34,7 +34,7 @@ export function AgentsPage() {
   const [working, setWorking] = useState('')
   const [error, setError] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Agent | null>(null)
-  const [provider, setProvider] = useState('OpenAI (GPT-4o-mini)')
+  const [provider, setProvider] = useState('OpenAI (GPT-5.6 Sol)')
   const { askingId, abortAsk, showToast } = useAskSession()
   const { models } = useModels()
 
@@ -176,7 +176,7 @@ export function AgentsPage() {
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="agent-provider">LLM provider</Label>
+            <Label htmlFor="agent-provider">LLM company (latest model)</Label>
             <select
               id="agent-provider"
               value={provider}

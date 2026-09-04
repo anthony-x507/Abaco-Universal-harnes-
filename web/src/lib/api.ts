@@ -32,6 +32,7 @@ export type Agent = {
 }
 
 export type ModelPreset = {
+  company?: string
   name: string
   base_url: string
   default_model: string

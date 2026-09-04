@@ -1,16 +1,21 @@
-"""Named OpenAI-compatible presets. Not a second provider stack.
+"""Named OpenAI-compatible presets. One company, one latest model.
 
-Each row is a label + base URL + default model for the existing
-``OpenAICompatProvider``. Nothing here constructs an HTTP client.
+Each row is a lab + its current flagship + the OpenAI-compatible URL that
+reaches it. Nothing here constructs an HTTP client. Companies without a
+public OpenAI-compatible API are reached through OpenRouter (one hop, still
+one ``OpenAICompatProvider``).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+OPENROUTER = "https://openrouter.ai/api/v1"
+
 
 @dataclass(frozen=True, slots=True)
 class ModelProvider:
+    company: str
     name: str
     base_url: str
     default_model: str
@@ -19,6 +24,7 @@ class ModelProvider:
 
     def to_dict(self) -> dict[str, str | bool]:
         return {
+            "company": self.company,
             "name": self.name,
             "base_url": self.base_url,
             "default_model": self.default_model,
@@ -27,119 +33,131 @@ class ModelProvider:
         }
 
 
+def _row(
+    company: str,
+    label: str,
+    base_url: str,
+    model: str,
+    docs: str,
+    *,
+    requires_api_key: bool = True,
+) -> ModelProvider:
+    return ModelProvider(
+        company=company,
+        name=f"{company} ({label})",
+        base_url=base_url,
+        default_model=model,
+        docs=docs,
+        requires_api_key=requires_api_key,
+    )
+
+
+def _via_openrouter(company: str, label: str, model: str, docs: str) -> ModelProvider:
+    return _row(
+        company,
+        label,
+        OPENROUTER,
+        model,
+        f"{docs} Reached through OpenRouter's OpenAI-compatible endpoint. Use an OpenRouter API key.",
+    )
+
+
+# 40 labs. One latest flagship each. No second OpenAI, no second Llama host.
 PROVIDERS: tuple[ModelProvider, ...] = (
-    ModelProvider("OpenAI (GPT-4o-mini)", "https://api.openai.com/v1", "gpt-4o-mini", "https://platform.openai.com/"),
-    ModelProvider("OpenAI (GPT-4o)", "https://api.openai.com/v1", "gpt-4o", "https://platform.openai.com/"),
-    ModelProvider("OpenAI (o1-mini)", "https://api.openai.com/v1", "o1-mini", "https://platform.openai.com/"),
-    ModelProvider("OpenAI (GPT-4.1-mini)", "https://api.openai.com/v1", "gpt-4.1-mini", "https://platform.openai.com/"),
-    ModelProvider("DeepSeek Chat", "https://api.deepseek.com/v1", "deepseek-chat", "https://platform.deepseek.com/"),
-    ModelProvider("DeepSeek Coder", "https://api.deepseek.com/v1", "deepseek-coder", "https://platform.deepseek.com/"),
-    ModelProvider("DeepSeek R1", "https://api.deepseek.com/v1", "deepseek-reasoner", "https://platform.deepseek.com/"),
-    ModelProvider("Groq (Llama 3 70B)", "https://api.groq.com/openai/v1", "llama3-70b-8192", "https://console.groq.com/"),
-    ModelProvider("Groq (Llama 3.1 70B)", "https://api.groq.com/openai/v1", "llama-3.1-70b-versatile", "https://console.groq.com/"),
-    ModelProvider("Groq (Mixtral 8x7B)", "https://api.groq.com/openai/v1", "mixtral-8x7b-32768", "https://console.groq.com/"),
-    ModelProvider("OpenRouter (GPT-4o)", "https://openrouter.ai/api/v1", "openai/gpt-4o", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Claude 3.5)", "https://openrouter.ai/api/v1", "anthropic/claude-3.5-sonnet", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Gemini Pro)", "https://openrouter.ai/api/v1", "google/gemini-pro-1.5", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Llama 3 70B)", "https://openrouter.ai/api/v1", "meta-llama/llama-3-70b-instruct", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (DeepSeek)", "https://openrouter.ai/api/v1", "deepseek/deepseek-chat", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Mistral 7B)", "https://openrouter.ai/api/v1", "mistralai/mistral-7b-instruct", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Gemma 2 9B)", "https://openrouter.ai/api/v1", "google/gemma-2-9b-it", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Phi-3 Mini)", "https://openrouter.ai/api/v1", "microsoft/phi-3-mini-128k-instruct", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Qwen 2 7B)", "https://openrouter.ai/api/v1", "qwen/qwen-2-7b-instruct", "https://openrouter.ai/"),
-    ModelProvider("OpenRouter (Claude 3 Opus)", "https://openrouter.ai/api/v1", "anthropic/claude-3-opus", "https://openrouter.ai/"),
-    ModelProvider(
-        "Ollama (Llama 3.2)",
-        "http://localhost:11434/v1",
-        "llama3.2",
-        "https://ollama.com/",
-        requires_api_key=False,
+    _row("OpenAI", "GPT-5.6 Sol", "https://api.openai.com/v1", "gpt-5.6-sol", "https://platform.openai.com/docs/models"),
+    _via_openrouter("Anthropic", "Claude Fable 5.1", "anthropic/claude-fable-5.1", "https://docs.anthropic.com/"),
+    _row(
+        "Google",
+        "Gemini 3.8 Flash",
+        "https://generativelanguage.googleapis.com/v1beta/openai",
+        "gemini-3.8-flash",
+        "https://ai.google.dev/gemini-api/docs/openai",
     ),
-    ModelProvider(
-        "Ollama (Mistral)",
-        "http://localhost:11434/v1",
-        "mistral",
-        "https://ollama.com/",
-        requires_api_key=False,
+    _row("xAI", "Grok 4.6", "https://api.x.ai/v1", "grok-4.6", "https://docs.x.ai/"),
+    _row("Meta", "Muse Spark 1.3", "https://api.meta.ai/v1", "muse-spark-1.3", "https://llama.meta.com/docs/"),
+    _row("DeepSeek", "V4 Pro", "https://api.deepseek.com/v1", "deepseek-v4-pro", "https://api-docs.deepseek.com/"),
+    _row("Mistral", "Medium 3.5", "https://api.mistral.ai/v1", "mistral-medium-3-5", "https://docs.mistral.ai/"),
+    _row(
+        "Alibaba",
+        "Qwen3.8 Max",
+        "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        "qwen3.8-max",
+        "https://www.alibabacloud.com/help/dashscope",
     ),
-    ModelProvider(
-        "Ollama (Gemma 2)",
-        "http://localhost:11434/v1",
-        "gemma2",
-        "https://ollama.com/",
-        requires_api_key=False,
+    _row("Zhipu", "GLM-4.5", "https://open.bigmodel.cn/api/paas/v4", "glm-4.5", "https://open.bigmodel.cn/"),
+    _row("Moonshot", "Kimi K2", "https://api.moonshot.ai/v1", "kimi-k2-turbo-preview", "https://platform.moonshot.ai/"),
+    _row("01.AI", "Yi Lightning", "https://api.lingyiwanwu.com/v1", "yi-lightning", "https://platform.lingyiwanwu.com/"),
+    _row("MiniMax", "M1", "https://api.minimax.chat/v1", "MiniMax-M1", "https://www.minimax.io/"),
+    _row(
+        "ByteDance",
+        "Doubao Seed 1.6",
+        "https://ark.cn-beijing.volces.com/api/v3",
+        "doubao-seed-1-6-250615",
+        "https://www.volcengine.com/docs/82379",
     ),
-    ModelProvider(
-        "Ollama (Phi-3)",
-        "http://localhost:11434/v1",
-        "phi3",
-        "https://ollama.com/",
-        requires_api_key=False,
+    _row(
+        "Tencent",
+        "Hunyuan TurboS",
+        "https://api.hunyuan.cloud.tencent.com/v1",
+        "hunyuan-turbos-latest",
+        "https://cloud.tencent.com/document/product/1729",
     ),
-    ModelProvider("Mistral (Large)", "https://api.mistral.ai/v1", "mistral-large-latest", "https://console.mistral.ai/"),
-    ModelProvider("Mistral (Small)", "https://api.mistral.ai/v1", "mistral-small-latest", "https://console.mistral.ai/"),
-    ModelProvider("Mistral (Codestral)", "https://api.mistral.ai/v1", "codestral-latest", "https://console.mistral.ai/"),
-    ModelProvider("Cohere (Command R)", "https://api.cohere.ai/v1", "command-r", "https://dashboard.cohere.com/"),
-    ModelProvider("Cohere (Command R+)", "https://api.cohere.ai/v1", "command-r-plus", "https://dashboard.cohere.com/"),
-    ModelProvider(
-        "Together (Llama 3 70B)",
-        "https://api.together.xyz/v1",
-        "meta-llama/Llama-3-70b-chat-hf",
-        "https://together.ai/",
+    _row(
+        "Baidu",
+        "ERNIE 4.5 Turbo",
+        "https://qianfan.baidubce.com/v2",
+        "ernie-4.5-turbo-128k",
+        "https://cloud.baidu.com/doc/qianfan",
     ),
-    ModelProvider(
-        "Together (Llama 3.1 70B)",
-        "https://api.together.xyz/v1",
-        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        "https://together.ai/",
+    _row("StepFun", "Step 2", "https://api.stepfun.com/v1", "step-2-16k", "https://platform.stepfun.com/"),
+    _row(
+        "Cohere",
+        "Command A",
+        "https://api.cohere.com/compatibility/v1",
+        "command-a-03-2025",
+        "https://docs.cohere.com/docs/compatibility-api",
     ),
-    ModelProvider(
-        "Together (Mixtral 8x7B)",
-        "https://api.together.xyz/v1",
-        "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "https://together.ai/",
+    _via_openrouter("AI21", "Jamba 1.6 Large", "ai21/jamba-1.6-large", "https://docs.ai21.com/"),
+    _via_openrouter("Amazon", "Nova Pro", "amazon/nova-pro-v1", "https://aws.amazon.com/ai/generative-ai/nova/"),
+    _via_openrouter("Microsoft", "Phi-4", "microsoft/phi-4", "https://azure.microsoft.com/products/phi"),
+    _via_openrouter("IBM", "Granite 3.3", "ibm-granite/granite-3.3-8b-instruct", "https://www.ibm.com/granite"),
+    _row(
+        "NVIDIA",
+        "Nemotron Super",
+        "https://integrate.api.nvidia.com/v1",
+        "nvidia/llama-3.3-nemotron-super-49b-v1",
+        "https://build.nvidia.com/",
     ),
-    ModelProvider(
-        "Fireworks (Llama 3 70B)",
-        "https://api.fireworks.ai/inference/v1",
-        "accounts/fireworks/models/llama-v3-70b-instruct",
-        "https://fireworks.ai/",
+    _row("Perplexity", "Sonar Pro", "https://api.perplexity.ai", "sonar-pro", "https://docs.perplexity.ai/"),
+    _row("Groq", "Compound", "https://api.groq.com/openai/v1", "groq/compound", "https://console.groq.com/docs"),
+    _row("Writer", "Palmyra X5", "https://api.writer.com/v1", "palmyra-x5", "https://dev.writer.com/"),
+    _row("Upstage", "Solar Pro", "https://api.upstage.ai/v1/solar", "solar-pro", "https://developers.upstage.ai/"),
+    _via_openrouter("Nous Research", "Hermes 3", "nousresearch/hermes-3-llama-3.1-405b", "https://nousresearch.com/"),
+    _via_openrouter("Reka", "Flash 3", "rekaai/reka-flash-3", "https://www.reka.ai/"),
+    _via_openrouter("LG", "EXAONE 4.0", "lgai/exaone-4.0", "https://www.lgresearch.ai/"),
+    _via_openrouter("Allen AI", "OLMo 2 32B", "allenai/olmo-2-32b-instruct", "https://allenai.org/olmo"),
+    _via_openrouter("TII", "Falcon 3 10B", "tiiuae/falcon3-10b-instruct", "https://falconllm.tii.ae/"),
+    _via_openrouter("Aleph Alpha", "Pharia", "aleph-alpha/pharia-1-llm-7b-control", "https://www.aleph-alpha.com/"),
+    _via_openrouter("G42", "Jais 70B", "core42/jais-adapted-70b", "https://www.g42.ai/"),
+    _via_openrouter("Liquid AI", "LFM 2.5", "liquid/lfm-2.5-1.2b", "https://www.liquid.ai/"),
+    _via_openrouter("Shanghai AI Lab", "InternLM 2.5", "internlm/internlm2_5-20b-chat", "https://internlm.intern-ai.org.cn/"),
+    _via_openrouter("NAVER", "HyperCLOVA X", "naver/hyperclova-x", "https://www.ncloud.com/product/aiService/clovaStudio"),
+    _via_openrouter("Sber", "GigaChat 2 Max", "sber/gigachat-2-max", "https://developers.sber.ru/docs/gigachat"),
+    _via_openrouter("Yandex", "YandexGPT 5", "yandex/yandexgpt-5-pro", "https://yandex.cloud/en/docs/foundation-models/"),
+    _row(
+        "Hugging Face",
+        "SmolLM3",
+        "https://router.huggingface.co/v1",
+        "HuggingFaceTB/SmolLM3-3B",
+        "https://huggingface.co/docs/inference-providers",
     ),
+    _row("OpenRouter", "Auto", OPENROUTER, "openrouter/auto", "https://openrouter.ai/docs"),
     ModelProvider(
-        "Fireworks (Mixtral)",
-        "https://api.fireworks.ai/inference/v1",
-        "accounts/fireworks/models/mixtral-8x7b-instruct",
-        "https://fireworks.ai/",
-    ),
-    ModelProvider("Perplexity (Sonar Small)", "https://api.perplexity.ai", "sonar-small-chat", "https://docs.perplexity.ai/"),
-    ModelProvider("Perplexity (Sonar Medium)", "https://api.perplexity.ai", "sonar-medium-chat", "https://docs.perplexity.ai/"),
-    ModelProvider(
-        "Anyscale (Llama 2 70B)",
-        "https://api.endpoints.anyscale.com/v1",
-        "meta-llama/Llama-2-70b-chat-hf",
-        "https://anyscale.com/",
-    ),
-    ModelProvider("Lepton (Llama 3 70B)", "https://api.lepton.ai/v1", "llama3-70b", "https://lepton.ai/"),
-    ModelProvider("LM Studio", "http://localhost:1234/v1", "local-model", "https://lmstudio.ai/", requires_api_key=False),
-    ModelProvider(
-        "vLLM",
-        "http://localhost:8000/v1",
-        "meta-llama/Llama-3-8B-Instruct",
-        "https://vllm.ai/",
-        requires_api_key=False,
-    ),
-    ModelProvider(
-        "Text Generation WebUI",
-        "http://localhost:5000/v1",
-        "local-model",
-        "https://github.com/oobabooga/text-generation-webui",
-        requires_api_key=False,
-    ),
-    ModelProvider(
-        "Custom (URL)",
-        "",
-        "custom-model",
-        "For custom OpenAI-compatible endpoints",
+        company="Custom",
+        name="Custom (URL)",
+        base_url="",
+        default_model="custom-model",
+        docs="Any other OpenAI-compatible endpoint. Fill the base URL and model yourself.",
         requires_api_key=True,
     ),
 )
@@ -154,14 +172,18 @@ def list_providers() -> list[str]:
 
 
 def list_providers_without_custom() -> list[str]:
-    return [row.name for row in PROVIDERS if row.name != "Custom (URL)"]
+    return [row.name for row in PROVIDERS if row.company != "Custom"]
+
+
+def list_companies() -> list[str]:
+    return [row.company for row in PROVIDERS if row.company != "Custom"]
 
 
 def match_provider(base_url: str, model: str) -> ModelProvider:
     """Best catalog row for current settings. Custom if nothing matches."""
     base = (base_url or "").rstrip("/")
     for row in PROVIDERS:
-        if row.name == "Custom (URL)":
+        if row.company == "Custom":
             continue
         if row.base_url.rstrip("/") == base and row.default_model == model:
             return row

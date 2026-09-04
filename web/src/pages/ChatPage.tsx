@@ -58,7 +58,7 @@ export function ChatPage() {
   const [clearing, setClearing] = useState(false)
   const [activity, setActivity] = useState({ visible: false, text: '' })
   const [autoMode, setAutoMode] = useState(false)
-  const [provider, setProvider] = useState('OpenAI (GPT-4o-mini)')
+  const [provider, setProvider] = useState('OpenAI (GPT-5.6 Sol)')
   const { models } = useModels()
   const activityTimer = useRef<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -434,7 +434,7 @@ export function ChatPage() {
                 </ul>
                 <Label htmlFor="new-name">New agent</Label>
                 <Input id="new-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Name (optional)" />
-                <Label htmlFor="new-provider">LLM provider</Label>
+                <Label htmlFor="new-provider">LLM company (latest model)</Label>
                 <select
                   id="new-provider"
                   value={provider}

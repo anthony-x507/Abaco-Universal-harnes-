@@ -114,9 +114,10 @@ def _cmd_models(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps([row.to_dict() for row in PROVIDERS], indent=2))
         return 0
-    print("Available LLM presets (same OpenAI-compatible client):\n")
+    print("Available LLM companies (one latest model each, same OpenAI-compatible client):\n")
     for row in PROVIDERS:
         print(f"  {row.name}")
+        print(f"    Company: {row.company}")
         print(f"    URL: {row.base_url or '(custom)'}")
         print(f"    Model: {row.default_model}")
         if row.docs:

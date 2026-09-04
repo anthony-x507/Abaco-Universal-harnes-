@@ -27,7 +27,7 @@ describe('T10 Settings demo mode', () => {
     const key = screen.getByLabelText('Demo mode — no API key required')
     expect(key).toBeDisabled()
     expect(key).toHaveAttribute('placeholder', 'Demo mode — no API key required')
-    expect(await screen.findByRole('option', { name: 'OpenAI (GPT-4o-mini)' })).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: 'OpenAI (GPT-5.6 Sol)' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'webhook' })).toBeEnabled()
     expect(screen.queryByRole('option', { name: /webhook \(later\)/i })).not.toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Check for Updates' })).toBeInTheDocument()

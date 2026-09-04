@@ -27,7 +27,7 @@ export function SettingsPage() {
   const [checkingUpdate, setCheckingUpdate] = useState(false)
   const [applyingUpdate, setApplyingUpdate] = useState(false)
   const [pendingUpdate, setPendingUpdate] = useState<{ latest: string; current: string } | null>(null)
-  const [preset, setPreset] = useState('OpenAI (GPT-4o-mini)')
+  const [preset, setPreset] = useState('OpenAI (GPT-5.6 Sol)')
   const { models } = useModels()
 
   const load = useCallback(async () => {
@@ -133,7 +133,7 @@ export function SettingsPage() {
             </div>
           )}
           <div className="space-y-1">
-            <Label htmlFor="llm-preset">LLM provider</Label>
+            <Label htmlFor="llm-preset">LLM company (latest model)</Label>
             <select
               id="llm-preset"
               value={preset}

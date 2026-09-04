@@ -15,10 +15,17 @@ if TYPE_CHECKING:
 
 # USD per 1K tokens: (prompt, completion). Source: public list prices, 2026-01.
 MODEL_PRICES_PER_1K: dict[str, tuple[float, float]] = {
+    "gpt-5.6-sol": (0.004, 0.02),
+    "gpt-5.6-terra": (0.002, 0.012),
+    "gpt-5.6-luna": (0.0002, 0.0012),
     "gpt-4o-mini": (0.00015, 0.0006),
     "gpt-4o": (0.0025, 0.01),
     "gpt-4.1-mini": (0.0004, 0.0016),
     "gpt-4.1": (0.002, 0.008),
+    "claude-fable-5-1": (0.01, 0.05),
+    "gemini-3.8-flash": (0.00075, 0.00375),
+    "grok-4.6": (0.002, 0.006),
+    "deepseek-v4-pro": (0.00066, 0.00198),
     "echo": (0.0, 0.0),
     "demo-echo": (0.0, 0.0),
     "fake-model": (0.0, 0.0),
@@ -36,10 +43,20 @@ def price_for(model: str) -> tuple[float, float]:
     if model in MODEL_PRICES_PER_1K:
         return MODEL_PRICES_PER_1K[model]
     lowered = (model or "").lower()
+    if lowered.startswith("gpt-5.6-sol") or lowered.endswith("/gpt-5.6-sol"):
+        return MODEL_PRICES_PER_1K["gpt-5.6-sol"]
     if lowered.startswith("gpt-4o-mini"):
         return MODEL_PRICES_PER_1K["gpt-4o-mini"]
     if lowered.startswith("gpt-4o"):
         return MODEL_PRICES_PER_1K["gpt-4o"]
+    if "claude-fable" in lowered:
+        return MODEL_PRICES_PER_1K["claude-fable-5-1"]
+    if lowered.startswith("gemini-3.8"):
+        return MODEL_PRICES_PER_1K["gemini-3.8-flash"]
+    if lowered.startswith("grok-4.6"):
+        return MODEL_PRICES_PER_1K["grok-4.6"]
+    if "deepseek-v4" in lowered:
+        return MODEL_PRICES_PER_1K["deepseek-v4-pro"]
     if lowered.startswith("gpt-"):
         return MODEL_PRICES_PER_1K["gpt-4o-mini"]
     return (0.0, 0.0)
