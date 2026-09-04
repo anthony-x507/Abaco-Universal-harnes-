@@ -15,10 +15,18 @@ from universal.channels.base import InboundMessage
 from universal.core.plugin import Plugin, PluginHost
 from universal.core.types import AgentInfo, AgentState, CompletionResponse, Message, utcnow
 from universal.core.usage import UsageStats, record_provider_call
-from universal.exceptions import ProviderError
 
 _NAME_FACT = re.compile(r"\bmy name is\s+(.+?)(?:[.!?]|$)", re.IGNORECASE)
 DEFAULT_HISTORY_TURNS = 10
+TOOL_REPEAT_LIMIT = 3
+TOOL_LIMIT_MESSAGE = (
+    "The agent could not finish this task within the tool-call limit. "
+    "Try a simpler question, or turn Auto off."
+)
+TOOL_REPEAT_NUDGE = (
+    "You already called this tool repeatedly. Give a final answer now from "
+    "the tool results you have. Do not call tools again."
+)
 
 if TYPE_CHECKING:
     from universal.channels.base import BaseCommunication
@@ -204,51 +212,9 @@ class Agent:
         turn = self.plugins.before_complete(self, turn)
 
         tools = self.plugins.collect_tools()
-        response: CompletionResponse | None = None
         working = list(turn)
+        response = self._run_tool_loop(working, tools)
 
-        for _ in range(self.max_tool_iters):
-            started = time.perf_counter()
-            response = self.provider.complete(
-                working, tools=tools or None, model=self.llm_model or None
-            )
-            record_provider_call(
-                self,
-                response,
-                messages=working,
-                latency_ms=(time.perf_counter() - started) * 1000,
-            )
-            if response.wants_tools:
-                working.append(
-                    Message(
-                        role="assistant",
-                        content=response.text or "",
-                        tool_calls=response.tool_calls,
-                    )
-                )
-                for i, call in enumerate(response.tool_calls):
-                    if not call.id:
-                        call.id = f"call_{i}"
-                    try:
-                        result = self.plugins.invoke_tool(call)
-                    except Exception as exc:
-                        result = f"error: tool {call.name!r} failed: {exc}"
-                    working.append(
-                        Message(
-                            role="tool",
-                            content=result,
-                            name=call.name,
-                            tool_call_id=call.id,
-                        )
-                    )
-                continue
-            break
-        else:
-            raise ProviderError(
-                f"Agent {self.id!r} exceeded max_tool_iters={self.max_tool_iters}"
-            )
-
-        assert response is not None
         response = self.plugins.after_complete(self, working, response)
         if remember:
             self._history.append(user)
@@ -267,49 +233,7 @@ class Agent:
         assembled = ""
 
         if tools:
-            response: CompletionResponse | None = None
-            for _ in range(self.max_tool_iters):
-                started = time.perf_counter()
-                response = self.provider.complete(
-                    working, tools=tools, model=self.llm_model or None
-                )
-                record_provider_call(
-                    self,
-                    response,
-                    messages=working,
-                    latency_ms=(time.perf_counter() - started) * 1000,
-                )
-                if response.wants_tools:
-                    working.append(
-                        Message(
-                            role="assistant",
-                            content=response.text or "",
-                            tool_calls=response.tool_calls,
-                        )
-                    )
-                    for i, call in enumerate(response.tool_calls):
-                        if not call.id:
-                            call.id = f"call_{i}"
-                        yield self._status_event_for_tool(call)
-                        try:
-                            result = self.plugins.invoke_tool(call)
-                        except Exception as exc:
-                            result = f"error: tool {call.name!r} failed: {exc}"
-                        working.append(
-                            Message(
-                                role="tool",
-                                content=result,
-                                name=call.name,
-                                tool_call_id=call.id,
-                            )
-                        )
-                    continue
-                break
-            else:
-                raise ProviderError(
-                    f"Agent {self.id!r} exceeded max_tool_iters={self.max_tool_iters}"
-                )
-            assert response is not None
+            response = yield from self._run_tool_loop_events(working, tools)
             response = self.plugins.after_complete(self, working, response)
             assembled = response.text
             if assembled:
@@ -342,6 +266,92 @@ class Agent:
         for event in self.complete_stream_events(prompt, remember=remember):
             if event.get("type") == "token" and event.get("text"):
                 yield str(event["text"])
+
+    def _provider_complete(
+        self, working: list[Message], tools: list[Any] | None
+    ) -> CompletionResponse:
+        started = time.perf_counter()
+        response = self.provider.complete(
+            working, tools=tools or None, model=self.llm_model or None
+        )
+        record_provider_call(
+            self,
+            response,
+            messages=working,
+            latency_ms=(time.perf_counter() - started) * 1000,
+        )
+        return response
+
+    def _apply_tool_calls(self, working: list[Message], response: CompletionResponse) -> None:
+        working.append(
+            Message(
+                role="assistant",
+                content=response.text or "",
+                tool_calls=response.tool_calls,
+            )
+        )
+        for i, call in enumerate(response.tool_calls):
+            if not call.id:
+                call.id = f"call_{i}"
+            try:
+                result = self.plugins.invoke_tool(call)
+            except Exception as exc:
+                result = f"error: tool {call.name!r} failed: {exc}"
+            working.append(
+                Message(
+                    role="tool",
+                    content=result,
+                    name=call.name,
+                    tool_call_id=call.id,
+                )
+            )
+
+    def _close_tool_loop(self, working: list[Message]) -> CompletionResponse:
+        working.append(Message(role="user", content=TOOL_REPEAT_NUDGE))
+        response = self._provider_complete(working, None)
+        text = (response.text or "").strip()
+        if not text or response.wants_tools:
+            return CompletionResponse(
+                text=TOOL_LIMIT_MESSAGE,
+                model=response.model,
+                finish_reason="stop",
+            )
+        return response
+
+    def _run_tool_loop(self, working: list[Message], tools: list[Any]) -> CompletionResponse:
+        streak = 0
+        last_names: tuple[str, ...] | None = None
+        response: CompletionResponse | None = None
+        for _ in range(self.max_tool_iters):
+            response = self._provider_complete(working, tools)
+            if not response.wants_tools:
+                return response
+            names = tuple(call.name for call in response.tool_calls)
+            streak = streak + 1 if names == last_names else 1
+            last_names = names
+            self._apply_tool_calls(working, response)
+            if streak >= TOOL_REPEAT_LIMIT:
+                return self._close_tool_loop(working)
+        return self._close_tool_loop(working)
+
+    def _run_tool_loop_events(
+        self, working: list[Message], tools: list[Any]
+    ) -> Iterator[dict[str, object]]:
+        streak = 0
+        last_names: tuple[str, ...] | None = None
+        for _ in range(self.max_tool_iters):
+            response = self._provider_complete(working, tools)
+            if not response.wants_tools:
+                return response
+            names = tuple(call.name for call in response.tool_calls)
+            streak = streak + 1 if names == last_names else 1
+            last_names = names
+            self._apply_tool_calls(working, response)
+            for call in response.tool_calls:
+                yield self._status_event_for_tool(call)
+            if streak >= TOOL_REPEAT_LIMIT:
+                return self._close_tool_loop(working)
+        return self._close_tool_loop(working)
 
     @staticmethod
     def _status_event_for_tool(call: object) -> dict[str, object]:

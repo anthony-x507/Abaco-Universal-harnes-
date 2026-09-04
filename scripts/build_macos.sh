@@ -85,7 +85,7 @@ path = Path("Universal.app/Contents/Info.plist")
 if path.is_file():
     data = plistlib.loads(path.read_bytes())
     data["NSMicrophoneUsageDescription"] = (
-        "Universal records voice notes in Chat so they can be transcribed and sent."
+        "Universal needs the microphone to record voice notes and transcribe them with Whisper."
     )
     data["NSCameraUsageDescription"] = (
         "Universal can attach a photo from the camera roll when you pick a file."

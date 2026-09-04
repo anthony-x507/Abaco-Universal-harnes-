@@ -94,7 +94,14 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "agent_runtime:agent_runtime" in build
     assert "download_node.sh" in build
     assert "sign_macos.sh" in build
+    assert "NSMicrophoneUsageDescription" in build
     assert "--hidden-import=whisper" not in build
+    entitlements = (ROOT / "entitlements.plist").read_text(encoding="utf-8")
+    assert "com.apple.security.device.audio-input" in entitlements
+    signer = (ROOT / "scripts" / "sign_macos.sh").read_text(encoding="utf-8")
+    assert "--entitlements" in signer
+    assert 'codesign --force --deep --entitlements "$ENTITLEMENTS" --sign -' in signer
+    assert "leaving $APP unsigned" not in signer
     assert "hdiutil" in dmg
     assert "from universal.desktop import main" in app_entry
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")

@@ -149,3 +149,6 @@ def test_ajuste6_prompts_are_the_polished_copy() -> None:
     assert "do not guess" in general.lower() or "do not guess" in general
     assert "utc_now" in researcher
     assert "step by step" in coder.lower()
+    assert "do not call the same tool again" in general.lower()
+    assert "do not call the same tool again" in researcher.lower()
+    assert "do not call the same tool again" in coder.lower()

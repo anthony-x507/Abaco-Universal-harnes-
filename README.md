@@ -265,9 +265,9 @@ The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15%
 
 The signed factory stays on **43124**. A Node process on **43126** holds the evolvable loop and user plugins under Application Support (`~/Library/Application Support/Universal/agent_runtime` on a Mac). First launch copies the seed; later launches do not overwrite plugins you already changed.
 
-Sensitive writes go through `POST /v1/runtime/evolve` and `POST /v1/permission/ask`. On macOS that is a native dialog. Node cannot write plugin files itself — it only proposes. `POST /v1/llm/complete` is the localhost bridge so Node uses the one Python provider (not a second Chat Completions API). Chat `ask` still goes through `Agent.accept`. Auto/`run` uses Node when that process is healthy, otherwise the Python loop.
+Sensitive writes go through `POST /v1/runtime/evolve` and `POST /v1/permission/ask`. On macOS that is a native dialog. Node cannot write plugin files itself — it only proposes. `POST /v1/llm/complete` is the localhost bridge so Node uses the one Python provider (not a second Chat Completions API). Chat `ask` still goes through `Agent.accept`. Auto/`run` always uses the Python tool loop. Node stays on `/v1/runtime/*`.
 
-Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips starting Node. `scripts/sign_macos.sh` signs the `.app` when `APPLE_SIGNING_IDENTITY` is set; it does not invent a second installer.
+Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips starting Node. `scripts/sign_macos.sh` always signs `Universal.app` with `entitlements.plist` (microphone). A Developer ID is used when `APPLE_SIGNING_IDENTITY` is set; otherwise the bundle is ad-hoc signed so it can appear in Privacy → Microphone. An unsigned `.app` never appears in that list.
 
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 

@@ -51,11 +51,20 @@ function toolDefinitions() {
     .filter(Boolean)
 }
 
+const MAX_ITERATIONS = 10
+const REPEAT_LIMIT = 3
+const LIMIT_MESSAGE =
+  'The agent could not finish this task within the tool-call limit. Try a simpler question.'
+const REPEAT_NUDGE =
+  'You already called this tool repeatedly. Give a final answer now from the tool results you have. Do not call tools again.'
+
 async function runAgentLoop(prompt, history) {
   const messages = [...(history || []), { role: 'user', content: prompt }]
   const tools = toolDefinitions()
   let response = ''
-  for (let iteration = 0; iteration < 5; iteration += 1) {
+  let lastNames = ''
+  let streak = 0
+  for (let iteration = 0; iteration < MAX_ITERATIONS; iteration += 1) {
     const llm = await callLlm(messages, tools)
     const calls = llm.tool_calls || []
     if (!calls.length) {
@@ -96,8 +105,17 @@ async function runAgentLoop(prompt, history) {
       }
       messages.push({ role: 'tool', tool_call_id: call.id || call.name, content })
     }
+    const names = calls.map((call) => call.name || '').join(',')
+    streak = names && names === lastNames ? streak + 1 : 1
+    lastNames = names
+    if (streak >= REPEAT_LIMIT) {
+      messages.push({ role: 'user', content: REPEAT_NUDGE })
+      const finalLlm = await callLlm(messages, [])
+      response = (finalLlm && finalLlm.content) || LIMIT_MESSAGE
+      break
+    }
   }
-  return response || 'Reached the tool-loop limit without a final answer.'
+  return response || LIMIT_MESSAGE
 }
 
 app.get('/health', (_req, res) => {

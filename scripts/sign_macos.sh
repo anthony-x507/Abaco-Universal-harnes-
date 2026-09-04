@@ -1,21 +1,31 @@
 #!/usr/bin/env bash
-# Sign Universal.app when APPLE_SIGNING_IDENTITY is set. No-op otherwise.
+# Sign Universal.app with microphone entitlements.
+# A Developer ID is used when APPLE_SIGNING_IDENTITY is set.
+# Otherwise the bundle is ad-hoc signed so macOS still lists it under
+# Privacy & Security → Microphone (an unsigned .app never appears there).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="${1:-$ROOT/Universal.app}"
-
-if [[ -z "${APPLE_SIGNING_IDENTITY:-}" ]]; then
-  echo "APPLE_SIGNING_IDENTITY unset — leaving $APP unsigned."
-  exit 0
-fi
+ENTITLEMENTS="$ROOT/entitlements.plist"
 
 if [[ ! -d "$APP" ]]; then
   echo "App bundle missing: $APP" >&2
   exit 2
 fi
 
-ENTITLEMENTS="$ROOT/entitlements.plist"
+if [[ ! -f "$ENTITLEMENTS" ]]; then
+  echo "entitlements.plist missing: $ENTITLEMENTS" >&2
+  exit 2
+fi
+
+if [[ -z "${APPLE_SIGNING_IDENTITY:-}" ]]; then
+  echo "APPLE_SIGNING_IDENTITY unset — ad-hoc signing $APP with microphone entitlement."
+  codesign --force --deep --entitlements "$ENTITLEMENTS" --sign - "$APP"
+  echo "Ad-hoc signed $APP. After first launch it should appear in Privacy → Microphone."
+  exit 0
+fi
+
 codesign --force --deep --timestamp --options runtime \
   --entitlements "$ENTITLEMENTS" \
   --sign "$APPLE_SIGNING_IDENTITY" \
