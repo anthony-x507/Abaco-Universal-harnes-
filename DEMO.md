@@ -131,13 +131,13 @@ Expect: `manifest.json`, `config.json`, `system_prompt.txt`, `README.txt`, `usag
 
 ## Step 7 — Restart and see the snapshot
 
-Serve writes identities to `.universal/registry.json` (no history, no secrets). Stop the server (`Ctrl+C`) and start it again with the same command as step 1.
+Serve writes identities to user-data `registry.json` (history and API keys are separate files). Stop the server (`Ctrl+C`) and start it again with the same command as step 1.
 
 ```bash
 curl -sS http://127.0.0.1:43124/v1/agents
 ```
 
-`demo-researcher` and `demo-hook` are back. `state` is `stopped`. `history` is empty. Press **Start** in the SPA (or `POST .../start`). Memory facts, if any, reload by **name** from `memory.json`.
+`demo-researcher` and `demo-hook` are back. `state` is `stopped`. Chat history reloads from user data. Press **Start** in the SPA (or `POST .../start`). Memory facts, if any, reload by **name** from `memory.json`.
 
 ---
 
@@ -153,4 +153,4 @@ curl -sS http://127.0.0.1:43124/v1/agents
 | 6 | Secret-free ZIP |
 | 7 | Identity snapshot, no auto-start |
 
-Live key: drop `--demo`, set `UNIVERSAL_LLM_*` or paste a key in Settings (new agents only). Full reference: [README.md](README.md).
+Live key: drop `--demo`, set `UNIVERSAL_LLM_*` or paste a key in Settings or in the agent's Settings tab. Saving rebinds agents that still share the process client. Full reference: [README.md](README.md).

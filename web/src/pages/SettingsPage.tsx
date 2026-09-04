@@ -103,7 +103,7 @@ export function SettingsPage() {
       setApiKey('')
       setChannels(saved.channels.length > 0 ? saved.channels : ['cli'])
       setComing(saved.channels_coming)
-      setMessage('Settings updated in this server process. They are not written to disk.')
+      setMessage('Settings saved. Existing agents that share this client now use the new key.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed.')
     } finally {
@@ -117,8 +117,10 @@ export function SettingsPage() {
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-sm text-muted">
-          These settings will be used for new agents. Existing agents keep their current configuration.
-          Leave the API key blank to keep the current secret. Nothing is written to disk.
+          Default model and API key for this Mac. Saving applies the key to agents that still use the
+          shared client — you can also save a key inside each agent. Leave the field blank to keep the
+          current secret. The key stays in your user data (not in a ZIP or the registry) and survives
+          app updates.
         </p>
       </div>
 

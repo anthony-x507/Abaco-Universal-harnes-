@@ -28,19 +28,27 @@ def resolve_registry_file(explicit: str | Path | None = None) -> Path | None:
 
 
 def default_serve_registry_file() -> Path | None:
-    """Serve default: ``.universal/registry.json`` unless the env overrides it.
+    """Serve/desktop default: user-data ``registry.json`` unless the env overrides it.
 
     An empty ``UNIVERSAL_REGISTRY_FILE`` disables the sidecar (in-memory only).
+    A leftover ``.universal/registry.json`` in the process cwd is copied once
+    so a git update of the checkout does not drop identities.
     """
     raw = os.environ.get(ENV_REGISTRY_FILE)
     if raw is not None:
         return Path(raw.strip()) if raw.strip() else None
-    from universal.paths import get_registry_file, is_packaged
-    from universal.paths import ENV_USER_DATA
+    from universal.paths import get_registry_file
 
-    if is_packaged() or os.environ.get(ENV_USER_DATA, "").strip():
-        return get_registry_file()
-    return Path.cwd() / ".universal" / "registry.json"
+    target = get_registry_file()
+    if not target.is_file():
+        legacy = Path.cwd() / ".universal" / "registry.json"
+        if legacy.is_file():
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(legacy.read_text(encoding="utf-8"), encoding="utf-8")
+            except OSError:
+                return legacy
+    return target
 
 
 class AgentRegistry:

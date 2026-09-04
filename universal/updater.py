@@ -87,7 +87,10 @@ class UpdateStatus:
 
 
 class Updater:
-    """Talks to the GitHub Releases API. No API key. No secrets on disk."""
+    """Talks to the GitHub Releases API. Replaces Universal.app only.
+
+    User-data (history, registry, ``llm.json``) stays in Application Support.
+    """
 
     def __init__(self, *, repo: str | None = None, client: httpx.Client | None = None) -> None:
         release = load_release()

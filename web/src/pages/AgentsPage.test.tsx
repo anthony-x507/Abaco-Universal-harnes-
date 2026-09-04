@@ -85,12 +85,18 @@ describe('Agents page quality tests', () => {
     await user.click(await screen.findByRole('button', { name: 'Edit' }))
     expect(screen.getByRole('heading', { name: /Edit/ })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Face 🦊' }))
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByLabelText('API key')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('API key'), 'xai-from-agent')
     await user.click(screen.getByRole('button', { name: 'Instructions' }))
     await user.clear(screen.getByLabelText('system_prompt.md'))
     await user.type(screen.getByLabelText('system_prompt.md'), 'Stay brief.')
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await vi.waitFor(() => {
-      expect(calls.some((call) => call.path === `/v1/agents/${agentFixture.id}` && call.init?.method === 'PATCH')).toBe(true)
+      const patch = calls.find((call) => call.path === `/v1/agents/${agentFixture.id}` && call.init?.method === 'PATCH')
+      expect(patch).toBeTruthy()
+      const body = JSON.parse(String(patch?.init?.body ?? '{}')) as { llm_api_key?: string }
+      expect(body.llm_api_key).toBe('xai-from-agent')
     })
   })
 

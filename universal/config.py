@@ -23,7 +23,8 @@ class Settings:
     """OpenAI-compatible HTTP client settings.
 
     Construct with ``Settings.from_env()`` for live use, or pass values
-    directly in tests. The API key is never written to disk by the packager.
+    directly in tests. The live key may live in user-data ``llm.json``
+    (mode 0600). The packager never copies that file into a ZIP.
     """
 
     llm_base_url: str = DEFAULT_BASE_URL
@@ -39,12 +40,22 @@ class Settings:
             timeout = float(timeout_raw) if timeout_raw else DEFAULT_TIMEOUT
         except ValueError as exc:
             raise ConfigError(f"{ENV_TIMEOUT} must be a number, got {timeout_raw!r}") from exc
+        from universal.llm_store import load_llm_settings
+
+        persisted = load_llm_settings()
+        env_url = os.environ.get(ENV_BASE_URL, "").strip()
+        env_key = os.environ.get(ENV_API_KEY, "").strip()
+        env_model = os.environ.get(ENV_MODEL, "").strip()
+        env_org = os.environ.get(ENV_ORGANIZATION, "").strip()
+        persisted_timeout = persisted.get("llm_timeout")
+        if not timeout_raw and isinstance(persisted_timeout, (int, float)):
+            timeout = float(persisted_timeout)
         return cls(
-            llm_base_url=os.environ.get(ENV_BASE_URL, DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL,
-            llm_api_key=os.environ.get(ENV_API_KEY, "").strip(),
-            llm_model=os.environ.get(ENV_MODEL, DEFAULT_MODEL).strip() or DEFAULT_MODEL,
+            llm_base_url=env_url or str(persisted.get("llm_base_url") or "").strip() or DEFAULT_BASE_URL,
+            llm_api_key=env_key or str(persisted.get("llm_api_key") or "").strip(),
+            llm_model=env_model or str(persisted.get("llm_model") or "").strip() or DEFAULT_MODEL,
             llm_timeout=timeout,
-            llm_organization=os.environ.get(ENV_ORGANIZATION, "").strip(),
+            llm_organization=env_org or str(persisted.get("llm_organization") or "").strip(),
         )
 
     def with_updates(

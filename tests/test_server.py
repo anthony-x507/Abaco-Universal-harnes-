@@ -98,7 +98,9 @@ def test_unknown_channel_is_404(platform: Universal) -> None:
     assert "telegram" in response.json()["error"]
 
 
-def test_settings_update_stays_in_memory(platform: Universal) -> None:
+def test_settings_update_persists_under_user_data(platform: Universal) -> None:
+    from universal.llm_store import settings_file
+
     client = _client(platform)
     before = client.get("/v1/settings").json()
     assert before["llm_api_key"] == "***"
@@ -109,6 +111,9 @@ def test_settings_update_stays_in_memory(platform: Universal) -> None:
     assert updated.status_code == 200
     assert updated.json()["llm_model"] == "gpt-test"
     assert platform.settings.llm_model == "gpt-test"
+    stored = settings_file().read_text(encoding="utf-8")
+    assert "gpt-test" in stored
+    assert "test-key" in stored
 
 
 def test_no_chat_completions_clone(platform: Universal) -> None:

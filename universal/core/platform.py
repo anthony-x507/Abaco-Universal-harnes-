@@ -49,10 +49,15 @@ class Universal:
         self._restore_identities()
 
     def replace_settings(self, settings: Settings) -> None:
-        """Update in-memory settings on this root. Does not write a file."""
+        """Persist settings and rebind agents that still use the process client."""
+        from universal.llm_store import save_llm_settings
+
+        old = None if self.factory.generator._provider_injected else self.factory.generator._provider
         self.settings = settings
         self.factory.settings = settings
         self.factory.generator.replace_settings(settings)
+        save_llm_settings(settings)
+        self.factory.rebind_live_clients(old)
 
     def provider(self) -> Provider:
         """The single provider instance shared by agents this root creates."""
@@ -75,6 +80,7 @@ class Universal:
                     memory = record.get("memory")
                     stored_prompt = record.get("system_prompt")
                     stored_model = record.get("llm_model")
+                    stored_provider = record.get("llm_provider")
                     agent = self.factory.create(
                         template_id,
                         str(record.get("name") or "") or None,
@@ -86,7 +92,16 @@ class Universal:
                         emoji=str(record.get("emoji") or "") or None,
                         system_prompt=str(stored_prompt) if isinstance(stored_prompt, str) else None,
                         llm_model=str(stored_model) if isinstance(stored_model, str) else None,
+                        llm_provider=str(stored_provider) if isinstance(stored_provider, str) else None,
                     )
+                    from universal.llm_store import load_agent_api_key
+
+                    if load_agent_api_key(agent.id) or agent.llm_provider:
+                        self.factory.bind_model(
+                            agent,
+                            llm_model=agent.llm_model or None,
+                            preset_name=agent.llm_provider or None,
+                        )
                     if str(record.get("state") or "") == "error":
                         self.lifecycle.mark_error(agent.id, "restored in error state")
                     else:

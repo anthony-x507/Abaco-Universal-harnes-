@@ -61,8 +61,10 @@ class AgentManager:
         agent = self.registry.remove(agent_id)
         self.lifecycle.forget(agent_id)
         agent.discard_persisted_history()
+        from universal.llm_store import discard_agent_api_key
         from universal.situation import discard_situation
 
+        discard_agent_api_key(agent.id)
         discard_situation(agent.id)
         return agent
 

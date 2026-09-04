@@ -32,6 +32,8 @@ export type Agent = {
   emoji?: string
   system_prompt?: string
   situation?: Situation
+  has_api_key?: boolean
+  llm_provider?: string
 }
 
 export type Situation = {
@@ -262,6 +264,7 @@ export async function updateAgent(
     system_prompt?: string
     provider?: string
     llm_model?: string
+    llm_api_key?: string
   },
 ): Promise<Agent> {
   return request(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) })

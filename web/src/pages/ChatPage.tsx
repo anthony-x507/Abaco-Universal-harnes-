@@ -395,10 +395,15 @@ export function ChatPage() {
     const key = composerKey.trim()
     if (!key) return
     try {
+      if (selectedId) {
+        const next = await updateAgent(selectedId, { llm_api_key: key })
+        setAgents((current) => current.map((row) => (row.id === next.id ? { ...row, ...next } : row)))
+        setHasApiKey(Boolean(next.has_api_key) || Boolean(key))
+      }
       const saved = await updateSettings({ llm_api_key: key })
-      setHasApiKey(Boolean(saved.llm_api_key))
+      setHasApiKey(Boolean(saved.llm_api_key) || Boolean(key))
       setComposerKey('')
-      showToast('API key saved for this process')
+      showToast('API key saved')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the API key.')
     }

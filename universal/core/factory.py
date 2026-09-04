@@ -72,6 +72,7 @@ class AgentFactory:
         emoji: str | None = None,
         system_prompt: str | None = None,
         llm_model: str | None = None,
+        llm_provider: str | None = None,
     ) -> Agent:
         return self.generator.generate(
             template_id,
@@ -85,6 +86,7 @@ class AgentFactory:
             emoji=emoji,
             system_prompt=system_prompt,
             llm_model=llm_model,
+            llm_provider=llm_provider,
         )
 
     def update(
@@ -98,6 +100,7 @@ class AgentFactory:
         outbound_url: str | None = None,
         llm_model: str | None = None,
         provider_name: str | None = None,
+        llm_api_key: str | None = None,
     ) -> Agent:
         from universal.core.faces import pick_face
 
@@ -122,8 +125,17 @@ class AgentFactory:
                 transport.agent_id = agent.id
             agent.channel = transport
             agent.bind_channel()
-        if llm_model is not None or provider_name is not None:
-            self.bind_model(agent, llm_model=llm_model, preset_name=provider_name)
+        if llm_api_key is not None and llm_api_key.strip():
+            from universal.llm_store import save_agent_api_key
+
+            save_agent_api_key(agent.id, llm_api_key)
+        if llm_model is not None or provider_name is not None or llm_api_key is not None:
+            self.bind_model(
+                agent,
+                llm_model=llm_model,
+                preset_name=provider_name,
+                api_key=llm_api_key,
+            )
         self.registry.save()
         return agent
 
@@ -133,9 +145,11 @@ class AgentFactory:
         *,
         llm_model: str | None = None,
         preset_name: str | None = None,
+        api_key: str | None = None,
     ) -> None:
-        """Set this agent's model. Other agents keep the shared provider."""
+        """Set this agent's model and live client. Other agents keep the shared provider."""
         from universal.exceptions import ConfigError
+        from universal.llm_store import load_agent_api_key
         from universal.providers.catalog import get_provider, is_local_base_url
         from universal.providers.openai_compat import OpenAICompatProvider
 
@@ -147,26 +161,60 @@ class AgentFactory:
                 raise ConfigError(f"Unknown model preset {preset_name!r}")
             model = model or str(preset.default_model or "")
             base_url = str(preset.base_url or "").strip()
+            agent.llm_provider = preset_name
         if model:
             agent.llm_model = model
+        if self.generator._provider_injected:
+            return
+        secret = (api_key or "").strip() or load_agent_api_key(agent.id)
         shared = self.generator.provider()
-        if not base_url or not hasattr(shared, "base_url"):
-            return
+        process_key = self.settings.llm_api_key or str(getattr(shared, "_api_key", "") or "")
+        key = secret or process_key
+        target_url = (
+            base_url.rstrip("/")
+            if base_url
+            else str(getattr(agent.provider, "base_url", "") or getattr(shared, "base_url", "") or "").rstrip("/")
+        )
         shared_url = str(getattr(shared, "base_url", "") or "").rstrip("/")
-        if base_url.rstrip("/") == shared_url:
+        use_shared = (not secret) and (not target_url or target_url == shared_url)
+        if use_shared:
+            agent.provider = shared
             return
-        api_key = self.settings.llm_api_key or str(getattr(shared, "_api_key", "") or "")
-        if not api_key and is_local_base_url(base_url):
-            api_key = "local"
-        if not api_key:
+        if not key and is_local_base_url(target_url or shared_url):
+            key = "local"
+        if not key:
+            return
+        url = target_url or shared_url
+        if not url:
             return
         agent.provider = OpenAICompatProvider(
-            base_url=base_url,
-            api_key=api_key,
+            base_url=url,
+            api_key=key,
             model=model or str(getattr(shared, "model", "") or "gpt-4o-mini"),
             timeout=self.settings.llm_timeout,
             organization=self.settings.llm_organization,
         )
+
+    def rebind_live_clients(self, old_shared: Provider | None) -> None:
+        """Point existing agents at the rebuilt process client, or their own key."""
+        if self.generator._provider_injected:
+            return
+        new_shared = self.generator.provider()
+        from universal.llm_store import load_agent_api_key
+
+        for agent in self.registry.all():
+            secret = load_agent_api_key(agent.id)
+            if secret or agent.llm_provider:
+                self.bind_model(
+                    agent,
+                    llm_model=agent.llm_model or None,
+                    preset_name=agent.llm_provider or None,
+                )
+                continue
+            if old_shared is not None and agent.provider is old_shared:
+                agent.provider = new_shared
+                continue
+            self.bind_model(agent, llm_model=agent.llm_model or None)
 
     def start(self, agent_id: str) -> Agent:
         return self.manager.start(agent_id)

@@ -29,6 +29,8 @@ export function AgentEditDialog({
   const [channels, setChannels] = useState<string[]>([agent.channel || 'cli'])
   const [coming, setComing] = useState<string[]>([])
   const [provider, setProvider] = useState('')
+  const [apiKey, setApiKey] = useState('')
+  const [hasKey, setHasKey] = useState(Boolean(agent.has_api_key))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const { models } = useModels()
@@ -41,6 +43,7 @@ export function AgentEditDialog({
         if (cancelled) return
         setChannels(settings.channels.length > 0 ? settings.channels : [agent.channel || 'cli'])
         setComing(settings.channels_coming)
+        setHasKey(Boolean(agent.has_api_key) || Boolean(settings.llm_api_key))
       } catch {
         if (!cancelled) setChannels([agent.channel || 'cli'])
       }
@@ -67,7 +70,10 @@ export function AgentEditDialog({
         outbound_url: channel === 'webhook' ? outboundUrl.trim() : '',
         system_prompt: instructions,
         provider: provider || undefined,
+        llm_api_key: apiKey.trim() || undefined,
       })
+      setHasKey(Boolean(next.has_api_key) || hasKey || Boolean(apiKey.trim()))
+      setApiKey('')
       onSaved(next)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save this agent.')
@@ -162,6 +168,17 @@ export function AgentEditDialog({
                 models={models}
                 currentModel={agent.model}
               />
+              <div>
+                <Label htmlFor="edit-agent-key">API key</Label>
+                <Input
+                  id="edit-agent-key"
+                  type="password"
+                  autoComplete="off"
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder={hasKey ? '••••••••  leave blank to keep' : 'Save a key for this agent'}
+                />
+              </div>
               {channel === 'webhook' && (
                 <div>
                   <Label htmlFor="edit-agent-outbound">Outbound URL</Label>
@@ -173,7 +190,9 @@ export function AgentEditDialog({
                   />
                 </div>
               )}
-              <p className="text-[11px] text-muted">The API key stays in Settings. This model is only for this agent.</p>
+              <p className="text-[11px] text-muted">
+                Save the model and API key on this agent. The secret stays in your user data, not in a ZIP.
+              </p>
             </div>
           )}
           {tab === 'instructions' && (

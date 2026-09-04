@@ -83,6 +83,7 @@ class AgentGenerator:
         emoji: str | None = None,
         system_prompt: str | None = None,
         llm_model: str | None = None,
+        llm_provider: str | None = None,
     ) -> Agent:
         from universal.core.faces import face_for, pick_face
 
@@ -106,6 +107,7 @@ class AgentGenerator:
             agent_id=agent_id,
             emoji=chosen_face,
             llm_model=llm_model or "",
+            llm_provider=llm_provider or "",
         )
         if hasattr(transport, "agent_id"):
             transport.agent_id = agent.id

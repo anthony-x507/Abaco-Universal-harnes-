@@ -32,7 +32,7 @@ Do **not** cover: a second registry, SQLite, history persistence, `/v1/chat/comp
 | T03 | Provider sees one system message = `template.system_prompt` | same |
 | T04 | Two agents keep separate histories | same |
 | T05 | `reset_history` clears only that agent | same |
-| T09 | `PUT /v1/settings` changes the provider for **new** agents only | same |
+| T09 | `PUT /v1/settings` rebinds agents that still share the process client | same |
 
 ## Concurrency and HTTP
 

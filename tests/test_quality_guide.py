@@ -1,7 +1,7 @@
 """Quality-gate tests from docs/testing_guide.md (notes/59.md).
 
 No live LLM. Each test gets a fresh Universal via the platform fixture
-unless it builds its own root on purpose (T09).
+unless it builds its own root on purpose (T09 shared-client rebind).
 """
 
 from __future__ import annotations
@@ -176,7 +176,7 @@ def test_t08_stream_provider_error_emits_sse_error(platform: Universal) -> None:
     assert "error" in body
 
 
-def test_t09_settings_change_applies_to_new_agents_only() -> None:
+def test_t09_settings_change_rebinds_shared_clients() -> None:
     settings = Settings(
         llm_base_url="https://old.example.test/v1",
         llm_api_key="test-key",
@@ -189,9 +189,9 @@ def test_t09_settings_change_applies_to_new_agents_only() -> None:
     updated = client.put("/v1/settings", json={"llm_base_url": "https://new.example.test/v1"})
     assert updated.status_code == 200
     second = root.factory.create("general", name="new-url")
-    assert first.provider.base_url == "https://old.example.test/v1"
+    assert first.provider.base_url == "https://new.example.test/v1"
     assert second.provider.base_url == "https://new.example.test/v1"
-    assert first.provider is not second.provider
+    assert first.provider is second.provider
 
 
 def test_t11_ask_without_prior_start_auto_starts(platform: Universal) -> None:

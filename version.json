@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Gold-close wiring: in-process event log, provider circuit breaker, visible improvement (accept/reject). No Redis, no mother template, no quantum. Mission shows proof, improvement, and wiring. Audit still seals VERIFIED."
+  "release_notes": "Persist Grok/OpenAI API keys and chat history in user data. Saving Settings rebinds existing agents. Agent settings can store a key. GitHub updates replace the app only."
 }

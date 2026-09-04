@@ -61,6 +61,7 @@ class Agent:
         max_history_turns: int = DEFAULT_HISTORY_TURNS,
         emoji: str = "",
         llm_model: str = "",
+        llm_provider: str = "",
     ) -> None:
         self.id = agent_id or new_agent_id()
         self.name = name
@@ -68,6 +69,7 @@ class Agent:
         self.emoji = emoji
         self.system_prompt = system_prompt
         self.llm_model = (llm_model or "").strip()
+        self.llm_provider = (llm_provider or "").strip()
         self.provider = provider
         self.channel = channel
         self.plugins = PluginHost()
@@ -240,6 +242,7 @@ class Agent:
             "emoji": self.emoji,
             "system_prompt": self.system_prompt,
             "llm_model": self.llm_model,
+            "llm_provider": self.llm_provider,
         }
 
     @contextmanager

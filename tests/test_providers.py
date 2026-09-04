@@ -80,16 +80,18 @@ def test_http_models_lists_presets(platform: Universal) -> None:
     assert client.post("/v1/chat/completions", json={}).status_code == 404
 
 
-def test_create_applies_preset_to_new_settings(platform: Universal) -> None:
+def test_create_keeps_process_settings(platform: Universal) -> None:
+    before_url = platform.settings.llm_base_url
+    before_model = platform.settings.llm_model
     client = TestClient(create_app(platform, demo=True))
     created = client.post(
         "/v1/agents",
         json={"template": "general", "name": "groq-face", "provider": "Groq (Compound)"},
     )
     assert created.status_code == 200
-    assert platform.settings.llm_base_url == "https://api.groq.com/openai/v1"
-    assert platform.settings.llm_model == "groq/compound"
-    assert created.json()["model"]  # demo echo still injected
+    assert created.json()["model"] == "groq/compound"
+    assert platform.settings.llm_base_url == before_url
+    assert platform.settings.llm_model == before_model
 
 
 def test_unknown_preset_is_400(platform: Universal) -> None:

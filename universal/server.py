@@ -72,6 +72,7 @@ class UpdateAgentBody(BaseModel):
     system_prompt: str | None = None
     provider: str | None = None
     llm_model: str | None = None
+    llm_api_key: str | None = None
 
 
 class AttachmentBody(BaseModel):
@@ -169,6 +170,14 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     from universal.situation import Situation
 
     payload["situation"] = Situation.load(agent.id, agent_name=agent.name).to_dict()
+    from universal.llm_store import load_agent_api_key
+
+    payload["has_api_key"] = bool(
+        load_agent_api_key(agent.id)
+        or platform.settings.llm_api_key
+        or str(getattr(agent.provider, "_api_key", "") or "")
+    )
+    payload["llm_provider"] = agent.llm_provider
     if not payload.get("emoji"):
         from universal.core.faces import face_for
 
@@ -194,7 +203,9 @@ def _settings_payload(state: ServerState) -> dict[str, Any]:
 
 def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     """Build the FastAPI app around an already-constructed Universal root."""
-    state = ServerState(platform=platform, demo=demo)
+    from universal.llm_store import load_persisted_channel
+
+    state = ServerState(platform=platform, demo=demo, default_channel=load_persisted_channel())
     from universal.teams import set_delegate_hook
 
     def _delegate(agent_id: str, prompt: str) -> str:
@@ -315,6 +326,9 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
                 llm_model=body.llm_model,
             )
             state.platform.replace_settings(updated)
+        from universal.llm_store import save_llm_settings
+
+        save_llm_settings(state.platform.settings, default_channel=state.default_channel)
         return _settings_payload(state)
 
     @app.get("/v1/agents")
@@ -324,18 +338,6 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
                 _agent_payload(state.platform, info.id) for info in state.platform.factory.list()
             ]
         }
-
-    def _apply_provider_preset(name: str) -> None:
-        preset = get_provider(name)
-        if preset is None:
-            raise ConfigError(f"Unknown model preset {name!r}")
-        updates: dict[str, str] = {}
-        if preset.base_url:
-            updates["llm_base_url"] = preset.base_url
-        if preset.default_model:
-            updates["llm_model"] = preset.default_model
-        if updates:
-            state.platform.replace_settings(state.platform.settings.with_updates(**updates))
 
     @app.post("/v1/transcribe")
     def transcribe_audio(body: TranscribeBody) -> dict[str, Any]:
@@ -383,12 +385,12 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
     @app.post("/v1/agents")
     def create_agent(body: CreateAgentBody) -> dict[str, Any]:
-        if body.provider:
-            _apply_provider_preset(body.provider)
         channel = body.channel or state.default_channel
         llm_model = body.llm_model
         if body.provider:
             preset = get_provider(body.provider)
+            if preset is None:
+                raise ConfigError(f"Unknown model preset {body.provider!r}")
             if preset and not llm_model:
                 llm_model = preset.default_model
         agent = state.platform.factory.create(
@@ -398,7 +400,15 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             outbound_url=body.outbound_url,
             emoji=body.emoji,
             llm_model=llm_model,
+            llm_provider=body.provider,
         )
+        if body.provider or llm_model:
+            state.platform.factory.bind_model(
+                agent,
+                llm_model=llm_model,
+                preset_name=body.provider,
+            )
+            state.platform.registry.save()
         return _agent_payload(state.platform, agent.id)
 
     @app.get("/v1/agents/{agent_id}")
@@ -416,6 +426,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             outbound_url=body.outbound_url,
             llm_model=body.llm_model,
             provider_name=body.provider,
+            llm_api_key=body.llm_api_key,
         )
         return _agent_payload(state.platform, agent_id)
 

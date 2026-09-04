@@ -115,7 +115,7 @@ The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspa
 |---|---|
 | Send (Auto off) | `POST /v1/agents/{id}/ask` with SSE |
 | **Auto** (toggle, default off) | `POST /v1/agents/{id}/run` — Python tool loop (native plugins). Node stays on `/v1/runtime/*`. |
-| Models + API key | On the write bar. `PATCH /v1/agents/{id}` for the model; `PUT /v1/settings` for the key (process only) |
+| Models + API key | On the write bar, in Settings, and in each agent's Settings tab. `PATCH /v1/agents/{id}` can store a per-agent key; `PUT /v1/settings` is the shared default. Both persist under user data. |
 | Clear history | `POST /v1/agents/{id}/reset` — also clears the on-disk transcript |
 | Download ZIP | `POST /v1/agents/{id}/deploy` |
 | Plugin line | Readable labels such as `Terminal: run_command`, `Navigator: set_objective…`, `Tools: utc_now` |
@@ -124,7 +124,7 @@ The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspa
 | Notices | Banner on Chat from `GET /v1/notifications`; dismiss is `POST /v1/notifications/{id}/ack` |
 | Harness audit (Settings) | `GET /v1/audit` / `POST /v1/audit/run` — last sealed HMAC verdict |
 
-`--demo` injects an echo provider. Settings update the running process only; they are never written to disk. The API key is never packed into a ZIP.
+`--demo` injects an echo provider. Live Settings (model + API key) persist under user data (`llm.json`, mode 0600) and rebind agents that still share the process client. The API key is never packed into a ZIP or the registry sidecar.
 
 More SPA notes: [web/README.md](web/README.md).
 
@@ -174,9 +174,9 @@ In Chat, leave Auto off for `/ask`. Turn Auto on for `/run`. Demo echo issues `u
 
 ## Registry snapshot
 
-`universal serve` writes agent **identities** to `.universal/registry.json` (or `UNIVERSAL_REGISTRY_FILE`). Same in-memory `AgentRegistry`. No history, no API keys, no auto-start.
+`universal serve` and the Mac app write agent **identities** to user-data `registry.json` (Application Support on a Mac, or `UNIVERSAL_REGISTRY_FILE`). Same in-memory `AgentRegistry`. Chat history lives in `history/{id}.json`. API keys live in `llm.json` / `agent_secrets.json`. A leftover `.universal/registry.json` in the repo cwd is copied once into user data so a git update does not drop agents. No auto-start.
 
-After a restart, Agents lists the same names as `stopped` (or `error`). Press **Start**. CLI one-shots do not write this file unless the env is set. An empty `UNIVERSAL_REGISTRY_FILE` keeps serve in memory only.
+After a restart or a GitHub app update, Agents lists the same names as `stopped` (or `error`) and Chat reloads the transcript. Press **Start**. CLI one-shots do not write this file unless the env is set. An empty `UNIVERSAL_REGISTRY_FILE` keeps serve in memory only.
 
 ## Usage meter
 
@@ -243,7 +243,7 @@ Filesystem plugin discovery is deferred (it would load code the factory did not 
 
 `manifest.json` · `config.json` · `system_prompt.txt` · `README.txt` · `usage.json`
 
-API keys are never written. GitHub deploy is a stub: it raises and writes nothing.
+API keys are never written into the ZIP. GitHub deploy is a stub: it raises and writes nothing.
 
 ```bash
 python3 -m universal deploy researcher --name boxed --out ./boxed.zip
@@ -339,7 +339,7 @@ platform = Universal(settings, provider=my_fake_provider)
 | `UNIVERSAL_LLM_MODEL` | yes | `gpt-4o-mini` |
 | `UNIVERSAL_LLM_TIMEOUT` | no | `60` |
 | `UNIVERSAL_LLM_ORGANIZATION` | no | empty |
-| `UNIVERSAL_REGISTRY_FILE` | no | serve: `.universal/registry.json`; empty disables |
+| `UNIVERSAL_REGISTRY_FILE` | no | serve/desktop: user-data `registry.json`; empty disables |
 | `UNIVERSAL_MEMORY_DIR` | no | temp folder / `universal-memory` |
 | `UNIVERSAL_WEB_DIST` | no | `web/dist` (or the PyInstaller extract dir) |
 | `UNIVERSAL_TERMINAL_DIR` | no | process cwd for `run_command` |

@@ -1,8 +1,10 @@
 """User-data locations that survive replacing Universal.app.
 
 Native plugin *code* stays in the Python package (not copied here).
-This directory holds memory, the registry sidecar, chat history, and a plugin manifest.
-Secrets are never written. Chat history is stored under ``history/`` by agent id.
+This directory holds memory, the registry sidecar, chat history, a plugin
+manifest, and LLM secrets (``llm.json``, ``agent_secrets.json``, mode 0600).
+Those secrets are never copied into the registry sidecar or a ZIP.
+Chat history is stored under ``history/`` by agent id.
 """
 
 from __future__ import annotations
@@ -69,7 +71,7 @@ def get_memory_dir() -> Path:
 
 
 def get_registry_file() -> Path:
-    """Default sidecar when serve/desktop persist and the env is unset."""
+    """Identities only. Survives replacing Universal.app and a git pull of the repo."""
     return user_data_dir() / "registry.json"
 
 
