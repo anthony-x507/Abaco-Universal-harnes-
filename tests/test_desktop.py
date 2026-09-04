@@ -118,4 +118,7 @@ def test_logo_ships_in_spa_and_native_icon() -> None:
     assert "opacity:" not in css.split("body")[1].split("}")[0]
     desktop = (ROOT / "universal" / "desktop.py").read_text(encoding="utf-8")
     assert 'background_color="#0B0E14"' in desktop
+    assert "private_mode=False" in desktop
+    assert "mediaDevicesEnabled" in desktop
+    assert "NSMicrophoneUsageDescription" in (ROOT / "scripts" / "build_macos.sh").read_text(encoding="utf-8")
     assert "from universal.desktop import main" in (ROOT / "app.py").read_text(encoding="utf-8")

@@ -105,12 +105,12 @@ universal> quit
 
 `python3 -m universal serve` is the control plane (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is **not** `/v1/chat/completions`.
 
-The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspace. Drop any document on the write bar. Audio records to WAV and `POST /v1/transcribe` runs local Whisper (`tiny`). The composer holds about 5,000 words without a cutoff. Install the optional extra if health shows `"whisper": false`: `pip install 'universal[media]'`.
+The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspace. Drop any document on the write bar. Audio records to WAV and `POST /v1/transcribe` runs local Whisper (`tiny`). If the desktop window has no `getUserMedia` (common in the Mac WKWebView), Chat records on the host via `POST /v1/record/start` and `/v1/record/stop`, then transcribes the same way. Allow Microphone for Universal in System Settings → Privacy & Security. The composer holds about 5,000 words without a cutoff. Install the optional extra if health shows `"whisper": false`: `pip install 'universal[media]'`.
 
 | Control | Behavior |
 |---|---|
 | Send (Auto off) | `POST /v1/agents/{id}/ask` with SSE |
-| **Auto** (toggle, default off) | `POST /v1/agents/{id}/run` — tool loop without extra user turns |
+| **Auto** (toggle, default off) | `POST /v1/agents/{id}/run` — Python tool loop (native plugins). Node stays on `/v1/runtime/*`. |
 | Clear history | `POST /v1/agents/{id}/reset` — state unchanged |
 | Download ZIP | `POST /v1/agents/{id}/deploy` |
 | Plugin line | Readable labels such as `Terminal: run_command`, `Tools: utc_now` |

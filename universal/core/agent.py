@@ -226,8 +226,13 @@ class Agent:
                         tool_calls=response.tool_calls,
                     )
                 )
-                for call in response.tool_calls:
-                    result = self.plugins.invoke_tool(call)
+                for i, call in enumerate(response.tool_calls):
+                    if not call.id:
+                        call.id = f"call_{i}"
+                    try:
+                        result = self.plugins.invoke_tool(call)
+                    except Exception as exc:
+                        result = f"error: tool {call.name!r} failed: {exc}"
                     working.append(
                         Message(
                             role="tool",
@@ -282,9 +287,14 @@ class Agent:
                             tool_calls=response.tool_calls,
                         )
                     )
-                    for call in response.tool_calls:
+                    for i, call in enumerate(response.tool_calls):
+                        if not call.id:
+                            call.id = f"call_{i}"
                         yield self._status_event_for_tool(call)
-                        result = self.plugins.invoke_tool(call)
+                        try:
+                            result = self.plugins.invoke_tool(call)
+                        except Exception as exc:
+                            result = f"error: tool {call.name!r} failed: {exc}"
                         working.append(
                             Message(
                                 role="tool",

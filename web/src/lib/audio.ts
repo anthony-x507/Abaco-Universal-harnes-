@@ -91,7 +91,7 @@ export type SpeechRecognitionLike = {
 }
 
 export const MIC_UNAVAILABLE =
-  'Microphone is not available in this window. On a Mac, allow Microphone for Universal in System Settings → Privacy & Security, then restart the app.'
+  'Microphone is not available in this window. Universal will try to record on the Mac instead. If that also fails, allow Microphone for Universal in System Settings → Privacy & Security, then restart the app.'
 
 export function wordCount(text: string) {
   const parts = text.trim().split(/\s+/).filter(Boolean)

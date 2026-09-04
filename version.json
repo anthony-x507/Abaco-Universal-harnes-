@@ -1,5 +1,5 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native Mac app. Download Universal.dmg only. Per-agent Models in Chat and Edit, Settings scroll to Updates, and voice notes that work when mediaDevices is missing. Updates check GitHub Releases and install to /Applications/Universal.app."
+  "release_notes": "Native Mac app. Download Universal.dmg only. Chat Auto uses native Python tools (no Node hijack). Voice notes record on the Mac when the window has no microphone. Allow Microphone for Universal in System Settings if prompted."
 }

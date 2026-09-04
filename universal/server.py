@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import tempfile
 from collections.abc import Iterator
@@ -152,7 +153,7 @@ def _settings_payload(state: ServerState) -> dict[str, Any]:
 def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     """Build the FastAPI app around an already-constructed Universal root."""
     state = ServerState(platform=platform, demo=demo)
-    app = FastAPI(title="Universal platform", version="1.0.5")
+    app = FastAPI(title="Universal platform", version="1.0.6")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -304,6 +305,30 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             raise HTTPException(status_code=503, detail=heard or "Whisper could not transcribe that clip.")
         return {"text": heard, "path": str(path)}
 
+    @app.post("/v1/record/start")
+    def record_start() -> dict[str, Any]:
+        from universal.host_audio import HostAudioError, start_host_recording
+
+        try:
+            start_host_recording()
+        except HostAudioError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return {"status": "recording"}
+
+    @app.post("/v1/record/stop")
+    def record_stop() -> dict[str, Any]:
+        from universal.host_audio import HostAudioError, stop_host_recording
+
+        try:
+            raw = stop_host_recording()
+        except HostAudioError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return {
+            "name": "clip.wav",
+            "mime": "audio/wav",
+            "data": base64.b64encode(raw).decode("ascii"),
+        }
+
     @app.post("/v1/agents")
     def create_agent(body: CreateAgentBody) -> dict[str, Any]:
         if body.provider:
@@ -433,22 +458,9 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
     @app.post("/v1/agents/{agent_id}/run")
     def run_agent(agent_id: str, body: RunBody) -> Any:
+        """Always the Python agent tool loop (native plugins). Node stays on /v1/runtime/*."""
         agent, prompt = _prepare_ask(agent_id, body.prompt.strip(), body.attachments)
         max_iterations = max(1, int(body.max_iterations))
-        runtime = default_manager()
-        if runtime.healthy() and not body.stream:
-            history = [{"role": message.role, "content": message.content} for message in agent.history]
-            try:
-                answer = runtime.think(prompt=prompt, history=history, agent_id=agent.id)
-            except Exception:
-                answer = None
-            else:
-                agent.record_turn(prompt, answer)
-                payload = _agent_payload(state.platform, agent.id)
-                payload["answer"] = answer
-                payload["runtime"] = True
-                _finish_ask(agent.id)
-                return payload
         if body.stream:
             return _stream_events(
                 agent,

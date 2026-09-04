@@ -215,6 +215,14 @@ export async function transcribeAudio(body: {
   return request('/v1/transcribe', { method: 'POST', body: JSON.stringify({ model: 'tiny', ...body }) })
 }
 
+export async function startHostRecording(): Promise<{ status: string }> {
+  return request('/v1/record/start', { method: 'POST', body: '{}' })
+}
+
+export async function stopHostRecording(): Promise<{ name: string; mime: string; data: string }> {
+  return request('/v1/record/stop', { method: 'POST', body: '{}' })
+}
+
 export async function updateAgent(
   id: string,
   body: {

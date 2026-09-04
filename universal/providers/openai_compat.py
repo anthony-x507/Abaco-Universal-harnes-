@@ -222,14 +222,24 @@ class OpenAICompatProvider(Provider):
             raise ProviderError("Provider response has no choices")
         message = choices[0].get("message") or {}
         raw_calls = message.get("tool_calls") or []
-        tool_calls = [
-            ToolCall(
-                id=str(call.get("id") or ""),
-                name=str((call.get("function") or {}).get("name") or ""),
-                arguments=str((call.get("function") or {}).get("arguments") or "{}"),
+        tool_calls: list[ToolCall] = []
+        for index, call in enumerate(raw_calls):
+            if not isinstance(call, dict):
+                continue
+            fn = call.get("function") if isinstance(call.get("function"), dict) else {}
+            name = str(fn.get("name") or call.get("name") or "")
+            if not name:
+                continue
+            arguments = fn.get("arguments", call.get("arguments", "{}"))
+            if not isinstance(arguments, str):
+                arguments = json.dumps(arguments)
+            tool_calls.append(
+                ToolCall(
+                    id=str(call.get("id") or f"call_{index}"),
+                    name=name,
+                    arguments=arguments or "{}",
+                )
             )
-            for call in raw_calls
-        ]
         text = message.get("content") or ""
         return CompletionResponse(
             text=text,

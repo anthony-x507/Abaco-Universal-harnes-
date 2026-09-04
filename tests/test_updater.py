@@ -29,7 +29,7 @@ def test_repo_is_baked_and_ignores_env(monkeypatch) -> None:
     monkeypatch.setenv("UNIVERSAL_UPDATE_REPO", "evil/other")
     data = load_release()
     assert data["repo"] == BAKED_REPO
-    assert current_version() == "1.0.5"
+    assert current_version() == "1.0.6"
     updater = Updater()
     assert updater.repo == BAKED_REPO
 
@@ -103,7 +103,7 @@ def test_memory_and_registry_use_user_data(tmp_path: Path, monkeypatch, settings
 def test_http_update_check(platform: Universal, monkeypatch) -> None:
     def fake_check(self) -> UpdateStatus:  # noqa: ARG001
         return UpdateStatus(
-            current="1.0.5",
+            current="1.0.6",
             latest=None,
             available=False,
             url=None,
@@ -117,7 +117,7 @@ def test_http_update_check(platform: Universal, monkeypatch) -> None:
     health = client.get("/health")
     assert health.json()["version"] == current_version()
     body = client.get("/v1/update").json()
-    assert body["current"] == "1.0.5"
+    assert body["current"] == "1.0.6"
     assert body["repo"] == BAKED_REPO
     assert body["available"] is False
     assert "in_applications" in body

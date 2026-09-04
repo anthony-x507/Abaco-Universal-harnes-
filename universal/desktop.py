@@ -22,6 +22,67 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 43124
 
 
+def _request_macos_microphone() -> None:
+    """Trigger the system Microphone prompt from the host process, not WKWebView."""
+    try:
+        from AVFoundation import AVCaptureDevice, AVMediaTypeAudio  # type: ignore[import-not-found]
+
+        AVCaptureDevice.requestAccessForMediaType_completionHandler_(
+            AVMediaTypeAudio, lambda _granted: None
+        )
+    except Exception:
+        return
+
+
+def _find_wkwebview(view: object) -> object | None:
+    if view is None:
+        return None
+    name = type(view).__name__
+    if "WKWebView" in name or hasattr(view, "configuration"):
+        return view
+    subviews = getattr(view, "subviews", None)
+    if callable(subviews):
+        try:
+            subviews = subviews()
+        except Exception:
+            return None
+    if not subviews:
+        return None
+    for child in subviews:
+        found = _find_wkwebview(child)
+        if found is not None:
+            return found
+    return None
+
+
+def _enable_webkit_media(window: object) -> None:
+    """Turn on WKWebView mediaDevices so Chat can call getUserMedia."""
+    try:
+        native = getattr(window, "native", None)
+        webview_obj = _find_wkwebview(native)
+        if webview_obj is None:
+            content = getattr(native, "contentView", None)
+            if callable(content):
+                content = content()
+            webview_obj = _find_wkwebview(content)
+        if webview_obj is None:
+            return
+        configuration = getattr(webview_obj, "configuration", None)
+        config = configuration() if callable(configuration) else configuration
+        if config is None:
+            return
+        preferences = getattr(config, "preferences", None)
+        prefs = preferences() if callable(preferences) else preferences
+        if prefs is None:
+            return
+        setter = getattr(prefs, "setValue_forKey_", None)
+        if callable(setter):
+            setter(True, "mediaDevicesEnabled")
+            setter(True, "mediaStreamEnabled")
+    except Exception:
+        return
+
+
 def wait_for_health(url: str, *, timeout: float = 20.0) -> None:
     deadline = time.monotonic() + timeout
     last_error = "no attempt"
@@ -98,7 +159,8 @@ def run_desktop(
         webview.settings['ALLOW_DOWNLOADS'] = True
     except Exception:
         pass
-    webview.create_window(
+    _request_macos_microphone()
+    window = webview.create_window(
         "Universal platform",
         url,
         width=1200,
@@ -108,7 +170,12 @@ def run_desktop(
         min_size=(800, 600),
         background_color="#0B0E14",
     )
-    webview.start()
+
+    def _after_start() -> None:
+        _enable_webkit_media(window)
+
+    # private_mode=True (the default) leaves mediaDevices undefined in WKWebView.
+    webview.start(func=_after_start, private_mode=False)
     return 0
 
 

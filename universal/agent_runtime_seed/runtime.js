@@ -64,11 +64,15 @@ async function runAgentLoop(prompt, history) {
     }
     messages.push({
       role: 'assistant',
-      content: llm.content || '',
-      tool_calls: calls.map((call) => ({
-        id: call.id,
-        name: call.name,
-        arguments: call.arguments,
+      content: llm.content || null,
+      tool_calls: calls.map((call, index) => ({
+        id: call.id || `call_${index}`,
+        type: 'function',
+        function: {
+          name: call.name,
+          arguments:
+            typeof call.arguments === 'string' ? call.arguments || '{}' : JSON.stringify(call.arguments || {}),
+        },
       })),
     })
     for (const call of calls) {

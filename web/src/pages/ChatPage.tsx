@@ -14,6 +14,8 @@ import {
   getHealth,
   listAgents,
   resetAgent,
+  startHostRecording,
+  stopHostRecording,
   transcribeAudio,
   updateAgent,
   type Agent,
@@ -84,6 +86,7 @@ export function ChatPage() {
   const chunksRef = useRef<Blob[]>([])
   const speechRef = useRef<{ stop: () => void } | null>(null)
   const spokenRef = useRef('')
+  const hostRecordRef = useRef(false)
   const selectedIdRef = useRef(selectedId)
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -362,10 +365,67 @@ export function ChatPage() {
     }
   }
 
+  const applyHeardAudio = (name: string, data: string, spoken: string) => {
+    setAttachments((current) => [
+      ...current,
+      {
+        name,
+        kind: 'audio',
+        mime: 'audio/wav',
+        data,
+        note: spoken ? `Audio: ${spoken}` : 'Audio clip',
+        transcript: spoken || undefined,
+      },
+    ])
+    if (spoken) {
+      setPrompt((current) => (current.trim() ? `${current.trim()} ${spoken}` : spoken))
+    }
+  }
+
+  const finishHostRecording = async () => {
+    setRecording(false)
+    setTranscribing(true)
+    setStatusLine('Transcribing with local Whisper…')
+    try {
+      const clip = await stopHostRecording()
+      const name = clip.name || `audio-${Date.now()}.wav`
+      let transcript = ''
+      try {
+        const result = await transcribeAudio({ name, mime: clip.mime || 'audio/wav', data: clip.data })
+        transcript = result.text.trim()
+      } catch (err) {
+        const message = friendlyError(err)
+        showToast(message)
+        setError(message)
+      }
+      const spoken = transcript || spokenRef.current
+      applyHeardAudio(name, clip.data, spoken)
+      if (spoken) showToast('Voice captured')
+      else setError('No speech was captured. Press Audio, speak, then Stop audio.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : MIC_UNAVAILABLE)
+    } finally {
+      hostRecordRef.current = false
+      setTranscribing(false)
+      setStatusLine('')
+    }
+  }
+
+  const beginHostRecording = async () => {
+    await startHostRecording()
+    hostRecordRef.current = true
+    setRecording(true)
+    setStatusLine('Listening on this Mac… speak, then press Stop audio')
+  }
+
   const toggleRecord = async () => {
     if (recording) {
       speechRef.current?.stop()
       speechRef.current = null
+      if (hostRecordRef.current) {
+        await finishHostRecording()
+        return
+      }
       if (recorderRef.current) {
         recorderRef.current.stop()
         return
@@ -403,13 +463,18 @@ export function ChatPage() {
       }
       const requestMic = getUserMedia()
       if (!requestMic) {
-        if (speechRef.current) {
-          setRecording(true)
-          setStatusLine('Listening… speak, then press Stop audio')
+        try {
+          await beginHostRecording()
+          return
+        } catch (err) {
+          if (speechRef.current) {
+            setRecording(true)
+            setStatusLine('Listening… speak, then press Stop audio')
+            return
+          }
+          setError(err instanceof Error ? err.message : MIC_UNAVAILABLE)
           return
         }
-        setError(MIC_UNAVAILABLE)
-        return
       }
       const stream = await requestMic({ audio: true })
       const recorder = new MediaRecorder(stream)
@@ -438,21 +503,7 @@ export function ChatPage() {
               showToast(message)
               setError(message)
             }
-            const spoken = transcript || spokenRef.current
-            setAttachments((current) => [
-              ...current,
-              {
-                name,
-                kind: 'audio',
-                mime: 'audio/wav',
-                data,
-                note: spoken ? `Audio: ${spoken}` : 'Audio clip',
-                transcript: spoken || undefined,
-              },
-            ])
-            if (spoken) {
-              setPrompt((current) => (current.trim() ? `${current.trim()} ${spoken}` : spoken))
-            }
+            applyHeardAudio(name, data, transcript || spokenRef.current)
           } catch (err) {
             setError(err instanceof Error ? err.message : 'Could not prepare the recording.')
           } finally {
@@ -467,12 +518,17 @@ export function ChatPage() {
     } catch (err) {
       speechRef.current?.stop()
       speechRef.current = null
-      const text = err instanceof Error ? err.message : ''
-      setError(
-        /mediaDevices|getUserMedia|permission|not allowed|undefined is not an object/i.test(text)
-          ? MIC_UNAVAILABLE
-          : text || MIC_UNAVAILABLE,
-      )
+      try {
+        await beginHostRecording()
+        return
+      } catch {
+        const text = err instanceof Error ? err.message : ''
+        setError(
+          /mediaDevices|getUserMedia|permission|not allowed|undefined is not an object/i.test(text)
+            ? MIC_UNAVAILABLE
+            : text || MIC_UNAVAILABLE,
+        )
+      }
     }
   }
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -63,17 +64,26 @@ class Message:
         payload: dict[str, Any] = {"role": self.role, "content": self.content}
         if self.name:
             payload["name"] = self.name
-        if self.tool_call_id:
-            payload["tool_call_id"] = self.tool_call_id
+        if self.role == "tool":
+            payload["tool_call_id"] = self.tool_call_id or "tool"
         if self.tool_calls:
-            payload["tool_calls"] = [
-                {
-                    "id": call.id,
-                    "type": "function",
-                    "function": {"name": call.name, "arguments": call.arguments},
-                }
-                for call in self.tool_calls
-            ]
+            # Empty string content + tool_calls is rejected by OpenAI-compatible hosts.
+            payload["content"] = self.content or None
+            payload["tool_calls"] = []
+            for index, call in enumerate(self.tool_calls):
+                if not call.name:
+                    continue
+                arguments = call.arguments if isinstance(call.arguments, str) else json.dumps(call.arguments)
+                payload["tool_calls"].append(
+                    {
+                        "id": call.id or f"call_{index}",
+                        "type": "function",
+                        "function": {"name": call.name, "arguments": arguments or "{}"},
+                    }
+                )
+            if not payload["tool_calls"]:
+                payload.pop("tool_calls", None)
+                payload["content"] = self.content or ""
         return payload
 
 

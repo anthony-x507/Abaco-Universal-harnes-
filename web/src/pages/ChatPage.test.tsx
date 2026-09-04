@@ -266,4 +266,36 @@ describe('Chat page quality tests', () => {
     expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument()
     expect(screen.getByText('keep-me')).toBeInTheDocument()
   })
+
+  it('Audio falls back to host record when the window has no microphone', async () => {
+    const user = userEvent.setup()
+    const { calls } = installFetchMock((path) => {
+      if (path === '/v1/record/start') return jsonResponse({ status: 'recording' })
+      if (path === '/v1/record/stop') {
+        return jsonResponse({ name: 'clip.wav', mime: 'audio/wav', data: 'QQ==' })
+      }
+      if (path === '/v1/transcribe') return jsonResponse({ text: 'hello from the mac' })
+      return null
+    })
+    const original = globalThis.navigator
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: { language: 'en-US' },
+    })
+    try {
+      renderChat()
+      await user.click(await screen.findByRole('button', { name: 'Audio' }))
+      await waitFor(() => {
+        expect(calls.some((call) => call.path === '/v1/record/start')).toBe(true)
+      })
+      await user.click(screen.getByRole('button', { name: 'Stop audio' }))
+      await waitFor(() => {
+        expect(calls.some((call) => call.path === '/v1/record/stop')).toBe(true)
+        expect(calls.some((call) => call.path === '/v1/transcribe')).toBe(true)
+      })
+      expect(await screen.findByText('hello from the mac')).toBeInTheDocument()
+    } finally {
+      Object.defineProperty(globalThis, 'navigator', { configurable: true, value: original })
+    }
+  })
 })
