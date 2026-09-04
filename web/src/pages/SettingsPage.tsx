@@ -110,6 +110,7 @@ export function SettingsPage() {
   }
 
   return (
+    <div className="h-full min-h-0 overflow-y-auto">
     <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-6">
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
@@ -360,6 +361,7 @@ export function SettingsPage() {
           )}
         </Card>
       )}
+    </div>
     </div>
   )
 }

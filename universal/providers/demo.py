@@ -34,12 +34,12 @@ class EchoProvider(Provider):
             return CompletionResponse(
                 text="",
                 tool_calls=[ToolCall(id="demo_utc", name="utc_now", arguments="{}")],
-                model=self.model,
+                model=model or self.model,
                 finish_reason="tool_calls",
             )
         return CompletionResponse(
             text=f"(demo) {last}",
-            model=self.model,
+            model=model or self.model,
             finish_reason="stop",
         )
 

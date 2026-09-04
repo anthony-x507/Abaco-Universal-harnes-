@@ -105,6 +105,7 @@ export function AgentsPage() {
   }
 
   return (
+    <div className="h-full min-h-0 overflow-y-auto">
     <div className="mx-auto flex max-w-5xl flex-col gap-6 p-4 md:p-6">
       <div>
         <h1 className="text-xl font-semibold">Agents</h1>
@@ -250,7 +251,8 @@ export function AgentsPage() {
                     {askingId === agent.id && <Badge className="border-accent/40 text-accent">answering</Badge>}
                   </div>
                   <div className="mt-1 text-xs text-muted">
-                    {agent.channel} · {pluginListLabel(agent.plugin_labels, agent.plugins.length)}
+                    {agent.channel}
+                    {agent.model ? ` · ${agent.model}` : ''} · {pluginListLabel(agent.plugin_labels, agent.plugins.length)}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -352,6 +354,7 @@ export function AgentsPage() {
           </Card>
         </div>
       )}
+    </div>
     </div>
   )
 }

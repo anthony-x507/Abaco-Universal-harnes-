@@ -94,6 +94,10 @@ def run_desktop(
         raise ConfigError(
             "pywebview is not installed. pip install 'universal[desktop]'"
         ) from exc
+    try:
+        webview.settings['ALLOW_DOWNLOADS'] = True
+    except Exception:
+        pass
     webview.create_window(
         "Universal platform",
         url,

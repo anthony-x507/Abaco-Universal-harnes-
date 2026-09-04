@@ -1,6 +1,7 @@
 import { ArrowUp, FileText, Mic, Paperclip, PanelRight, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { ModelPicker, matchPreset } from '../components/ModelPicker'
 import { WorkspacePane } from '../components/WorkspacePane'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -14,10 +15,12 @@ import {
   listAgents,
   resetAgent,
   transcribeAudio,
+  updateAgent,
   type Agent,
   type HistoryTurn,
 } from '../lib/api'
-import { blobToWav, wordCount } from '../lib/audio'
+import { blobToWav, getUserMedia, MIC_UNAVAILABLE, speechRecognitionCtor, wordCount } from '../lib/audio'
+import { useModels } from '../hooks/useModels'
 import { useAskSession } from '../lib/ask-session'
 import { cn, usageLabel } from '../lib/utils'
 import { DragHandle } from '../components/DragHandle'
@@ -73,6 +76,9 @@ export function ChatPage() {
   const [dropActive, setDropActive] = useState(false)
   const [whisperReady, setWhisperReady] = useState<boolean | null>(null)
   const [transcribing, setTranscribing] = useState(false)
+  const [modelPreset, setModelPreset] = useState('')
+  const [savingModel, setSavingModel] = useState(false)
+  const { models } = useModels()
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -89,6 +95,11 @@ export function ChatPage() {
     () => agents.find((agent) => agent.id === selectedId) ?? null,
     [agents, selectedId],
   )
+
+  useEffect(() => {
+    if (!selected || models.length === 0) return
+    setModelPreset(matchPreset(models, selected.model))
+  }, [selected, models])
 
   const refresh = async () => {
     const rows = await listAgents()
@@ -337,37 +348,42 @@ export function ChatPage() {
     if (next.length) showToast(next.length === 1 ? `Attached ${next[0].name}` : `Attached ${next.length} files`)
   }
 
+  const changeModel = async (name: string) => {
+    if (!selectedId || savingModel) return
+    setModelPreset(name)
+    setSavingModel(true)
+    try {
+      const next = await updateAgent(selectedId, { provider: name })
+      setAgents((current) => current.map((row) => (row.id === next.id ? { ...row, ...next } : row)))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not change the model.')
+    } finally {
+      setSavingModel(false)
+    }
+  }
+
   const toggleRecord = async () => {
     if (recording) {
       speechRef.current?.stop()
       speechRef.current = null
-      recorderRef.current?.stop()
+      if (recorderRef.current) {
+        recorderRef.current.stop()
+        return
+      }
+      setRecording(false)
+      setStatusLine('')
+      const spoken = spokenRef.current.trim()
+      if (spoken) {
+        setPrompt((current) => (current.trim() ? `${current.trim()} ${spoken}` : spoken))
+        showToast('Voice captured')
+      } else {
+        setError('No speech was captured. Press Audio, speak, then Stop audio.')
+      }
       return
     }
     spokenRef.current = ''
     try {
-      const SpeechAPI = (
-        window as unknown as {
-          SpeechRecognition?: new () => {
-            continuous: boolean
-            interimResults: boolean
-            lang: string
-            start: () => void
-            stop: () => void
-            onresult: ((event: { resultIndex: number; results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
-            onerror: (() => void) | null
-          }
-          webkitSpeechRecognition?: new () => {
-            continuous: boolean
-            interimResults: boolean
-            lang: string
-            start: () => void
-            stop: () => void
-            onresult: ((event: { resultIndex: number; results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
-            onerror: (() => void) | null
-          }
-        }
-      ).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => never }).webkitSpeechRecognition
+      const SpeechAPI = speechRecognitionCtor()
       if (SpeechAPI) {
         const recognition = new SpeechAPI()
         recognition.continuous = true
@@ -385,7 +401,17 @@ export function ChatPage() {
         recognition.start()
         speechRef.current = recognition
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const requestMic = getUserMedia()
+      if (!requestMic) {
+        if (speechRef.current) {
+          setRecording(true)
+          setStatusLine('Listening… speak, then press Stop audio')
+          return
+        }
+        setError(MIC_UNAVAILABLE)
+        return
+      }
+      const stream = await requestMic({ audio: true })
       const recorder = new MediaRecorder(stream)
       chunksRef.current = []
       recorder.ondataavailable = (event) => {
@@ -439,7 +465,14 @@ export function ChatPage() {
       recorder.start()
       setRecording(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Microphone is not available.')
+      speechRef.current?.stop()
+      speechRef.current = null
+      const text = err instanceof Error ? err.message : ''
+      setError(
+        /mediaDevices|getUserMedia|permission|not allowed|undefined is not an object/i.test(text)
+          ? MIC_UNAVAILABLE
+          : text || MIC_UNAVAILABLE,
+      )
     }
   }
 
@@ -488,6 +521,18 @@ export function ChatPage() {
                       </option>
                     ))}
                   </select>
+                  {selected && (
+                    <ModelPicker
+                      id="chat-model"
+                      label="Models"
+                      value={modelPreset}
+                      onChange={(name) => void changeModel(name)}
+                      models={models}
+                      currentModel={selected.model}
+                      disabled={sending || savingModel}
+                      compact
+                    />
+                  )}
                   {selected && (
                     <Badge className={selected.state === 'running' ? 'border-accent/40 text-accent' : ''}>
                       {selected.state}

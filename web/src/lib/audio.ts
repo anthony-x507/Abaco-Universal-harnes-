@@ -52,6 +52,47 @@ export async function blobToWav(blob: Blob, sampleRate = 16000): Promise<Blob> {
   return encodeWav(rendered)
 }
 
+export function getUserMedia(): ((constraints: MediaStreamConstraints) => Promise<MediaStream>) | undefined {
+  if (typeof navigator === 'undefined') return undefined
+  const devices = navigator.mediaDevices
+  if (devices && typeof devices.getUserMedia === 'function') {
+    return (constraints) => devices.getUserMedia(constraints)
+  }
+  const legacy = navigator as Navigator & {
+    getUserMedia?: (c: MediaStreamConstraints, ok: (s: MediaStream) => void, err: (e: Error) => void) => void
+    webkitGetUserMedia?: (c: MediaStreamConstraints, ok: (s: MediaStream) => void, err: (e: Error) => void) => void
+    mozGetUserMedia?: (c: MediaStreamConstraints, ok: (s: MediaStream) => void, err: (e: Error) => void) => void
+  }
+  const fn = legacy.getUserMedia || legacy.webkitGetUserMedia || legacy.mozGetUserMedia
+  if (typeof fn !== 'function') return undefined
+  return (constraints) =>
+    new Promise((resolve, reject) => {
+      fn.call(navigator, constraints, resolve, reject)
+    })
+}
+
+export function speechRecognitionCtor(): (new () => SpeechRecognitionLike) | undefined {
+  if (typeof window === 'undefined') return undefined
+  const host = window as Window & {
+    SpeechRecognition?: new () => SpeechRecognitionLike
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike
+  }
+  return host.SpeechRecognition || host.webkitSpeechRecognition
+}
+
+export type SpeechRecognitionLike = {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start: () => void
+  stop: () => void
+  onresult: ((event: { resultIndex: number; results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null
+  onerror: (() => void) | null
+}
+
+export const MIC_UNAVAILABLE =
+  'Microphone is not available in this window. On a Mac, allow Microphone for Universal in System Settings → Privacy & Security, then restart the app.'
+
 export function wordCount(text: string) {
   const parts = text.trim().split(/\s+/).filter(Boolean)
   return parts.length

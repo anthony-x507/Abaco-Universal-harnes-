@@ -54,6 +54,7 @@ class CreateAgentBody(BaseModel):
     outbound_url: str | None = None
     provider: str | None = None
     emoji: str | None = None
+    llm_model: str | None = None
 
 
 class UpdateAgentBody(BaseModel):
@@ -62,6 +63,8 @@ class UpdateAgentBody(BaseModel):
     channel: str | None = None
     outbound_url: str | None = None
     system_prompt: str | None = None
+    provider: str | None = None
+    llm_model: str | None = None
 
 
 class AttachmentBody(BaseModel):
@@ -306,12 +309,18 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         if body.provider:
             _apply_provider_preset(body.provider)
         channel = body.channel or state.default_channel
+        llm_model = body.llm_model
+        if body.provider:
+            preset = get_provider(body.provider)
+            if preset and not llm_model:
+                llm_model = preset.default_model
         agent = state.platform.factory.create(
             body.template,
             body.name,
             channel=channel,
             outbound_url=body.outbound_url,
             emoji=body.emoji,
+            llm_model=llm_model,
         )
         return _agent_payload(state.platform, agent.id)
 
@@ -328,6 +337,8 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             system_prompt=body.system_prompt,
             channel=body.channel,
             outbound_url=body.outbound_url,
+            llm_model=body.llm_model,
+            provider_name=body.provider,
         )
         return _agent_payload(state.platform, agent_id)
 

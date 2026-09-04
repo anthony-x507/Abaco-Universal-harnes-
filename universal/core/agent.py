@@ -50,12 +50,14 @@ class Agent:
         memory_dir: Path | None = None,
         max_history_turns: int = DEFAULT_HISTORY_TURNS,
         emoji: str = "",
+        llm_model: str = "",
     ) -> None:
         self.id = agent_id or new_agent_id()
         self.name = name
         self.template_id = template_id
         self.emoji = emoji
         self.system_prompt = system_prompt
+        self.llm_model = (llm_model or "").strip()
         self.provider = provider
         self.channel = channel
         self.plugins = PluginHost()
@@ -169,6 +171,7 @@ class Agent:
             "plugins": self.plugins.names(),
             "emoji": self.emoji,
             "system_prompt": self.system_prompt,
+            "llm_model": self.llm_model,
         }
 
     @contextmanager
@@ -206,7 +209,9 @@ class Agent:
 
         for _ in range(self.max_tool_iters):
             started = time.perf_counter()
-            response = self.provider.complete(working, tools=tools or None)
+            response = self.provider.complete(
+                working, tools=tools or None, model=self.llm_model or None
+            )
             record_provider_call(
                 self,
                 response,
@@ -260,7 +265,9 @@ class Agent:
             response: CompletionResponse | None = None
             for _ in range(self.max_tool_iters):
                 started = time.perf_counter()
-                response = self.provider.complete(working, tools=tools)
+                response = self.provider.complete(
+                    working, tools=tools, model=self.llm_model or None
+                )
                 record_provider_call(
                     self,
                     response,
@@ -300,7 +307,7 @@ class Agent:
         else:
             pieces: list[str] = []
             started = time.perf_counter()
-            for piece in self.provider.stream(working, tools=None):
+            for piece in self.provider.stream(working, tools=None, model=self.llm_model or None):
                 pieces.append(piece)
                 yield {"type": "token", "text": piece}
             assembled = "".join(pieces)
@@ -343,7 +350,7 @@ class Agent:
 
     def info(self, state: AgentState = AgentState.CREATED) -> AgentInfo:
         channel_name = self.channel.name if self.channel is not None else ""
-        model = getattr(self.provider, "model", "") or ""
+        model = self.llm_model or getattr(self.provider, "model", "") or ""
         return AgentInfo(
             id=self.id,
             name=self.name,

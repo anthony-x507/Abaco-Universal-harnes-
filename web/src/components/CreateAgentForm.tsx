@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { ModelPicker } from './ModelPicker'
 import { createAgent, listTemplates, type Agent, type Template } from '../lib/api'
+import { useModels } from '../hooks/useModels'
 import { cn } from '../lib/utils'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -18,8 +20,10 @@ export function CreateAgentForm({
   const [name, setName] = useState('')
   const [template, setTemplate] = useState('general')
   const [emoji, setEmoji] = useState('💬')
+  const [provider, setProvider] = useState('OpenAI (GPT-5.6 Sol)')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
+  const { models } = useModels()
 
   useEffect(() => {
     let cancelled = false
@@ -53,6 +57,7 @@ export function CreateAgentForm({
         template,
         name: name.trim() || undefined,
         emoji,
+        provider: provider || undefined,
       })
       setName('')
       onCreated?.(agent)
@@ -120,8 +125,15 @@ export function CreateAgentForm({
           onChange={(event) => setName(event.target.value)}
           placeholder="Name (optional)"
         />
-        <p className="mt-1 text-[11px] text-muted">Model and channel live in Settings.</p>
+        <p className="mt-1 text-[11px] text-muted">Channel default lives in Settings.</p>
       </div>
+      <ModelPicker
+        id="design-agent-model"
+        label="Models"
+        value={provider}
+        onChange={setProvider}
+        models={models}
+      />
       <Button onClick={() => void create()} disabled={creating}>
         {creating ? 'Creating…' : submitLabel}
       </Button>

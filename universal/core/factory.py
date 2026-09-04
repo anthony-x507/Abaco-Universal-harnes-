@@ -71,6 +71,7 @@ class AgentFactory:
         agent_id: str | None = None,
         emoji: str | None = None,
         system_prompt: str | None = None,
+        llm_model: str | None = None,
     ) -> Agent:
         return self.generator.generate(
             template_id,
@@ -83,6 +84,7 @@ class AgentFactory:
             agent_id=agent_id,
             emoji=emoji,
             system_prompt=system_prompt,
+            llm_model=llm_model,
         )
 
     def update(
@@ -94,6 +96,8 @@ class AgentFactory:
         system_prompt: str | None = None,
         channel: str | None = None,
         outbound_url: str | None = None,
+        llm_model: str | None = None,
+        provider_name: str | None = None,
     ) -> Agent:
         from universal.core.faces import pick_face
 
@@ -118,8 +122,51 @@ class AgentFactory:
                 transport.agent_id = agent.id
             agent.channel = transport
             agent.bind_channel()
+        if llm_model is not None or provider_name is not None:
+            self.bind_model(agent, llm_model=llm_model, preset_name=provider_name)
         self.registry.save()
         return agent
+
+    def bind_model(
+        self,
+        agent: Agent,
+        *,
+        llm_model: str | None = None,
+        preset_name: str | None = None,
+    ) -> None:
+        """Set this agent's model. Other agents keep the shared provider."""
+        from universal.exceptions import ConfigError
+        from universal.providers.catalog import get_provider, is_local_base_url
+        from universal.providers.openai_compat import OpenAICompatProvider
+
+        model = (llm_model or "").strip()
+        base_url = ""
+        if preset_name:
+            preset = get_provider(preset_name)
+            if preset is None:
+                raise ConfigError(f"Unknown model preset {preset_name!r}")
+            model = model or str(preset.default_model or "")
+            base_url = str(preset.base_url or "").strip()
+        if model:
+            agent.llm_model = model
+        shared = self.generator.provider()
+        if not base_url or not hasattr(shared, "base_url"):
+            return
+        shared_url = str(getattr(shared, "base_url", "") or "").rstrip("/")
+        if base_url.rstrip("/") == shared_url:
+            return
+        api_key = self.settings.llm_api_key or str(getattr(shared, "_api_key", "") or "")
+        if not api_key and is_local_base_url(base_url):
+            api_key = "local"
+        if not api_key:
+            return
+        agent.provider = OpenAICompatProvider(
+            base_url=base_url,
+            api_key=api_key,
+            model=model or str(getattr(shared, "model", "") or "gpt-4o-mini"),
+            timeout=self.settings.llm_timeout,
+            organization=self.settings.llm_organization,
+        )
 
     def start(self, agent_id: str) -> Agent:
         return self.manager.start(agent_id)

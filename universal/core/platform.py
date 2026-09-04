@@ -74,6 +74,7 @@ class Universal:
                     plugins = tuple(str(item) for item in raw_plugins) if isinstance(raw_plugins, list) else None
                     memory = record.get("memory")
                     stored_prompt = record.get("system_prompt")
+                    stored_model = record.get("llm_model")
                     agent = self.factory.create(
                         template_id,
                         str(record.get("name") or "") or None,
@@ -84,6 +85,7 @@ class Universal:
                         agent_id=agent_id,
                         emoji=str(record.get("emoji") or "") or None,
                         system_prompt=str(stored_prompt) if isinstance(stored_prompt, str) else None,
+                        llm_model=str(stored_model) if isinstance(stored_model, str) else None,
                     )
                     if str(record.get("state") or "") == "error":
                         self.lifecycle.mark_error(agent.id, "restored in error state")

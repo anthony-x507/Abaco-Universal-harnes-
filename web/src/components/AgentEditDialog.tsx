@@ -4,7 +4,9 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
+import { ModelPicker, matchPreset } from './ModelPicker'
 import { getSettings, updateAgent, type Agent } from '../lib/api'
+import { useModels } from '../hooks/useModels'
 import { laterChannels, cn } from '../lib/utils'
 
 type EditTab = 'face' | 'settings' | 'instructions'
@@ -26,8 +28,10 @@ export function AgentEditDialog({
   const [instructions, setInstructions] = useState(agent.system_prompt || '')
   const [channels, setChannels] = useState<string[]>([agent.channel || 'cli'])
   const [coming, setComing] = useState<string[]>([])
+  const [provider, setProvider] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const { models } = useModels()
 
   useEffect(() => {
     let cancelled = false
@@ -47,6 +51,11 @@ export function AgentEditDialog({
     }
   }, [agent.channel])
 
+  useEffect(() => {
+    if (models.length === 0) return
+    setProvider((current) => current || matchPreset(models, agent.model))
+  }, [models, agent.model])
+
   const save = async () => {
     setSaving(true)
     setError('')
@@ -57,6 +66,7 @@ export function AgentEditDialog({
         channel,
         outbound_url: channel === 'webhook' ? outboundUrl.trim() : '',
         system_prompt: instructions,
+        provider: provider || undefined,
       })
       onSaved(next)
     } catch (err) {
@@ -71,7 +81,7 @@ export function AgentEditDialog({
       <div className="flex max-h-[90svh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-surface">
         <header className="border-b border-border px-5 py-4">
           <h2 className="text-sm font-medium">Edit {agent.emoji || '💬'} {agent.name}</h2>
-          <p className="mt-1 text-xs text-muted">Face, channel, and the instructions markdown for this agent.</p>
+          <p className="mt-1 text-xs text-muted">Face, model, channel, and the instructions for this agent.</p>
         </header>
         <div className="flex gap-1 border-b border-border px-3 pt-2">
           {(
@@ -144,6 +154,14 @@ export function AgentEditDialog({
                   ))}
                 </select>
               </div>
+              <ModelPicker
+                id="edit-agent-model"
+                label="Models"
+                value={provider}
+                onChange={setProvider}
+                models={models}
+                currentModel={agent.model}
+              />
               {channel === 'webhook' && (
                 <div>
                   <Label htmlFor="edit-agent-outbound">Outbound URL</Label>
@@ -155,7 +173,7 @@ export function AgentEditDialog({
                   />
                 </div>
               )}
-              <p className="text-[11px] text-muted">Model and API key stay in Settings for the whole process.</p>
+              <p className="text-[11px] text-muted">The API key stays in Settings. This model is only for this agent.</p>
             </div>
           )}
           {tab === 'instructions' && (

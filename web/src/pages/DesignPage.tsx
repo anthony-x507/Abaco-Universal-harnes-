@@ -74,7 +74,7 @@ export function DesignPage() {
             <h1 className="font-serif text-3xl tracking-tight text-ink md:text-4xl">Design</h1>
           </div>
           <p className="max-w-xs text-right text-xs text-muted">
-            Creation lives here. Chat stays quiet. Model and channel stay in Settings.
+            Creation lives here. Chat stays quiet. Pick a model when you create the agent.
           </p>
         </header>
 

@@ -223,6 +223,8 @@ export async function updateAgent(
     channel?: string
     outbound_url?: string
     system_prompt?: string
+    provider?: string
+    llm_model?: string
   },
 ): Promise<Agent> {
   return request(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -235,6 +237,7 @@ export async function createAgent(body: {
   outbound_url?: string
   provider?: string
   emoji?: string
+  llm_model?: string
 }): Promise<Agent> {
   return request('/v1/agents', { method: 'POST', body: JSON.stringify(body) })
 }

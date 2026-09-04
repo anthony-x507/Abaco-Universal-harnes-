@@ -31,6 +31,7 @@ describe('T10 Settings demo mode', () => {
     expect(screen.getByRole('option', { name: 'webhook' })).toBeEnabled()
     expect(screen.queryByRole('option', { name: /webhook \(later\)/i })).not.toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Check for Updates' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Updates' })).toBeInTheDocument()
     expect(await screen.findByText('Governance')).toBeInTheDocument()
     expect(screen.getByText('no_purchase_without_permission')).toBeInTheDocument()
     expect(screen.getByText('no_dark_web_without_permission')).toBeInTheDocument()

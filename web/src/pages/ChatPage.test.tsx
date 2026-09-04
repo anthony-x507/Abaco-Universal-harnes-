@@ -217,6 +217,8 @@ describe('Chat page quality tests', () => {
     expect(screen.queryByRole('button', { name: 'Agents' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Messages' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('LLM company (latest model)')).not.toBeInTheDocument()
+    expect(await screen.findByLabelText('Models')).toBeInTheDocument()
+    expect(screen.getByTitle('demo-echo')).toHaveTextContent('demo-echo')
     expect(screen.queryByLabelText('Channel')).not.toBeInTheDocument()
     expect(screen.getByTestId('thinking-status')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Workspace' })).toBeInTheDocument()

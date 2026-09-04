@@ -78,6 +78,21 @@ else
 fi
 
 rm -rf build dist Universal.spec
+python3 - <<'PY'
+from pathlib import Path
+import plistlib
+path = Path("Universal.app/Contents/Info.plist")
+if path.is_file():
+    data = plistlib.loads(path.read_bytes())
+    data["NSMicrophoneUsageDescription"] = (
+        "Universal records voice notes in Chat so they can be transcribed and sent."
+    )
+    data["NSCameraUsageDescription"] = (
+        "Universal can attach a photo from the camera roll when you pick a file."
+    )
+    path.write_bytes(plistlib.dumps(data))
+    print("Info.plist: microphone usage string added")
+PY
 ./scripts/sign_macos.sh Universal.app
 echo "Universal.app is in the repo root. Drag it to Applications to install."
 echo "Next: scripts/create_dmg.sh"
