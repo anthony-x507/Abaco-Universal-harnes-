@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native Mac app. Download Universal.dmg only. Updates check GitHub Releases and install to /Applications/Universal.app."
+  "release_notes": "Native Mac app. Download Universal.dmg only. Includes the Ábaco mark, hybrid Node runtime, signed-core governance, encrypted wallet, and permission-gated Tor. Updates check GitHub Releases and install to /Applications/Universal.app."
 }
