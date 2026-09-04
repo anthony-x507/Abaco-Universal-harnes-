@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
@@ -224,6 +224,22 @@ describe('Chat page quality tests', () => {
     expect(screen.queryByText('No screen connected')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Workspace' }))
     expect(screen.getByText('No screen connected')).toBeInTheDocument()
+  })
+
+  it('keeps a long note in the composer and accepts a dropped document', async () => {
+    installFetchMock(() => null)
+    renderChat()
+    const box = await screen.findByPlaceholderText('How can I help you today?')
+    expect(box).not.toHaveAttribute('maxLength')
+    const long = Array.from({ length: 240 }, (_, index) => `word${index}`).join(' ')
+    fireEvent.change(box, { target: { value: long } })
+    expect(box).toHaveValue(long)
+    expect(screen.getByText(/240 \/ 5,000 words/)).toBeInTheDocument()
+    const form = box.closest('form')
+    expect(form).toBeTruthy()
+    const file = new File(['# Brief\nDo the steps.'], 'brief.md', { type: 'text/markdown' })
+    fireEvent.drop(form as HTMLFormElement, { dataTransfer: { files: [file] } })
+    expect(await screen.findByText('brief.md')).toBeInTheDocument()
   })
 
   it('T17 keeps the user turn and shows Retry when the stream dies', async () => {

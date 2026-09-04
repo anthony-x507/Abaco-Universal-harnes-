@@ -48,7 +48,7 @@ export function sseResponse(blocks: string[]) {
 
 export function defaultCatalog() {
   return {
-    health: { status: 'ok', demo: true, agents: 1 },
+    health: { status: 'ok', demo: true, agents: 1, whisper: true },
     settings: {
       llm_base_url: 'https://api.openai.com/v1',
       llm_api_key: '',

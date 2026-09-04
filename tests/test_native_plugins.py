@@ -86,12 +86,17 @@ def test_tts_reports_missing_engine(monkeypatch) -> None:
     assert result is not None and "no TTS engine" in result
 
 
-def test_stt_missing_file_and_missing_whisper(tmp_path: Path) -> None:
+def test_stt_missing_file_and_missing_whisper(tmp_path: Path, monkeypatch) -> None:
     plugin = STTPlugin()
     missing = plugin.invoke_tool(_call("transcribe", audio_path=str(tmp_path / "none.wav")))
     assert missing is not None and "file not found" in missing
     audio = tmp_path / "clip.wav"
     audio.write_bytes(b"RIFF")
+
+    def _missing(_size: str):
+        raise RuntimeError("openai-whisper is not installed. pip install 'universal[media]'")
+
+    monkeypatch.setattr(plugin, "_load_model", _missing)
     result = plugin.invoke_tool(_call("transcribe", audio_path=str(audio), model="tiny"))
     assert result is not None
     assert "whisper" in result.lower() or "Error transcribing" in result

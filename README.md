@@ -104,7 +104,7 @@ universal> quit
 
 `python3 -m universal serve` is the control plane (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is **not** `/v1/chat/completions`.
 
-The SPA in `web/` talks only to that factory. Chat is three panes: **Agents**, **Messages**, **Workspace**. Each pane can close. File and audio attach in Chat are notes/text in this cut. Agents can still `transcribe` a local path and `describe_image` a local file via tools.
+The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspace. Drop any document on the write bar. Audio records to WAV and `POST /v1/transcribe` runs local Whisper (`tiny`). The composer holds about 5,000 words without a cutoff. Install the optional extra if health shows `"whisper": false`: `pip install 'universal[media]'`.
 
 | Control | Behavior |
 |---|---|

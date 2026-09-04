@@ -29,6 +29,6 @@ Create can choose `cli` or `webhook` once `GET /v1/channels` lists both. A webho
 
 Agents page: **Download ZIP** calls `POST /v1/agents/{id}/deploy` and saves the archive. Cards show readable plugin names (`Terminal: run_command`, `Tools: utc_now`, …), not catalog ids. Every created agent includes the six native tools.
 
-Chat: **Auto** next to Send is off by default (one-turn `/ask`). On, Send posts `/v1/agents/{id}/run` so the agent can loop tools. The message header shows `Tokens: … | Cost: $…` from the agent usage totals.
+Chat: **Auto** next to Send is off by default (one-turn `/ask`). On, Send posts `/v1/agents/{id}/run` so the agent can loop tools. The message header shows `Tokens: … | Cost: $…` from the agent usage totals. Drop any document on the write bar. Audio is transcribed with local Whisper via `POST /v1/transcribe` (`pip install 'universal[media]'` if `/health` says `"whisper": false`). The write bar holds about 5,000 words.
 
 Demo: `universal serve --demo`, create **Researcher**, toggle Auto, send `What time is it in UTC? Investigate and summarize.`

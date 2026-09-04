@@ -38,6 +38,12 @@ from universal.web_dist import resolve_web_dist
 COMING_CHANNELS: tuple[str, ...] = ()
 
 
+def _whisper_ready() -> bool:
+    from universal.plugins.stt import whisper_available
+
+    return whisper_available()
+
+
 class CreateAgentBody(BaseModel):
     template: str = Field(default="general")
     name: str | None = None
@@ -60,6 +66,14 @@ class AttachmentBody(BaseModel):
     mime: str = "application/octet-stream"
     data: str = ""
     kind: str = "file"
+    transcript: str | None = None
+
+
+class TranscribeBody(BaseModel):
+    name: str = "clip.wav"
+    mime: str = "audio/wav"
+    data: str
+    model: str = "tiny"
 
 
 class WebhookBody(BaseModel):
@@ -169,6 +183,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "agents": len(state.platform.factory.list()),
             "web": bool(getattr(app.state, "web_dist", None)),
             "version": current_version(),
+            "whisper": _whisper_ready(),
         }
 
     @app.get("/v1/update")
@@ -260,6 +275,26 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             updates["llm_model"] = preset.default_model
         if updates:
             state.platform.replace_settings(state.platform.settings.with_updates(**updates))
+
+    @app.post("/v1/transcribe")
+    def transcribe_audio(body: TranscribeBody) -> dict[str, Any]:
+        from universal.attachments import save_upload
+        from universal.core.types import ToolCall
+        from universal.plugins.stt import STTPlugin
+
+        path = save_upload("transcribe", body.name or "clip.wav", body.data)
+        plugin = STTPlugin()
+        text = plugin.invoke_tool(
+            ToolCall(
+                id="ui",
+                name="transcribe",
+                arguments=json.dumps({"audio_path": str(path), "model": body.model or "tiny"}),
+            )
+        )
+        heard = str(text or "").strip()
+        if not heard or heard.startswith("Error") or "not installed" in heard.lower():
+            raise HTTPException(status_code=503, detail=heard or "Whisper could not transcribe that clip.")
+        return {"text": heard, "path": str(path)}
 
     @app.post("/v1/agents")
     def create_agent(body: CreateAgentBody) -> dict[str, Any]:

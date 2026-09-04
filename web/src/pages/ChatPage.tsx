@@ -10,11 +10,14 @@ import {
   friendlyError,
   PROVIDER_ERROR_COPY,
   getAgent,
+  getHealth,
   listAgents,
   resetAgent,
+  transcribeAudio,
   type Agent,
   type HistoryTurn,
 } from '../lib/api'
+import { blobToWav, wordCount } from '../lib/audio'
 import { useAskSession } from '../lib/ask-session'
 import { cn, usageLabel } from '../lib/utils'
 import { DragHandle } from '../components/DragHandle'
@@ -28,7 +31,12 @@ type Attachment = {
   mime: string
   data?: string
   body?: string
+  transcript?: string
 }
+
+const TEXT_FILE =
+  /\.(md|txt|json|csv|py|ts|tsx|js|jsx|html|htm|xml|yaml|yml|toml|ini|log|rst|css|env|rtf|docx|pdf)$/i
+const COMPOSER_MAX_PX = 360
 
 function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -62,6 +70,9 @@ export function ChatPage() {
   const [confirmClear, setConfirmClear] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [autoMode, setAutoMode] = useState(false)
+  const [dropActive, setDropActive] = useState(false)
+  const [whisperReady, setWhisperReady] = useState<boolean | null>(null)
+  const [transcribing, setTranscribing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -144,16 +155,26 @@ export function ChatPage() {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight })
   }, [history, sending, loadingHistory])
 
-  const buildPrompt = (text: string) => {
-    if (attachments.length === 0) return text
-    const extras = attachments
-      .map((item) => {
-        if (item.body) return `Attached file ${item.name}:\n${item.body}`
-        return item.note
+  useEffect(() => {
+    let cancelled = false
+    void getHealth()
+      .then((health) => {
+        if (!cancelled) setWhisperReady(health.whisper ?? false)
       })
-      .join('\n\n')
-    return `${text}\n\n${extras}`
-  }
+      .catch(() => {
+        if (!cancelled) setWhisperReady(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const box = composerRef.current
+    if (!box) return
+    box.style.height = 'auto'
+    box.style.height = `${Math.min(box.scrollHeight, COMPOSER_MAX_PX)}px`
+  }, [prompt])
 
   const sendPrompt = async (
     outbound: string,
@@ -209,6 +230,7 @@ export function ChatPage() {
               mime: item.mime,
               data: item.data as string,
               kind: item.kind,
+              transcript: item.transcript,
             })),
         },
       )
@@ -261,7 +283,7 @@ export function ChatPage() {
       return
     }
     const pending = attachments
-    const outbound = buildPrompt(text || (pending.length ? '' : '(attachment only)'))
+    const outbound = text || (pending.length ? '' : '(attachment only)')
     setPrompt('')
     setAttachments([])
     await sendPrompt(outbound, true, pending)
@@ -301,17 +323,19 @@ export function ChatPage() {
     for (const file of Array.from(list)) {
       const data = await fileToBase64(file)
       const image = file.type.startsWith('image/')
-      const textLike = file.type.startsWith('text/') || /\.(md|txt|json|csv|py|ts|tsx|js)$/i.test(file.name)
+      const audio = file.type.startsWith('audio/')
+      const textLike = file.type.startsWith('text/') || TEXT_FILE.test(file.name)
       next.push({
-        name: file.name,
-        kind: image ? 'image' : 'file',
+        name: file.name || `file-${Date.now()}`,
+        kind: image ? 'image' : audio ? 'audio' : 'file',
         mime: file.type || 'application/octet-stream',
         data,
-        note: image ? `Photo ${file.name}` : `Attached file ${file.name}`,
-        body: textLike && file.size < 200_000 ? await file.text() : undefined,
+        note: image ? `Photo ${file.name}` : audio ? `Audio ${file.name}` : `Attached file ${file.name}`,
+        body: textLike && file.size < 2_000_000 ? await file.text() : undefined,
       })
     }
     setAttachments((current) => [...current, ...next])
+    if (next.length) showToast(next.length === 1 ? `Attached ${next[0].name}` : `Attached ${next.length} files`)
   }
 
   const toggleRecord = async () => {
@@ -371,23 +395,46 @@ export function ChatPage() {
       recorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop())
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
-        void fileToBase64(blob).then((data) => {
-          setAttachments((current) => [
-            ...current,
-            {
-              name: `audio-${Date.now()}.webm`,
-              kind: 'audio',
-              mime: blob.type || 'audio/webm',
-              data,
-              note: spokenRef.current ? `Audio: ${spokenRef.current}` : 'Audio clip ready to transcribe',
-            },
-          ])
-          if (spokenRef.current) {
-            setPrompt((current) => current || spokenRef.current)
-          }
-        })
         setRecording(false)
         recorderRef.current = null
+        void (async () => {
+          setTranscribing(true)
+          setStatusLine('Transcribing with local Whisper…')
+          try {
+            const wav = await blobToWav(blob)
+            const data = await fileToBase64(wav)
+            const name = `audio-${Date.now()}.wav`
+            let transcript = ''
+            try {
+              const result = await transcribeAudio({ name, mime: 'audio/wav', data })
+              transcript = result.text.trim()
+            } catch (err) {
+              const message = friendlyError(err)
+              showToast(message)
+              setError(message)
+            }
+            const spoken = transcript || spokenRef.current
+            setAttachments((current) => [
+              ...current,
+              {
+                name,
+                kind: 'audio',
+                mime: 'audio/wav',
+                data,
+                note: spoken ? `Audio: ${spoken}` : 'Audio clip',
+                transcript: spoken || undefined,
+              },
+            ])
+            if (spoken) {
+              setPrompt((current) => (current.trim() ? `${current.trim()} ${spoken}` : spoken))
+            }
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not prepare the recording.')
+          } finally {
+            setTranscribing(false)
+            setStatusLine('')
+          }
+        })()
       }
       recorderRef.current = recorder
       recorder.start()
@@ -398,6 +445,7 @@ export function ChatPage() {
   }
 
   const emptyThread = !loadingHistory && history.length === 0
+  const words = wordCount(prompt)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -542,19 +590,32 @@ export function ChatPage() {
 
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 pb-5 pt-1">
             <form
-              className="glass-panel rounded-[28px] p-3"
+              className={cn('glass-panel relative rounded-[28px] p-3', dropActive && 'ring-2 ring-accent/50')}
               onSubmit={(event) => {
                 event.preventDefault()
                 if (!requireAgent()) return
                 void send()
               }}
+              onDragEnter={(event) => {
+                event.preventDefault()
+                setDropActive(true)
+              }}
               onDragOver={(event) => event.preventDefault()}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropActive(false)
+              }}
               onDrop={(event) => {
                 event.preventDefault()
+                setDropActive(false)
                 if (!requireAgent()) return
                 void onFiles(event.dataTransfer.files)
               }}
             >
+              {dropActive && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[28px] bg-accent/10 text-sm text-accent">
+                  Drop any document here
+                </div>
+              )}
               {attachments.length > 0 && (
                 <ul className="mb-2 flex flex-wrap gap-2 px-1">
                   {attachments.map((item) => (
@@ -591,16 +652,20 @@ export function ChatPage() {
                   }
                 }}
                 placeholder={selected ? 'How can I help you today?' : 'Create an agent in Design first'}
-                disabled={sending}
-                rows={3}
-                className="w-full resize-none bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-muted"
+                disabled={sending || transcribing}
+                rows={4}
+                className="max-h-[360px] min-h-[6.5rem] w-full resize-y overflow-y-auto bg-transparent px-3 py-2 text-sm leading-relaxed text-ink outline-none placeholder:text-muted"
               />
+              <div className="px-3 text-[11px] text-muted">
+                {words.toLocaleString('en-US')} / 5,000 words
+                {words > 5000 ? ' — still sending the full note' : ''}
+              </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5 px-1">
                 <input
                   ref={fileRef}
                   type="file"
                   multiple
-                  accept="image/*,audio/*,.txt,.md,.json,.csv,.py,.ts,.tsx,.js"
+                  accept="*/*"
                   className="hidden"
                   onChange={(event) => {
                     void onFiles(event.target.files)
@@ -626,9 +691,16 @@ export function ChatPage() {
                   size="sm"
                   variant={recording ? 'danger' : 'ghost'}
                   disabled={sending}
-                  title="Record audio for the agent"
+                  title={
+                    whisperReady === false
+                      ? "Local Whisper is not installed. pip install 'universal[media]'"
+                      : 'Record audio — local Whisper transcribes it'
+                  }
                   onClick={() => {
                     if (!requireAgent()) return
+                    if (whisperReady === false) {
+                      showToast("Local Whisper is not installed. Run pip install 'universal[media]'.")
+                    }
                     void toggleRecord()
                   }}
                 >
@@ -650,7 +722,7 @@ export function ChatPage() {
                   type="submit"
                   size="sm"
                   className="ml-auto h-9 w-9 rounded-xl p-0"
-                  disabled={sending || (!prompt.trim() && attachments.length === 0)}
+                  disabled={sending || transcribing || (!prompt.trim() && attachments.length === 0)}
                   aria-label="Send"
                 >
                   <ArrowUp size={16} />

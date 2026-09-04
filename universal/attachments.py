@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from universal.core.types import ToolCall
+from universal.documents import extract_text
 from universal.paths import user_data_dir
 
 SAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
@@ -62,21 +63,14 @@ def apply_attachments(agent: Any, prompt: str, attachments: list[dict[str, str]]
             )
             blocks.append(f"[Attached image {name}]\n{seen or f'Saved image at {path}'}")
         elif audio:
-            heard = _invoke(agent, "transcribe", audio_path=str(path), model="base")
+            heard = str(item.get("transcript") or "").strip() or _invoke(
+                agent, "transcribe", audio_path=str(path), model="tiny"
+            )
             blocks.append(f"[Attached audio {name}]\nTranscript: {heard or f'Saved audio at {path}'}")
         else:
-            text_like = mime.startswith("text/") or path.suffix.lower() in {
-                ".md",
-                ".txt",
-                ".json",
-                ".csv",
-                ".py",
-                ".ts",
-                ".tsx",
-                ".js",
-            }
-            if text_like and path.stat().st_size < 200_000:
-                blocks.append(f"[Attached file {name}]\n{path.read_text(encoding='utf-8', errors='replace')}")
+            extracted = extract_text(path)
+            if extracted:
+                blocks.append(f"[Attached file {name}]\n{extracted}")
             else:
                 blocks.append(f"[Attached file {name} saved at {path}]")
     extras = "\n\n".join(blocks)

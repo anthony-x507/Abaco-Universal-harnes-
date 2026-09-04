@@ -107,7 +107,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-export async function getHealth(): Promise<{ status: string; demo: boolean; agents: number }> {
+export async function getHealth(): Promise<{
+  status: string
+  demo: boolean
+  agents: number
+  whisper?: boolean
+}> {
   return request('/health')
 }
 
@@ -169,6 +174,16 @@ export type ChatAttachment = {
   mime: string
   data: string
   kind: 'file' | 'audio' | 'image'
+  transcript?: string
+}
+
+export async function transcribeAudio(body: {
+  name: string
+  mime: string
+  data: string
+  model?: string
+}): Promise<{ text: string }> {
+  return request('/v1/transcribe', { method: 'POST', body: JSON.stringify({ model: 'tiny', ...body }) })
 }
 
 export async function updateAgent(
