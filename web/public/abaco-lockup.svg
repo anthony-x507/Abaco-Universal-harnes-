@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 96" role="img" aria-label="Ábaco Harnes">
+  <rect width="280" height="96" fill="none"/>
+  <path d="M38 8L64 76H55.2L50.4 63.2H25.6L20.8 76H12L38 8Z" fill="#00E5FF"/>
+  <path d="M29.2 54.8h17.6L38 32.4 29.2 54.8Z" fill="#0B0E14"/>
+  <text x="80" y="48" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="600" fill="#E8EDF5">ábaco</text>
+  <text x="80" y="70" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="500" letter-spacing="0.28em" fill="#8B95A8">HARNES</text>
+</svg>

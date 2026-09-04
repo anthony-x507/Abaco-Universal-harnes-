@@ -52,13 +52,11 @@ export function AppShell() {
         <div className="hidden md:flex md:h-full md:min-h-0 md:w-full md:flex-col">
           <div className="mb-4 flex items-center justify-between gap-2 px-1">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent text-sm font-bold text-bg">
-                U
-              </div>
+              <img src="/abaco-mark.svg" alt="Ábaco" className="h-8 w-8 shrink-0 rounded-md" />
               {layout.navOpen && (
                 <div className="min-w-0 leading-tight">
-                  <div className="truncate text-sm font-semibold">Universal</div>
-                  <div className="text-[11px] text-muted">Platform</div>
+                  <div className="truncate text-sm font-semibold">ábaco</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-muted">Harnes</div>
                 </div>
               )}
             </div>
@@ -107,10 +105,11 @@ export function AppShell() {
 
         <div className="flex w-full items-center justify-between gap-2 md:hidden">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-bold text-bg">
-              U
+            <img src="/abaco-mark.svg" alt="Ábaco" className="h-8 w-8 rounded-md" />
+            <div className="leading-tight">
+              <div className="text-sm font-semibold">ábaco</div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-muted">Harnes</div>
             </div>
-            <div className="text-sm font-semibold">Universal</div>
           </div>
           <nav className="flex gap-1">
             {nav.map((item) => (
