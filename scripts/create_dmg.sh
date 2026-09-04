@@ -29,4 +29,9 @@ hdiutil create \
   -format UDZO \
   "$ROOT/Universal.dmg"
 
+if [[ -n "${APPLE_SIGNING_IDENTITY:-}" ]]; then
+  codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$ROOT/Universal.dmg" || true
+  "$ROOT/scripts/sign_macos.sh" "$ROOT/Universal.app"
+fi
+
 echo "Universal.dmg is ready at $ROOT/Universal.dmg"

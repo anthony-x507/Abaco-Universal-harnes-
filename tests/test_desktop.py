@@ -91,6 +91,10 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "aegis" not in build.lower()
     assert "--icon" in build
     assert "Universal.icns" in build
+    assert "agent_runtime:agent_runtime" in build
+    assert "download_node.sh" in build
+    assert "sign_macos.sh" in build
+    assert "--hidden-import=whisper" not in build
     assert "hdiutil" in dmg
     assert "from universal.desktop import main" in app_entry
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")

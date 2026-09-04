@@ -81,6 +81,9 @@ def run_desktop(
     start_factory_thread(host=host, port=port, demo=demo, persist=True)
     url = f"http://{host}:{port}"
     wait_for_health(url)
+    from universal.runtime_manager import default_manager
+
+    default_manager().start(core_url=url)
     if not open_window:
         return 0
     try:
@@ -133,7 +136,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         port = _free_port() if args.port == DEFAULT_PORT else args.port
         start_factory_thread(host=args.host, port=port, demo=True, persist=False)
         wait_for_health(f"http://{args.host}:{port}")
-        print(f"universal desktop: ok  face={dist}  factory=http://{args.host}:{port}")
+        from universal.runtime_manager import default_manager
+
+        runtime = default_manager()
+        runtime.start(core_url=f"http://{args.host}:{port}")
+        up = runtime.healthy()
+        runtime.stop()
+        print(
+            f"universal desktop: ok  face={dist}  factory=http://{args.host}:{port}  "
+            f"runtime={'up' if up else 'off'}"
+        )
         return 0
     return run_desktop(host=args.host, port=args.port, demo=args.demo, open_window=True)
 

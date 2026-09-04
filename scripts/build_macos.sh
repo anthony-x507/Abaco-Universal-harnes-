@@ -8,8 +8,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 echo "Building Universal icons from the Ábaco mark…"
-chmod +x scripts/make_icns.sh scripts/make_icon.py
+chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
 ./scripts/make_icns.sh
+./scripts/download_node.sh
 
 echo "Building Universal web face…"
 (
@@ -45,12 +46,17 @@ ICON_ARGS=()
 if [[ -f Universal.icns ]]; then
   ICON_ARGS+=(--icon Universal.icns --add-data "Universal.icns:.")
 fi
+DATA_ARGS=(--add-data "agent_runtime:agent_runtime")
+if [[ -x Resources/node/bin/node ]]; then
+  DATA_ARGS+=(--add-data "Resources/node:node")
+fi
 
 python3 -m PyInstaller \
   --noconfirm \
   --windowed \
   --name Universal \
   "${ICON_ARGS[@]}" \
+  "${DATA_ARGS[@]}" \
   --add-data "web/dist:web/dist" \
   --add-data "version.json:." \
   --hidden-import=uvicorn.logging \
@@ -72,5 +78,6 @@ else
 fi
 
 rm -rf build dist Universal.spec
+./scripts/sign_macos.sh Universal.app
 echo "Universal.app is in the repo root. Drag it to Applications to install."
 echo "Next: scripts/create_dmg.sh"

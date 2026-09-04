@@ -4,7 +4,7 @@ import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { useModels } from '../hooks/useModels'
-import { applyUpdate, getHealth, getSettings, getUpdateStatus, updateSettings } from '../lib/api'
+import { applyUpdate, getHealth, getSettings, getUpdateStatus, updateSettings, type RuntimeStatus } from '../lib/api'
 import { laterChannels } from '../lib/utils'
 
 export function SettingsPage() {
@@ -28,6 +28,7 @@ export function SettingsPage() {
   const [applyingUpdate, setApplyingUpdate] = useState(false)
   const [pendingUpdate, setPendingUpdate] = useState<{ latest: string; current: string } | null>(null)
   const [preset, setPreset] = useState('OpenAI (GPT-5.6 Sol)')
+  const [runtime, setRuntime] = useState<RuntimeStatus | null>(null)
   const { models } = useModels()
 
   const load = useCallback(async () => {
@@ -49,6 +50,7 @@ export function SettingsPage() {
       setHasKey(Boolean(settings.llm_api_key))
       setDemo(settings.demo)
       setServerOk(health.status === 'ok')
+      setRuntime(health.runtime ?? null)
       setLoadedOnce(true)
       setError('')
     } catch (err) {
@@ -225,6 +227,34 @@ export function SettingsPage() {
             {saving ? 'Saving…' : 'Save'}
           </Button>
           {message && <p className="text-sm text-accent">{message}</p>}
+        </Card>
+      )}
+
+      {loadedOnce && (
+        <Card className="space-y-3 p-5">
+          <h2 className="text-sm font-semibold">Evolvable runtime</h2>
+          <p className="text-sm text-muted">
+            Node.js lives in your user data. The signed app never writes plugin files until you allow it in
+            the macOS dialog.
+          </p>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted">Runtime</span>
+            <span className={runtime?.ok ? 'text-accent' : 'text-muted'}>
+              {runtime?.ok ? 'Online' : 'Offline'}
+            </span>
+          </div>
+          {runtime?.plugins?.length ? (
+            <ul className="space-y-1 text-sm text-ink">
+              {runtime.plugins.map((plugin) => (
+                <li key={plugin.name}>
+                  {plugin.name}
+                  {plugin.description ? <span className="text-muted"> — {plugin.description}</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No runtime plugins loaded yet.</p>
+          )}
         </Card>
       )}
 

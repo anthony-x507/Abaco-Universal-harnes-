@@ -82,6 +82,11 @@ class Agent:
         """Hot-swap: remove a plugin from this agent."""
         return self.plugins.uninstall(name, self)
 
+    def record_turn(self, prompt: str, answer: str) -> None:
+        """Persist one inbound turn that the Node runtime already answered."""
+        self._history.append(Message(role="user", content=prompt))
+        self._history.append(Message(role="assistant", content=answer))
+
     def reset_history(self) -> None:
         self._history.clear()
         transcript = self.plugins.get("transcript")

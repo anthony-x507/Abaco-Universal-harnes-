@@ -259,6 +259,14 @@ scripts/create_dmg.sh     # Universal.dmg (hdiutil)
 
 The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Universal Harness**, and the splash shown while the SPA mounts. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Universal.app`.
 
+### Hybrid runtime (Python core + Node)
+
+The signed factory stays on **43124**. A Node process on **43126** holds the evolvable loop and user plugins under Application Support (`~/Library/Application Support/Universal/agent_runtime` on a Mac). First launch copies the seed; later launches do not overwrite plugins you already changed.
+
+Sensitive writes go through `POST /v1/runtime/evolve` and `POST /v1/permission/ask`. On macOS that is a native dialog. Node cannot write plugin files itself — it only proposes. `POST /v1/llm/complete` is the localhost bridge so Node uses the one Python provider (not a second Chat Completions API). Chat `ask` still goes through `Agent.accept`. Auto/`run` uses Node when that process is healthy, otherwise the Python loop.
+
+Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips starting Node. `scripts/sign_macos.sh` signs the `.app` when `APPLE_SIGNING_IDENTITY` is set; it does not invent a second installer.
+
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
 Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the six tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.

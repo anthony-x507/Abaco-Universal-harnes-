@@ -107,13 +107,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+export type RuntimePlugin = {
+  name: string
+  version?: string
+  description?: string
+}
+
+export type RuntimeStatus = {
+  ok: boolean
+  url: string
+  dir: string
+  node?: string
+  plugins: RuntimePlugin[]
+}
+
 export async function getHealth(): Promise<{
   status: string
   demo: boolean
   agents: number
   whisper?: boolean
+  runtime?: RuntimeStatus
 }> {
   return request('/health')
+}
+
+export async function getRuntime(): Promise<RuntimeStatus> {
+  return request('/v1/runtime')
 }
 
 export type UpdateStatus = {

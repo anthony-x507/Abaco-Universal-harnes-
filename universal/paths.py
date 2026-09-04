@@ -46,6 +46,13 @@ def get_plugins_dir() -> Path:
     return path
 
 
+def get_runtime_dir() -> Path:
+    """User-writable Node runtime. The signed app never writes here after first copy."""
+    path = user_data_dir() / "agent_runtime"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def get_memory_dir() -> Path:
     env = os.environ.get("UNIVERSAL_MEMORY_DIR", "").strip()
     if env:
@@ -69,10 +76,12 @@ def get_registry_file() -> Path:
 def ensure_user_data_dirs() -> dict[str, str]:
     plugins = get_plugins_dir()
     memory = get_memory_dir()
+    runtime = get_runtime_dir()
     data = user_data_dir()
     return {
         "user_data": str(data),
         "plugins": str(plugins),
         "memory": str(memory),
+        "runtime": str(runtime),
         "registry": str(get_registry_file()),
     }

@@ -31,6 +31,8 @@ from universal.exceptions import (
 )
 from universal.providers.catalog import PROVIDERS, get_provider
 from universal.release import current_version
+from universal.runtime_api import register_runtime_routes
+from universal.runtime_manager import default_manager
 from universal.templates.catalog import list_templates
 from universal.web_dist import resolve_web_dist
 
@@ -184,6 +186,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "web": bool(getattr(app.state, "web_dist", None)),
             "version": current_version(),
             "whisper": _whisper_ready(),
+            "runtime": default_manager().status(),
         }
 
     @app.get("/v1/update")
@@ -419,6 +422,20 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     def run_agent(agent_id: str, body: RunBody) -> Any:
         agent, prompt = _prepare_ask(agent_id, body.prompt.strip(), body.attachments)
         max_iterations = max(1, int(body.max_iterations))
+        runtime = default_manager()
+        if runtime.healthy() and not body.stream:
+            history = [{"role": message.role, "content": message.content} for message in agent.history]
+            try:
+                answer = runtime.think(prompt=prompt, history=history, agent_id=agent.id)
+            except Exception:
+                answer = None
+            else:
+                agent.record_turn(prompt, answer)
+                payload = _agent_payload(state.platform, agent.id)
+                payload["answer"] = answer
+                payload["runtime"] = True
+                _finish_ask(agent.id)
+                return payload
         if body.stream:
             return _stream_events(
                 agent,
@@ -459,6 +476,8 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     def deploy_agent(agent_id: str) -> FileResponse:
         path = state.platform.factory.deploy(agent_id, state.deploy_dir)
         return FileResponse(path, filename=path.name, media_type="application/zip")
+
+    register_runtime_routes(app, state)
 
     dist = resolve_web_dist()
     app.state.web_dist = dist
@@ -538,5 +557,10 @@ def run_server(*, host: str = "127.0.0.1", port: int = 43124, demo: bool = False
         raise ConfigError("v1 serve binds localhost only. Do not pass a public host.")
 
     app = build_serve_app(demo=demo)
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    runtime = default_manager()
+    runtime.start(core_url=f"http://{host}:{port}")
+    try:
+        uvicorn.run(app, host=host, port=port, log_level="info")
+    finally:
+        runtime.stop()
     return 0
