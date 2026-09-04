@@ -11,6 +11,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
+- Native tools on every agent: terminal, TTS (voice + speed), Whisper STT, vision, web search, scraper
 - ZIP export with no secrets
 
 Package name: `universal`. Product name: **Universal platform**.
@@ -99,7 +100,7 @@ universal> quit
 
 `python3 -m universal serve` is the control plane (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is **not** `/v1/chat/completions`.
 
-The SPA in `web/` talks only to that factory. Chat is three panes: **Agents**, **Messages**, **Workspace**. Each pane can close. File and audio attach are notes/text in this cut; there is no STT or OCR.
+The SPA in `web/` talks only to that factory. Chat is three panes: **Agents**, **Messages**, **Workspace**. Each pane can close. File and audio attach in Chat are notes/text in this cut. Agents can still `transcribe` a local path and `describe_image` a local file via tools.
 
 | Control | Behavior |
 |---|---|
@@ -107,7 +108,7 @@ The SPA in `web/` talks only to that factory. Chat is three panes: **Agents**, *
 | **Auto** (toggle, default off) | `POST /v1/agents/{id}/run` — tool loop without extra user turns |
 | Clear history | `POST /v1/agents/{id}/reset` — state unchanged |
 | Download ZIP | `POST /v1/agents/{id}/deploy` |
-| Plugin line | Readable labels such as `Tools: utc_now` |
+| Plugin line | Readable labels such as `Terminal: run_command`, `Tools: utc_now` |
 | Usage meter | `Tokens: 1,234 \| Cost: $0.002` |
 
 `--demo` injects an echo provider. Settings update the running process only; they are never written to disk. The API key is never packed into a ZIP.
@@ -171,9 +172,20 @@ Totals live on the agent (not in the snapshot) and ship in the ZIP as `usage.jso
 
 ## Plugins
 
-Templates name plugin ids. `PluginCatalog` turns those ids into instances. The generator does not `if plugin_id == ...`.
+Templates name plugin ids. `PluginCatalog` turns those ids into instances. The generator does not `if plugin_id == ...`. Native plugins are **always** installed on create (even if you pass an empty plugin list).
 
-Built-in catalog ids: `tools` (ships `utc_now`), `transcript`, `system_prompt`. Templates do **not** install `system_prompt` or `transcript` by default — the system prompt is `agent.system_prompt` from the template. Researcher installs `tools`.
+Built-in catalog ids:
+
+| Id | Tool | Notes |
+|---|---|---|
+| `terminal` | `run_command` | Local shell. Timeout 15s. Refuses obvious destroyers (`rm -rf /`, `mkfs`, `dd of=`, shutdown). `UNIVERSAL_TERMINAL_DIR` sets cwd. |
+| `tts` | `speak` | Voice `male` / `female` / `default`, speed `0.5`–`2.0`. Uses `say`, `espeak`/`espeak-ng`, or `spd-say` when present. Text is never interpolated into a shell string. |
+| `stt` | `transcribe` | Local Whisper (`tiny`…`large`). Optional extra: `pip install 'universal[media]'`. Missing Whisper returns an error string; CI does not download models. |
+| `vision` | `describe_image` | Demo caption without a vision method. Live `OpenAICompatProvider.complete_vision` uses the same HTTP client (not a second provider). |
+| `web_search` | `search_web` | DuckDuckGo Instant Answer. No API key. |
+| `scraper` | `scrape_url` | BeautifulSoup. http(s) only; localhost and private IPs are rejected. |
+| `tools` | `utc_now` | Researcher only, in addition to the six natives. |
+| `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
 Hot-swap on a live agent:
 

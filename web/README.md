@@ -25,7 +25,7 @@ Without `--demo`, set `UNIVERSAL_LLM_*` or paste a key in Settings. Settings upd
 
 Create can choose `cli` or `webhook` once `GET /v1/channels` lists both. A webhook agent still answers in Chat via `/ask`. Other processes POST `{ "text": "…" }` to `/v1/agents/{id}/webhook`. Optional outbound URL is per agent, in memory.
 
-Agents page: **Download ZIP** calls `POST /v1/agents/{id}/deploy` and saves the archive. Cards show readable plugin names (`Tools: utc_now`), not catalog ids.
+Agents page: **Download ZIP** calls `POST /v1/agents/{id}/deploy` and saves the archive. Cards show readable plugin names (`Terminal: run_command`, `Tools: utc_now`, …), not catalog ids. Every created agent includes the six native tools.
 
 Chat: **Auto** next to Send is off by default (one-turn `/ask`). On, Send posts `/v1/agents/{id}/run` so the agent can loop tools. The message header shows `Tokens: … | Cost: $…` from the agent usage totals.
 

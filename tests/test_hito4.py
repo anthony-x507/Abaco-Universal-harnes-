@@ -16,18 +16,19 @@ from universal.core.usage import estimate_cost
 from universal.plugins.tools import ToolBeltPlugin, utc_now_tool
 from universal.server import create_app
 from tests.conftest import FakeProvider
+from tests.native_expect import NATIVE_LABELS, RESEARCHER_LABELS, RESEARCHER_PLUGIN_NAMES
 
 
 def test_plugin_labels_are_readable(platform: Universal) -> None:
     researcher = platform.factory.create("researcher", name="labels")
-    assert researcher.plugin_labels() == ["Tools: utc_now"]
+    assert researcher.plugin_labels() == RESEARCHER_LABELS
     general = platform.factory.create("general", name="plain")
-    assert general.plugin_labels() == []
+    assert general.plugin_labels() == NATIVE_LABELS
     payload = create_app(platform, demo=True)
     client = TestClient(payload)
     listed = client.get("/v1/agents").json()["agents"]
     row = next(item for item in listed if item["name"] == "labels")
-    assert row["plugin_labels"] == ["Tools: utc_now"]
+    assert row["plugin_labels"] == RESEARCHER_LABELS
 
 
 def test_run_loops_tools_without_a_second_complete_path() -> None:
@@ -77,7 +78,7 @@ def test_registry_sidecar_reloads_identities_stopped(tmp_path: Path, settings: S
     data = json.loads(path.read_text())
     assert data["agents"][0]["id"] == agent_id
     assert data["agents"][0]["name"] == "keep-me"
-    assert data["agents"][0]["plugins"] == ["tools"]
+    assert data["agents"][0]["plugins"] == list(RESEARCHER_PLUGIN_NAMES)
     assert "history" not in data["agents"][0]
     assert "api_key" not in json.dumps(data)
 
@@ -85,7 +86,7 @@ def test_registry_sidecar_reloads_identities_stopped(tmp_path: Path, settings: S
     restored = second.registry.get(agent_id)
     assert restored.name == "keep-me"
     assert restored.template_id == "researcher"
-    assert restored.plugins.names() == ["tools"]
+    assert restored.plugins.names() == list(RESEARCHER_PLUGIN_NAMES)
     assert restored.history == []
     assert second.lifecycle.state_of(agent_id) is AgentState.STOPPED
     assert restored.channel is not None and not restored.channel.running

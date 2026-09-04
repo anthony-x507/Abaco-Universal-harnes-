@@ -38,7 +38,17 @@ def test_accept_without_channel_uses_complete() -> None:
 
 def test_plugin_catalog_creates_known_ids() -> None:
     catalog = default_plugin_catalog()
-    assert set(catalog.ids()) == {"system_prompt", "transcript", "tools"}
+    assert set(catalog.ids()) == {
+        "system_prompt",
+        "transcript",
+        "tools",
+        "terminal",
+        "tts",
+        "stt",
+        "vision",
+        "web_search",
+        "scraper",
+    }
     prompt = catalog.create("system_prompt", system_prompt="Stay brief.")
     assert prompt.name == "system_prompt"
 

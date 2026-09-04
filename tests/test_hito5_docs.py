@@ -38,6 +38,9 @@ def test_readme_covers_hito5_surfaces() -> None:
         "registry.json",
         "usage.json",
         "utc_now",
+        "run_command",
+        "search_web",
+        "universal[media]",
         "DEMO.md",
         "demo.sh",
     ):
@@ -74,7 +77,9 @@ def test_documented_http_examples_work(platform: Universal) -> None:
     )
     assert researcher.status_code == 200
     body = researcher.json()
-    assert body["plugin_labels"] == ["Tools: utc_now"]
+    from tests.native_expect import RESEARCHER_LABELS
+
+    assert body["plugin_labels"] == RESEARCHER_LABELS
     assert "usage" in body
     agent_id = body["id"]
 

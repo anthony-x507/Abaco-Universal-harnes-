@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from universal.core.platform import Universal
+from universal.plugins.catalog import NATIVE_PLUGIN_NAMES
 from universal.templates.catalog import catalog, get_template, list_templates
 from tests.conftest import FakeProvider
+from tests.native_expect import RESEARCHER_PLUGIN_NAMES
 
 
 def test_three_templates_load() -> None:
@@ -18,9 +20,9 @@ def test_three_templates_load() -> None:
         assert template.name
         assert "system_prompt" not in template.default_plugins
         assert "transcript" not in template.default_plugins
-    assert get_template("researcher").default_plugins == ("tools",)
-    assert get_template("general").default_plugins == ()
-    assert get_template("coder").default_plugins == ()
+    assert get_template("researcher").default_plugins == RESEARCHER_PLUGIN_NAMES
+    assert get_template("general").default_plugins == NATIVE_PLUGIN_NAMES
+    assert get_template("coder").default_plugins == NATIVE_PLUGIN_NAMES
 
 
 def test_templates_have_distinct_prompts() -> None:
@@ -49,11 +51,11 @@ def test_researcher_includes_tools_plugin(platform: Universal) -> None:
     assert any(spec.name == "utc_now" for spec in specs)
 
 
-def test_general_and_coder_have_no_default_plugins(platform: Universal) -> None:
+def test_general_and_coder_install_native_plugins(platform: Universal) -> None:
     general = platform.factory.create("general")
     coder = platform.factory.create("coder")
-    assert general.plugins.names() == []
-    assert coder.plugins.names() == []
+    assert general.plugins.names() == list(NATIVE_PLUGIN_NAMES)
+    assert coder.plugins.names() == list(NATIVE_PLUGIN_NAMES)
 
 
 def test_unknown_template_raises(platform: Universal) -> None:

@@ -6,11 +6,35 @@ from collections.abc import Callable
 
 from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
+from universal.plugins.scraper import ScraperPlugin
+from universal.plugins.stt import STTPlugin
 from universal.plugins.system_prompt import SystemPromptPlugin
+from universal.plugins.terminal import TerminalPlugin
 from universal.plugins.tools import ToolBeltPlugin, utc_now_tool
 from universal.plugins.transcript import TranscriptPlugin
+from universal.plugins.tts import TTSPlugin
+from universal.plugins.vision import VisionPlugin
+from universal.plugins.web_search import WebSearchPlugin
 
 PluginFactory = Callable[..., Plugin]
+
+NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
+    "terminal",
+    "tts",
+    "stt",
+    "vision",
+    "web_search",
+    "scraper",
+)
+
+
+def merge_native_plugin_ids(requested: tuple[str, ...]) -> tuple[str, ...]:
+    """Native plugins are always installed. Extra ids follow, without duplicates."""
+    seen: list[str] = []
+    for plugin_id in (*NATIVE_PLUGIN_NAMES, *requested):
+        if plugin_id and plugin_id not in seen:
+            seen.append(plugin_id)
+    return tuple(seen)
 
 
 class PluginCatalog:
@@ -50,11 +74,41 @@ def _transcript_plugin(**_kwargs: object) -> TranscriptPlugin:
     return TranscriptPlugin()
 
 
+def _terminal_plugin(**_kwargs: object) -> TerminalPlugin:
+    return TerminalPlugin()
+
+
+def _tts_plugin(**_kwargs: object) -> TTSPlugin:
+    return TTSPlugin()
+
+
+def _stt_plugin(**_kwargs: object) -> STTPlugin:
+    return STTPlugin()
+
+
+def _vision_plugin(**_kwargs: object) -> VisionPlugin:
+    return VisionPlugin()
+
+
+def _web_search_plugin(**_kwargs: object) -> WebSearchPlugin:
+    return WebSearchPlugin()
+
+
+def _scraper_plugin(**_kwargs: object) -> ScraperPlugin:
+    return ScraperPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
     catalog.register("transcript", _transcript_plugin)
     catalog.register("tools", _tools_plugin)
+    catalog.register("terminal", _terminal_plugin)
+    catalog.register("tts", _tts_plugin)
+    catalog.register("stt", _stt_plugin)
+    catalog.register("vision", _vision_plugin)
+    catalog.register("web_search", _web_search_plugin)
+    catalog.register("scraper", _scraper_plugin)
     return catalog
 
 

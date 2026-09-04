@@ -25,23 +25,27 @@ def _client(platform: Universal, *, demo: bool = True) -> TestClient:
     return TestClient(create_app(platform, demo=demo))
 
 
-def test_t01_general_and_coder_install_no_plugins(platform: Universal) -> None:
+def test_t01_general_and_coder_install_native_plugins(platform: Universal) -> None:
+    from universal.plugins.catalog import NATIVE_PLUGIN_NAMES
+
     general = platform.factory.create("general", name="t01-g")
     coder = platform.factory.create("coder", name="t01-c")
-    assert general.plugins.names() == []
-    assert coder.plugins.names() == []
+    assert general.plugins.names() == list(NATIVE_PLUGIN_NAMES)
+    assert coder.plugins.names() == list(NATIVE_PLUGIN_NAMES)
     assert "system_prompt" not in general.plugins
     assert "transcript" not in general.plugins
     assert "tools" not in general.plugins
     assert "tools" not in coder.plugins
 
 
-def test_t02_researcher_installs_only_tools_utc_now(platform: Universal) -> None:
+def test_t02_researcher_installs_natives_plus_tools_utc_now(platform: Universal) -> None:
+    from tests.native_expect import RESEARCHER_PLUGIN_NAMES
+
     agent = platform.factory.create("researcher", name="t02")
-    plugins = agent.plugins.all()
-    assert len(plugins) == 1
-    assert plugins[0].name == "tools"
-    names = [spec.name for spec in plugins[0].tools()]
+    assert agent.plugins.names() == list(RESEARCHER_PLUGIN_NAMES)
+    tools = agent.plugins.get("tools")
+    assert tools is not None
+    names = [spec.name for spec in tools.tools()]
     assert names == ["utc_now"]
 
 

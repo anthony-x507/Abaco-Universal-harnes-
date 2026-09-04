@@ -43,7 +43,7 @@ You should see `"status":"ok"`, `"product":"Universal platform"`, `"demo":true`.
 
 **In the SPA (Agents):** template **Researcher**, name `demo-researcher`, channel `cli`, **Create**, then **Start**.
 
-The card should show **Tools: utc_now** (not a raw plugin id). Researcher turns memory on: facts go to `memory.json` keyed by this name.
+The card should show readable labels (`Terminal: run_command`, …, **Tools: utc_now**), not raw catalog ids. Every template ships the six native tools; researcher adds `utc_now` and turns memory on. Facts go to `memory.json` keyed by this name.
 
 **Or curl:**
 

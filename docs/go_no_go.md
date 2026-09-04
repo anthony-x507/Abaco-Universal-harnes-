@@ -13,7 +13,7 @@ A checkpoint process. Three agents reviewed the tree against the designer plan a
 | Hito 4 Harness (ZIP, Auto/run, snapshot, usage) | **Sí — shipped** | Optional layers on the same spine. No second registry. |
 | Hito 5 Usage guide / owner demo | **Sí — shipped** | README + DEMO.md + demo.sh. English. No Aegis in product docs. |
 
-**Default after Hito 5: stop.** Wait for the owner OK on the product close.
+**Default after Hito 5: stop.** Native factory plugins (terminal, TTS, STT, vision, search, scraper) shipped after an owner sí. Wait for the next OK before another product slice.
 
 ## How a checkpoint works
 

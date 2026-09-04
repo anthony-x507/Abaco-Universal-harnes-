@@ -76,6 +76,39 @@ class OpenAICompatProvider(Provider):
             payload["tools"] = [spec.to_openai() for spec in tools]
             payload["tool_choice"] = "auto"
 
+        return self._parse(self._post_json(payload))
+
+    def complete_vision(
+        self,
+        *,
+        prompt: str,
+        image_b64: str,
+        mime: str = "image/jpeg",
+        model: str | None = None,
+    ) -> str:
+        """One multimodal completion on the same HTTP client. Not a second provider."""
+        if not self._api_key:
+            raise ProviderError(
+                "UNIVERSAL_LLM_API_KEY is empty. Set it before calling a live model."
+            )
+        payload: dict[str, Any] = {
+            "model": model or self._model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime};base64,{image_b64}"},
+                        },
+                    ],
+                }
+            ],
+        }
+        return self._parse(self._post_json(payload)).text or ""
+
+    def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -99,8 +132,9 @@ class OpenAICompatProvider(Provider):
             data = response.json()
         except ValueError as exc:
             raise ProviderError("Provider returned non-JSON") from exc
-
-        return self._parse(data)
+        if not isinstance(data, dict):
+            raise ProviderError("Provider returned non-object JSON")
+        return data
 
     def stream(
         self,

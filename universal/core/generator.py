@@ -8,7 +8,7 @@ from universal.config import Settings
 from universal.core.agent import Agent
 from universal.core.lifecycle import AgentLifecycle
 from universal.core.registry import AgentRegistry
-from universal.plugins.catalog import PluginCatalog
+from universal.plugins.catalog import PluginCatalog, merge_native_plugin_ids
 from universal.plugins.catalog import catalog as default_plugins
 from universal.providers.base import Provider
 from universal.providers.openai_compat import OpenAICompatProvider
@@ -87,7 +87,8 @@ class AgentGenerator:
         if outbound_url:
             extra["outbound_url"] = outbound_url
         transport = self.channels.create(channel, **extra)
-        plugin_ids = template.default_plugins if plugins is None else tuple(plugins)
+        requested = template.default_plugins if plugins is None else tuple(plugins)
+        plugin_ids = merge_native_plugin_ids(requested)
         memory_flag = template.memory if memory is None else bool(memory)
         agent = Agent(
             name=agent_name,
