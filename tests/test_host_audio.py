@@ -22,17 +22,10 @@ def _silence_wav(path: Path, frames: int = 1600) -> None:
         handle.writeframes(b"\x00\x00" * frames)
 
 
-def test_host_recorder_writes_wav_via_command(tmp_path: Path) -> None:
-    dest_holder: dict[str, Path] = {}
-
+def test_host_recorder_writes_wav_via_command() -> None:
     def fake_command(dest: Path) -> list[str]:
-        dest_holder["path"] = dest
-        script = (
-            "from pathlib import Path; import wave; p = Path(%r); "
-            "w = wave.open(str(p), 'w'); w.setnchannels(1); w.setsampwidth(2); "
-            "w.setframerate(16000); w.writeframes(b'\\x00\\x00' * 800); w.close()"
-        ) % str(dest)
-        return [sys.executable, "-c", script]
+        _silence_wav(dest)
+        return [sys.executable, "-c", "import time; time.sleep(30)"]
 
     recorder = HostRecorder()
     recorder._start_avfoundation = lambda _dest: False  # type: ignore[method-assign]
