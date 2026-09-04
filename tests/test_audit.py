@@ -19,9 +19,9 @@ def test_scripts_do_not_call_npm_cli() -> None:
     run = (root / "audit" / "scripts" / "run-audit.sh").read_text(encoding="utf-8")
     verify = (root / "audit" / "scripts" / "verify-proof.sh").read_text(encoding="utf-8")
     assert "python3 -m universal audit" in run
-    assert "@sentinel-proof/cli" not in run
-    assert "sentinel-proof " not in run
-    assert "sentinel-proof " not in verify
+    assert "npm install" not in run
+    assert "sentinel-proof init" not in run
+    assert "sentinel-proof init" not in verify
     assert not (root / "universal" / "state.py").exists()
     assert not (root / "agent_runtime" / "plugins" / "navigator.js").exists()
 

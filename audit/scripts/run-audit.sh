@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Universal harness audit. Uses python3 -m universal audit (HMAC).
-# Do not install @sentinel-proof/cli — that package is not this product.
+# There is no separate npm audit CLI for this product.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

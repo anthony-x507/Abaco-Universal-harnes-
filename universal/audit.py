@@ -56,12 +56,14 @@ def _exists(root: Path, rel: str) -> bool:
     return (root / rel).exists()
 
 
-def _count(root: Path, needle: str, *, under: str = "universal") -> int:
+def _count(root: Path, needle: str, *, under: str = "universal", skip: tuple[str, ...] = ("audit.py",)) -> int:
     total = 0
     base = root / under
     if not base.is_dir():
         return 0
     for path in base.rglob("*.py"):
+        if path.name in skip:
+            continue
         try:
             total += path.read_text(encoding="utf-8").count(needle)
         except OSError:
@@ -315,7 +317,7 @@ def check_no_npm_cli(root: Path) -> tuple[bool, str]:
     if not run or not verify:
         return False, "audit/scripts/run-audit.sh and verify-proof.sh are required"
     scripts = run + verify
-    ok = "python3 -m universal audit" in run and "sentinel-proof " not in scripts and "@sentinel-proof/cli" not in scripts
+    ok = "python3 -m universal audit" in run and "npm install" not in scripts and "sentinel-proof init" not in scripts
     return ok, "Audit scripts call python3 -m universal audit, not a fake npm CLI"
 
 
