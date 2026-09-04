@@ -99,21 +99,35 @@ describe('Chat page quality tests', () => {
 
   it('shows an ephemeral tool banner that is not a chat turn', async () => {
     const user = userEvent.setup()
+    let releaseToken: (() => void) | undefined
+    const hold = new Promise<void>((resolve) => {
+      releaseToken = resolve
+    })
     installFetchMock((path, init) => {
       if (path === '/v1/agents/a1/ask' && init?.method === 'POST') {
-        return sseResponse([
-          'data: {"type":"tool_execution","tool":"utc_now"}',
-          'data: {"type":"token","text":"now"}',
-          `data: ${JSON.stringify({
-            ...agentFixture,
-            history: [
-              { role: 'user', content: 'time' },
-              { role: 'assistant', content: 'now' },
-            ],
-            answer: 'now',
-            done: true,
-          })}`,
-        ])
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream({
+          async start(controller) {
+            controller.enqueue(encoder.encode('data: {"type":"tool_execution","tool":"utc_now"}\n\n'))
+            await hold
+            controller.enqueue(encoder.encode('data: {"type":"token","text":"now"}\n\n'))
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  ...agentFixture,
+                  history: [
+                    { role: 'user', content: 'time' },
+                    { role: 'assistant', content: 'now' },
+                  ],
+                  answer: 'now',
+                  done: true,
+                })}\n\n`,
+              ),
+            )
+            controller.close()
+          },
+        })
+        return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } })
       }
       return null
     })
@@ -122,7 +136,11 @@ describe('Chat page quality tests', () => {
     await user.type(await screen.findByPlaceholderText('How can I help you today?'), 'time')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     expect(await screen.findByText('🔧 Executing tool: utc_now...')).toBeInTheDocument()
+    releaseToken?.()
     expect(await screen.findByText('now')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText('🔧 Executing tool: utc_now...')).not.toBeInTheDocument()
+    })
     expect(screen.queryByText('🔧 Executing tool: utc_now...', { selector: '.whitespace-pre-wrap' })).not.toBeInTheDocument()
   })
 
@@ -200,7 +218,7 @@ describe('Chat page quality tests', () => {
     expect(screen.queryByRole('button', { name: 'Messages' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('LLM company (latest model)')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Channel')).not.toBeInTheDocument()
-    expect(screen.getByTestId('activity-feed')).toBeInTheDocument()
+    expect(screen.getByTestId('thinking-status')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Workspace' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Workspace' }))
     expect(screen.queryByText('No screen connected')).not.toBeInTheDocument()

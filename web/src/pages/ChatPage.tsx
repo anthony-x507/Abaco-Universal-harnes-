@@ -15,7 +15,6 @@ import {
   type Agent,
   type HistoryTurn,
 } from '../lib/api'
-import { useActivity } from '../lib/activity'
 import { useAskSession } from '../lib/ask-session'
 import { cn, usageLabel } from '../lib/utils'
 import { DragHandle } from '../components/DragHandle'
@@ -54,7 +53,7 @@ export function ChatPage() {
   const [prompt, setPrompt] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const { beginAsk, endAsk, showToast } = useAskSession()
-  const { events, pushActivity } = useActivity()
+  const [statusLine, setStatusLine] = useState('')
   const [loadingList, setLoadingList] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [sending, setSending] = useState(false)
@@ -168,7 +167,7 @@ export function ChatPage() {
     const agentName = selected?.name || 'Agent'
     setSending(true)
     setError('')
-    pushActivity(`${agentName} is working…`, 'agent')
+    setStatusLine('Thinking…')
     setHistory((current) => {
       const next = current.filter((turn) => !turn.failed)
       if (appendUser) next.push({ role: 'user', content: outbound })
@@ -181,6 +180,7 @@ export function ChatPage() {
         outbound,
         (delta) => {
           if (selectedIdRef.current !== agentId) return
+          setStatusLine('')
           setHistory((current) => {
             const next = [...current]
             const last = next[next.length - 1]
@@ -193,11 +193,11 @@ export function ChatPage() {
         controller.signal,
         (status) => {
           if (status.type === 'tool_execution') {
-            pushActivity(`🔧 Executing tool: ${status.tool || 'tool'}...`, 'tool')
+            setStatusLine(`🔧 Executing tool: ${status.tool || 'tool'}...`)
             return
           }
           if (status.type === 'delegating') {
-            pushActivity(`📤 Agent sent message to "${status.target || 'another agent'}"`, 'agent')
+            setStatusLine(`Talking to ${status.target || 'another agent'}…`)
           }
         },
         {
@@ -215,11 +215,12 @@ export function ChatPage() {
       if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
       setAgents((current) => current.map((agent) => (agent.id === result.id ? result : agent)))
-      pushActivity(`${result.name || agentName} finished`, 'agent')
+      setStatusLine('')
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       if (err instanceof ApiError && err.status === 409) {
         showToast('Agent is already answering. Please wait.')
+        setStatusLine('')
         setHistory((current) => {
           const next = [...current]
           if (next[next.length - 1]?.role === 'assistant' && !next[next.length - 1]?.content) next.pop()
@@ -232,7 +233,7 @@ export function ChatPage() {
         showToast(message)
       }
       if (selectedIdRef.current !== agentId) return
-      pushActivity(`${agentName} did not finish`, 'agent')
+      setStatusLine('')
       setHistory((current) => {
         const next = [...current]
         const last = next[next.length - 1]
@@ -245,7 +246,10 @@ export function ChatPage() {
       })
     } finally {
       endAsk(agentId)
-      if (selectedIdRef.current === agentId) setSending(false)
+      if (selectedIdRef.current === agentId) {
+        setSending(false)
+        setStatusLine('')
+      }
     }
   }
 
@@ -394,7 +398,6 @@ export function ChatPage() {
   }
 
   const emptyThread = !loadingHistory && history.length === 0
-  const visibleEvents = events.slice(0, 6)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -485,9 +488,7 @@ export function ChatPage() {
             {emptyThread ? (
               <div className="mb-4 max-w-xl text-center">
                 <h1 className="font-serif text-3xl text-ink md:text-4xl">What should we work on?</h1>
-                <p className="mt-2 text-sm text-muted">
-                  Write in the glass bar. Actions from agents show up right under it.
-                </p>
+                <p className="mt-2 text-sm text-muted">Write in the glass bar. Your notes sit on the right.</p>
               </div>
             ) : !selected ? (
               <p className="mx-auto max-w-lg py-10 text-center text-sm text-muted">
@@ -498,29 +499,41 @@ export function ChatPage() {
             ) : (
               history
                 .filter((turn) => turn.role === 'user' || turn.role === 'assistant')
-                .map((turn, index) => (
-                  <div
-                    key={`${selectedId}-${turn.role}-${index}`}
-                    className={cn(
-                      'mx-auto max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed',
-                      turn.role === 'user'
-                        ? 'ml-auto bg-white/6 text-ink'
-                        : turn.failed
-                          ? 'bg-red-500/10 text-red-100 ring-1 ring-red-500/40'
-                          : 'bg-white/4 text-ink ring-1 ring-white/8',
-                    )}
-                  >
-                    <div className="mb-1 text-[11px] uppercase tracking-wide text-muted">
-                      {turn.failed ? 'error' : turn.role}
+                .map((turn, index) => {
+                  const mine = turn.role === 'user'
+                  return (
+                    <div
+                      key={`${selectedId}-${turn.role}-${index}`}
+                      className={cn('flex w-full', mine ? 'justify-end' : 'justify-start')}
+                    >
+                      <div
+                        className={cn(
+                          'max-w-[min(36rem,92%)] rounded-2xl px-4 py-3 text-sm leading-relaxed',
+                          mine && 'bg-sky-500/20 text-ink ring-1 ring-sky-400/30',
+                          !mine && turn.failed && 'bg-red-500/10 text-red-100 ring-1 ring-red-500/40',
+                          !mine && !turn.failed && 'bg-amber-500/10 text-ink ring-1 ring-amber-400/25',
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'mb-1 text-[11px] font-medium uppercase tracking-wide',
+                            turn.failed ? 'text-red-200' : mine ? 'text-sky-300' : 'text-amber-200',
+                          )}
+                        >
+                          {turn.failed ? 'error' : mine ? 'You' : selected?.name || 'Agent'}
+                        </div>
+                        <div className="whitespace-pre-wrap">
+                          {turn.content || (turn.role === 'assistant' && sending ? '…' : '')}
+                        </div>
+                        {turn.failed && (
+                          <Button size="sm" variant="outline" className="mt-2" onClick={() => void retryLast()} disabled={sending}>
+                            Retry
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="whitespace-pre-wrap">{turn.content || (turn.role === 'assistant' && sending ? '…' : '')}</div>
-                    {turn.failed && (
-                      <Button size="sm" variant="outline" className="mt-2" onClick={() => void retryLast()} disabled={sending}>
-                        Retry
-                      </Button>
-                    )}
-                  </div>
-                ))
+                  )
+                })
             )}
             {sending && history.at(-1)?.role === 'assistant' && !history.at(-1)?.content && (
               <p className="mx-auto max-w-2xl text-sm text-accent">Waiting for the agent…</p>
@@ -645,22 +658,12 @@ export function ChatPage() {
               </div>
             </form>
 
-            <div data-testid="activity-feed" className="min-h-[4.5rem] space-y-1.5">
-              {visibleEvents.length === 0 ? (
-                <p className="px-2 text-center text-xs text-muted">
-                  When an agent works, tools run, or someone creates a skill, the notice lands here.
+            <div data-testid="thinking-status" className="min-h-6 px-2 text-center">
+              {statusLine ? (
+                <p role="status" className="text-sm text-muted">
+                  {statusLine}
                 </p>
-              ) : (
-                visibleEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    role="status"
-                    className="rounded-2xl border border-white/8 bg-white/4 px-3 py-2 text-sm text-muted"
-                  >
-                    {event.text}
-                  </div>
-                ))
-              )}
+              ) : null}
             </div>
           </div>
         </section>

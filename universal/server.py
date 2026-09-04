@@ -47,6 +47,14 @@ class CreateAgentBody(BaseModel):
     emoji: str | None = None
 
 
+class UpdateAgentBody(BaseModel):
+    name: str | None = None
+    emoji: str | None = None
+    channel: str | None = None
+    outbound_url: str | None = None
+    system_prompt: str | None = None
+
+
 class AttachmentBody(BaseModel):
     name: str
     mime: str = "application/octet-stream"
@@ -97,6 +105,11 @@ def _agent_payload(platform: Universal, agent_id: str) -> dict[str, Any]:
     ]
     payload["plugin_labels"] = agent.plugin_labels()
     payload["usage"] = agent.usage.to_dict()
+    payload["system_prompt"] = agent.system_prompt
+    if not payload.get("emoji"):
+        from universal.core.faces import face_for
+
+        payload["emoji"] = face_for(agent.id, agent.emoji)
     channel = agent.channel
     if isinstance(channel, WebhookChannel):
         payload["outbound_url"] = channel.outbound_url
@@ -264,6 +277,18 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
     @app.get("/v1/agents/{agent_id}")
     def get_agent(agent_id: str) -> dict[str, Any]:
+        return _agent_payload(state.platform, agent_id)
+
+    @app.patch("/v1/agents/{agent_id}")
+    def update_agent(agent_id: str, body: UpdateAgentBody) -> dict[str, Any]:
+        state.platform.factory.update(
+            agent_id,
+            name=body.name,
+            emoji=body.emoji,
+            system_prompt=body.system_prompt,
+            channel=body.channel,
+            outbound_url=body.outbound_url,
+        )
         return _agent_payload(state.platform, agent_id)
 
     @app.post("/v1/agents/{agent_id}/start")

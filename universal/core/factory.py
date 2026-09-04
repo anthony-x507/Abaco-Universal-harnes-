@@ -70,6 +70,7 @@ class AgentFactory:
         memory: bool | None = None,
         agent_id: str | None = None,
         emoji: str | None = None,
+        system_prompt: str | None = None,
     ) -> Agent:
         return self.generator.generate(
             template_id,
@@ -81,7 +82,44 @@ class AgentFactory:
             memory=memory,
             agent_id=agent_id,
             emoji=emoji,
+            system_prompt=system_prompt,
         )
+
+    def update(
+        self,
+        agent_id: str,
+        *,
+        name: str | None = None,
+        emoji: str | None = None,
+        system_prompt: str | None = None,
+        channel: str | None = None,
+        outbound_url: str | None = None,
+    ) -> Agent:
+        from universal.core.faces import pick_face
+
+        agent = self.registry.get(agent_id)
+        if name is not None:
+            cleaned = name.strip()
+            if cleaned:
+                agent.name = cleaned
+        if emoji is not None:
+            agent.emoji = emoji.strip() or pick_face()
+        if system_prompt is not None:
+            agent.system_prompt = system_prompt
+        if channel is not None or outbound_url is not None:
+            channel_id = channel or (agent.channel.name if agent.channel is not None else "cli")
+            current_out = str(getattr(agent.channel, "outbound_url", "") or "")
+            url = current_out if outbound_url is None else outbound_url
+            extra: dict[str, object] = {}
+            if url:
+                extra["outbound_url"] = url
+            transport = self.generator.channels.create(channel_id, **extra)
+            if hasattr(transport, "agent_id"):
+                transport.agent_id = agent.id
+            agent.channel = transport
+            agent.bind_channel()
+        self.registry.save()
+        return agent
 
     def start(self, agent_id: str) -> Agent:
         return self.manager.start(agent_id)

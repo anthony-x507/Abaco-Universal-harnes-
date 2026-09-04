@@ -163,6 +163,7 @@ class Agent:
             "memory": self.memory_enabled,
             "plugins": self.plugins.names(),
             "emoji": self.emoji,
+            "system_prompt": self.system_prompt,
         }
 
     @contextmanager

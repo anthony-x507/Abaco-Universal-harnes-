@@ -30,6 +30,7 @@ export type Agent = {
   outbound_url?: string
   usage?: Usage
   emoji?: string
+  system_prompt?: string
 }
 
 export type ModelPreset = {
@@ -168,6 +169,19 @@ export type ChatAttachment = {
   mime: string
   data: string
   kind: 'file' | 'audio' | 'image'
+}
+
+export async function updateAgent(
+  id: string,
+  body: {
+    name?: string
+    emoji?: string
+    channel?: string
+    outbound_url?: string
+    system_prompt?: string
+  },
+): Promise<Agent> {
+  return request(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 }
 
 export async function createAgent(body: {

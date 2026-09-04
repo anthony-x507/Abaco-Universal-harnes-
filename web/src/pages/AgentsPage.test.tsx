@@ -50,11 +50,47 @@ describe('Agents page quality tests', () => {
     )
 
     expect(await screen.findByText(/Tools: utc_now/)).toBeInTheDocument()
+    expect(screen.getByText('🤖')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Write' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Download ZIP' }))
     await vi.waitFor(() => {
       expect(calls.some((call) => call.path === `/v1/agents/${agentFixture.id}/deploy` && call.init?.method === 'POST')).toBe(
         true,
       )
+    })
+  })
+
+  it('edits face, settings, and instructions from the row menu', async () => {
+    const user = userEvent.setup()
+    const { calls } = installFetchMock((path, init) => {
+      if (path === `/v1/agents/${agentFixture.id}` && init?.method === 'PATCH') {
+        const body = JSON.parse(String(init.body ?? '{}')) as { emoji?: string; name?: string; system_prompt?: string }
+        return jsonResponse({
+          ...agentFixture,
+          emoji: body.emoji ?? '🦊',
+          name: body.name ?? 'Fox',
+          system_prompt: body.system_prompt ?? 'Stay brief.',
+        })
+      }
+      return null
+    })
+
+    render(
+      <MemoryRouter>
+        <AgentsPage />
+      </MemoryRouter>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('heading', { name: /Edit/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Face 🦊' }))
+    await user.click(screen.getByRole('button', { name: 'Instructions' }))
+    await user.clear(screen.getByLabelText('system_prompt.md'))
+    await user.type(screen.getByLabelText('system_prompt.md'), 'Stay brief.')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await vi.waitFor(() => {
+      expect(calls.some((call) => call.path === `/v1/agents/${agentFixture.id}` && call.init?.method === 'PATCH')).toBe(true)
     })
   })
 

@@ -81,7 +81,10 @@ class AgentGenerator:
         memory: bool | None = None,
         agent_id: str | None = None,
         emoji: str | None = None,
+        system_prompt: str | None = None,
     ) -> Agent:
+        from universal.core.faces import face_for, pick_face
+
         template = self.templates.get(template_id)
         agent_name = name or f"{template.id}-{template.name.lower()}"
         extra: dict[str, object] = {}
@@ -91,15 +94,16 @@ class AgentGenerator:
         requested = template.default_plugins if plugins is None else tuple(plugins)
         plugin_ids = merge_native_plugin_ids(requested)
         memory_flag = template.memory if memory is None else bool(memory)
+        chosen_face = (emoji or "").strip() or (face_for(agent_id) if agent_id else pick_face())
         agent = Agent(
             name=agent_name,
             provider=provider or self.provider(),
             template_id=template.id,
-            system_prompt=template.system_prompt,
+            system_prompt=system_prompt if system_prompt is not None else template.system_prompt,
             channel=transport,
             memory=memory_flag,
             agent_id=agent_id,
-            emoji=(emoji or template.emoji or "").strip() or template.emoji,
+            emoji=chosen_face,
         )
         if hasattr(transport, "agent_id"):
             transport.agent_id = agent.id

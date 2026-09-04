@@ -62,6 +62,35 @@ def test_server_uses_the_same_registry(platform: Universal) -> None:
     assert platform.factory.manager.registry is platform.registry
 
 
+def test_patch_agent_face_settings_and_instructions(platform: Universal) -> None:
+    client = _client(platform, demo=True)
+    created = client.post("/v1/agents", json={"template": "general", "name": "editable"})
+    agent_id = created.json()["id"]
+    assert created.json()["emoji"]
+    assert created.json()["system_prompt"]
+
+    patched = client.patch(
+        f"/v1/agents/{agent_id}",
+        json={
+            "emoji": "🦊",
+            "name": "Fox",
+            "system_prompt": "You are a fox. Be brief.",
+            "channel": "webhook",
+            "outbound_url": "https://example.com/hook",
+        },
+    )
+    assert patched.status_code == 200
+    body = patched.json()
+    assert body["emoji"] == "🦊"
+    assert body["name"] == "Fox"
+    assert body["system_prompt"] == "You are a fox. Be brief."
+    assert body["channel"] == "webhook"
+    assert body["outbound_url"] == "https://example.com/hook"
+    stored = platform.registry.get(agent_id)
+    assert stored.emoji == "🦊"
+    assert stored.system_prompt == "You are a fox. Be brief."
+
+
 def test_unknown_channel_is_404(platform: Universal) -> None:
     client = _client(platform)
     response = client.post("/v1/agents", json={"template": "general", "channel": "telegram"})

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AgentEditDialog } from '../components/AgentEditDialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -34,6 +35,7 @@ export function AgentsPage() {
   const [working, setWorking] = useState('')
   const [error, setError] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Agent | null>(null)
+  const [editing, setEditing] = useState<Agent | null>(null)
   const [provider, setProvider] = useState('OpenAI (GPT-5.6 Sol)')
   const { askingId, abortAsk, showToast } = useAskSession()
   const { models } = useModels()
@@ -238,6 +240,9 @@ export function AgentsPage() {
               <li key={agent.id} className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xl" aria-hidden>
+                      {agent.emoji || '💬'}
+                    </span>
                     <span className="font-medium">{agent.name}</span>
                     <Badge className={agent.state === 'running' ? 'border-accent/40 text-accent' : ''}>
                       {agent.state}
@@ -253,8 +258,11 @@ export function AgentsPage() {
                     to={`/?agent=${agent.id}`}
                     className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs text-ink hover:bg-surface-2"
                   >
-                    Open chat
+                    Write
                   </Link>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(agent)}>
+                    Edit
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -313,6 +321,18 @@ export function AgentsPage() {
           </ul>
         )}
       </Card>
+
+      {editing && (
+        <AgentEditDialog
+          agent={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(next) => {
+            setAgents((current) => current.map((row) => (row.id === next.id ? { ...row, ...next } : row)))
+            setEditing(null)
+            showToast(`${next.emoji || '💬'} ${next.name} updated.`)
+          }}
+        />
+      )}
 
       {pendingDelete && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
