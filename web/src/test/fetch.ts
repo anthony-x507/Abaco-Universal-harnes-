@@ -101,6 +101,7 @@ export function defaultCatalog() {
         { id: 'memory_share_between_agents', description: 'Share team notes only after an explicit allow.', enforced: false },
         { id: 'strategist_deepseek_tracking', description: 'Scan official DeepSeek Harness repos and keep a comparison report.', enforced: true },
         { id: 'sentinel_proof_required', description: 'Last mission step stays verifying until a Sentinel Proof is sealed.', enforced: false },
+        { id: 'improvement_allow_suggestions', description: 'The agent may propose a better plan. The user still accepts or rejects it.', enforced: true },
       ],
     },
     deepseek: {
@@ -220,6 +221,13 @@ export function installFetchMock(
     }
     if (path === '/v1/audit') return jsonResponse(catalog.audit)
     if (path === '/v1/audit/run') return jsonResponse(catalog.audit.audit)
+    if (path === `/v1/agents/${agentFixture.id}/improvements`) return jsonResponse({ improvements: [] })
+    if (path === '/v1/events') {
+      return jsonResponse({
+        events: [],
+        nervous: { bus: 'in-process', redis: false, nats: false, events: 0, circuit: { state: 'closed' } },
+      })
+    }
     return jsonResponse({ error: `unmocked ${path}` }, 404)
   }
   globalThis.fetch = fetchMock as typeof fetch

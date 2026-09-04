@@ -47,6 +47,9 @@ def add_notice(*, agent_id: str, kind: str, message: str) -> dict[str, Any]:
     rows = _load()
     rows.append(row)
     _save(rows)
+    from universal.nervous import emit
+
+    emit("notice", agent_id=agent_id, notice_id=row["id"], kind=kind, message=message)
     return row
 
 

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { getSituation, resetSituation, type Situation } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
 import { Button } from './ui/button'
+import { EventsPanel } from './EventsPanel'
+import { ImprovementPanel } from './ImprovementPanel'
 import { ProofPanel } from './ProofPanel'
 import { SituationPanel } from './SituationPanel'
 import { cn } from '../lib/utils'
@@ -106,6 +108,8 @@ export function WorkspacePane({
             }}
           />
           <ProofPanel agentId={agentId} />
+          <ImprovementPanel agentId={agentId} />
+          <EventsPanel />
         </div>
       ) : tab === 'screen' ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">

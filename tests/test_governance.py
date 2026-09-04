@@ -31,6 +31,7 @@ def test_default_rules_include_finance_and_tor() -> None:
     assert "memory_share_between_agents" in ids
     assert "strategist_deepseek_tracking" in ids
     assert "sentinel_proof_required" in ids
+    assert "improvement_allow_suggestions" in ids
     assert set(RULE_IDS) <= ids
     assert is_enforced("no_purchase_without_permission")
     assert is_enforced("no_dark_web_without_permission")

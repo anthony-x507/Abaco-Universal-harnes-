@@ -234,6 +234,8 @@ describe('Chat page quality tests', () => {
     expect(
       await screen.findByText('No proof bundle yet. Write atomic requirements for this mission.'),
     ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Visible improvement' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Wiring' })).toBeInTheDocument()
   })
 
   it('shows a mission notice and dismisses it', async () => {

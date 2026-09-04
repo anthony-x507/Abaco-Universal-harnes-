@@ -50,9 +50,17 @@ requirements:
     priority: required
     risk: medium
   - id: R-IMPR-001
-    statement: Improvement evaluator (not shipped).
-    priority: desired
+    statement: Visible improvement is a native Python plugin. No Node evaluator.
+    priority: required
     risk: medium
+  - id: R-WIRE-001
+    statement: Nervous system is in-process jsonl, not Redis or NATS.
+    priority: required
+    risk: high
+  - id: R-WIRE-002
+    statement: Universal stays in core/platform.py. No universal/core.py rewrite.
+    priority: required
+    risk: critical
   - id: R-STRAT-001
     statement: Nightly 3 AM Sentinels scan (not shipped).
     priority: desired

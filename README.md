@@ -11,7 +11,8 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist (`deepseek_monitor`), proof (`draft_contract` → `seal_proof`)
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement
+- In-process wiring (`events.jsonl` + provider circuit). Not Redis. Map: [docs/wiring.md](docs/wiring.md)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Sentinel Proof: HMAC-sealed evidence (contract → oracles → challenges → reducer). Not quantum.
 - Signed-core governance: encrypted card vault (simulated purchases), permission-gated Tor fetch
@@ -202,6 +203,7 @@ Built-in catalog ids:
 | `team` | `create_team`, `delegate_task`, `team_status`, `team_checkpoint`, `resume_team`, `share_note`, `read_team_notes` | Groups existing agents. Delegate goes through `Agent.accept`. `resume_team` reloads the checkpoint and each member's mission. Sharing notes asks when `memory_share_between_agents` is on. |
 | `strategist` | `deepseek_monitor` | Public GitHub scan of DeepSeek Harness plus a comparison with Universal. Settings → DeepSeek Insights. Off when `strategist_deepseek_tracking` is off. |
 | `proof` | `draft_contract`, `record_oracle`, `challenge_requirement`, `seal_proof`, `proof_status` | Sentinel Proof stages on the same agent. Seal writes `proofs/{id}.json` with HMAC (`proof.key`). Not quantum. Roles are stages, not extra templates. |
+| `improvement` | `propose_improvement`, `accept_improvement`, `reject_improvement`, `list_improvements` | Visible plan change. The user accepts or rejects. Off when `improvement_allow_suggestions` is off. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
@@ -289,7 +291,7 @@ Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`histo
 
 The signed factory is the supervisor. There is no fourth “mother” YAML template.
 
-Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, team memory sharing, DeepSeek tracking, and Sentinel Proof (`sentinel_proof_required`, default off). You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
+Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, team memory sharing, DeepSeek tracking, Sentinel Proof (`sentinel_proof_required`, default off), and visible improvement (`improvement_allow_suggestions`, default on). You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
 
 When `sentinel_proof_required` is on, the last mission step stays `verifying` until a bundle is sealed. The reducer signs with HMAC-SHA256. Product copy must not call this quantum.
 

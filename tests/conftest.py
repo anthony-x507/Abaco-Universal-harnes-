@@ -60,6 +60,9 @@ class FakeProvider(Provider):
 def _isolate_memory_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("UNIVERSAL_MEMORY_DIR", str(tmp_path / "universal-memory"))
     monkeypatch.setenv("UNIVERSAL_USER_DATA", str(tmp_path / "user-data"))
+    from universal.nervous import provider_breaker
+
+    provider_breaker().reset()
 
 
 @pytest.fixture

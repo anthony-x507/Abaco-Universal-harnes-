@@ -126,6 +126,7 @@ def check_native_plugins(root: Path) -> tuple[bool, str]:
         "team",
         "strategist",
         "proof",
+        "improvement",
     )
     ok = NATIVE_PLUGIN_NAMES == expected
     return ok, f"NATIVE_PLUGIN_NAMES={list(NATIVE_PLUGIN_NAMES)}"
@@ -181,12 +182,22 @@ def check_team_memory_gated(root: Path) -> tuple[bool, str]:
     return ok and default_off, "share_note asks when memory_share_between_agents is on (default off)"
 
 
-def check_no_improvement_evaluator(root: Path) -> tuple[bool, str]:
-    absent = not _exists(root, "agent_runtime/plugins/improvement_evaluator.js")
-    return False, (
-        "improvement_evaluator is not in this product (desired). "
-        f"Node plugin absent={absent}"
-    )
+def check_improvement_native(root: Path) -> tuple[bool, str]:
+    no_node = not _exists(root, "agent_runtime/plugins/improvement_evaluator.js")
+    ok = _has(root, "universal/improvement.py", "propose", "decide") and no_node
+    return ok, "Visible improvement is Python (propose/accept/reject). No Node evaluator."
+
+
+def check_in_process_wiring(root: Path) -> tuple[bool, str]:
+    no_shared = not _exists(root, "shared/event-bus.js") and not _exists(root, "universal/event-bus-integration.js")
+    text = _read(root, "universal/nervous.py")
+    ok = no_shared and "in-process" in text and "Redis" in text and "emit(" in text
+    return ok, "Wiring is universal/nervous.py (jsonl). No Redis/NATS Node bus."
+
+
+def check_no_mother_core_rewrite(root: Path) -> tuple[bool, str]:
+    no_core = not _exists(root, "universal/core.py")
+    return no_core, "No universal/core.py rewrite. Universal stays in core/platform.py"
 
 
 def check_deepseek_ondemand(root: Path) -> tuple[bool, str]:
@@ -337,7 +348,9 @@ CHECKS: tuple[Check, ...] = (
     Check("R-ORCH-001", "Teams are groups of existing agents.", "required", "high", check_teams_existing_agents),
     Check("R-ORCH-002", "Delegation uses Agent.accept.", "required", "high", check_delegate_accept),
     Check("R-ORCH-003", "Team notes share only when the rule is on.", "required", "medium", check_team_memory_gated),
-    Check("R-IMPR-001", "Improvement evaluator (not shipped).", "desired", "medium", check_no_improvement_evaluator),
+    Check("R-IMPR-001", "Visible improvement is a native Python plugin.", "required", "medium", check_improvement_native),
+    Check("R-WIRE-001", "Nervous system is in-process, not Redis.", "required", "high", check_in_process_wiring),
+    Check("R-WIRE-002", "Universal is not rewritten as universal/core.py.", "required", "critical", check_no_mother_core_rewrite),
     Check("R-STRAT-001", "Nightly 3 AM Sentinels scan (not shipped).", "desired", "medium", check_no_nightly_daemon),
     Check("R-STRAT-002", "DeepSeek monitor is on-demand public GitHub.", "required", "medium", check_deepseek_ondemand),
     Check("R-SPROOF-001", "Sentinel Proof compiles a contract in Python.", "required", "critical", check_proof_engine),

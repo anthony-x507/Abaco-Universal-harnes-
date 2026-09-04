@@ -457,6 +457,57 @@ export async function runAudit(): Promise<AuditSummary> {
   return request('/v1/audit/run', { method: 'POST' })
 }
 
+export type Improvement = {
+  id: string
+  agent_id: string
+  task: string
+  original_plan?: string
+  proposed_plan: string
+  status: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type NervousEvent = {
+  at?: string
+  kind: string
+  message?: string
+  agent_id?: string
+}
+
+export type NervousHealth = {
+  bus?: string
+  redis?: boolean
+  nats?: boolean
+  events?: number
+  circuit?: { name?: string; state?: string; failures?: number }
+  store?: string
+}
+
+export async function listImprovements(agentId: string): Promise<Improvement[]> {
+  const data = await request<{ improvements: Improvement[] }>(`/v1/agents/${agentId}/improvements`)
+  return data.improvements
+}
+
+export async function proposeImprovement(
+  agentId: string,
+  body: { task: string; proposed_plan: string; original_plan?: string },
+): Promise<Improvement> {
+  return request(`/v1/agents/${agentId}/improvements`, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function acceptImprovement(id: string): Promise<Improvement> {
+  return request(`/v1/improvements/${id}/accept`, { method: 'POST' })
+}
+
+export async function rejectImprovement(id: string): Promise<Improvement> {
+  return request(`/v1/improvements/${id}/reject`, { method: 'POST' })
+}
+
+export async function listEvents(): Promise<{ events: NervousEvent[]; nervous: NervousHealth }> {
+  return request('/v1/events')
+}
+
 export async function askAgent(id: string, prompt: string): Promise<Agent> {
   return request(`/v1/agents/${id}/ask`, {
     method: 'POST',

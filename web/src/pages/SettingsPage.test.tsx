@@ -39,6 +39,7 @@ describe('T10 Settings demo mode', () => {
     expect(screen.getByText('memory_share_between_agents')).toBeInTheDocument()
     expect(screen.getByText('strategist_deepseek_tracking')).toBeInTheDocument()
     expect(screen.getByText('sentinel_proof_required')).toBeInTheDocument()
+    expect(screen.getByText('improvement_allow_suggestions')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'DeepSeek Insights' })).toBeInTheDocument()
     expect(screen.getAllByText('deepseek-ai/deepseek-harness').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Scan DeepSeek' })).toBeInTheDocument()

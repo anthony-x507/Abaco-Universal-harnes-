@@ -72,6 +72,11 @@ DEFAULT_RULES: tuple[dict[str, object], ...] = (
         "description": "Last mission step stays verifying until a Sentinel Proof is sealed.",
         "enforced": False,
     },
+    {
+        "id": "improvement_allow_suggestions",
+        "description": "The agent may propose a better plan. The user still accepts or rejects it.",
+        "enforced": True,
+    },
 )
 
 RULE_IDS = tuple(str(row["id"]) for row in DEFAULT_RULES)

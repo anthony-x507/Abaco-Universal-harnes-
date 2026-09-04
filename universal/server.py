@@ -48,6 +48,12 @@ def _whisper_ready() -> bool:
     return whisper_available()
 
 
+def _nervous_health() -> dict[str, Any]:
+    from universal.nervous import health_snapshot
+
+    return health_snapshot()
+
+
 class CreateAgentBody(BaseModel):
     template: str = Field(default="general")
     name: str | None = None
@@ -126,6 +132,12 @@ class ProofChallengeBody(BaseModel):
     requirement_id: str
     mutation: str
     still_holds: bool
+
+
+class ImprovementProposeBody(BaseModel):
+    task: str
+    proposed_plan: str
+    original_plan: str = ""
 
 
 class SettingsBody(BaseModel):
@@ -232,6 +244,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "whisper": _whisper_ready(),
             "runtime": default_manager().status(),
             "rules": [str(rule["id"]) for rule in rules_payload()["rules"] if isinstance(rule, dict)],
+            "nervous": _nervous_health(),
         }
 
     @app.get("/v1/update")
@@ -668,6 +681,59 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         from universal.audit import repo_root, run_audit
 
         return run_audit(output=repo_root() / "audit" / "output")
+
+    @app.get("/v1/events")
+    def get_events(limit: int = 80) -> dict[str, Any]:
+        from universal.nervous import list_events
+
+        return {"events": list_events(limit=limit), "nervous": _nervous_health()}
+
+    @app.get("/v1/agents/{agent_id}/improvements")
+    def get_improvements(agent_id: str) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        from universal.improvement import list_proposals
+
+        return {"improvements": list_proposals(agent.id)}
+
+    @app.post("/v1/agents/{agent_id}/improvements")
+    def propose_improvement(agent_id: str, body: ImprovementProposeBody) -> dict[str, Any]:
+        agent = state.platform.registry.get(agent_id)
+        from universal.improvement import propose
+
+        try:
+            return propose(
+                agent.id,
+                task=body.task,
+                proposed_plan=body.proposed_plan,
+                original_plan=body.original_plan,
+                agent_name=agent.name,
+            )
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/v1/improvements/{proposal_id}/accept")
+    def accept_improvement(proposal_id: str) -> dict[str, Any]:
+        from universal.improvement import decide
+
+        try:
+            return decide(proposal_id, accepted=True)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Proposal not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/v1/improvements/{proposal_id}/reject")
+    def reject_improvement(proposal_id: str) -> dict[str, Any]:
+        from universal.improvement import decide
+
+        try:
+            return decide(proposal_id, accepted=False)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Proposal not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/v1/teams")
     def create_team_route(body: TeamCreateBody) -> dict[str, Any]:

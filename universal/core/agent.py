@@ -15,6 +15,8 @@ from universal.channels.base import InboundMessage
 from universal.core.plugin import Plugin, PluginHost
 from universal.core.types import AgentInfo, AgentState, CompletionResponse, Message, utcnow
 from universal.core.usage import UsageStats, record_provider_call
+from universal.exceptions import ProviderError
+from universal.nervous import CircuitOpen, provider_breaker
 
 _NAME_FACT = re.compile(r"\bmy name is\s+(.+?)(?:[.!?]|$)", re.IGNORECASE)
 DEFAULT_HISTORY_TURNS = 10
@@ -326,17 +328,28 @@ class Agent:
     def _provider_complete(
         self, working: list[Message], tools: list[Any] | None
     ) -> CompletionResponse:
-        started = time.perf_counter()
-        response = self.provider.complete(
-            working, tools=tools or None, model=self.llm_model or None
-        )
-        record_provider_call(
-            self,
-            response,
-            messages=working,
-            latency_ms=(time.perf_counter() - started) * 1000,
-        )
-        return response
+        breaker = provider_breaker()
+
+        def _call() -> CompletionResponse:
+            started = time.perf_counter()
+            try:
+                response = self.provider.complete(
+                    working, tools=tools or None, model=self.llm_model or None
+                )
+            except ProviderError:
+                raise
+            record_provider_call(
+                self,
+                response,
+                messages=working,
+                latency_ms=(time.perf_counter() - started) * 1000,
+            )
+            return response
+
+        try:
+            return breaker.execute(_call)
+        except CircuitOpen as exc:
+            return CompletionResponse(text=f"error: provider circuit open ({exc})", model=self.llm_model)
 
     def _apply_tool_calls(self, working: list[Message], response: CompletionResponse) -> None:
         working.append(
