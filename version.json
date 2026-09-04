@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native Mac app. Download Universal.dmg only. The installer is signed with a microphone entitlement so Universal can appear in Privacy → Microphone. Auto stops if the same tool repeats and returns a final answer instead of looping past the tool limit."
+  "release_notes": "Native Mac app. Download Universal.dmg only. Chat history survives updates. The write bar has Models plus an API key field. Download & Restart installs the new app and relaunches it."
 }

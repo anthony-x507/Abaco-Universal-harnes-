@@ -79,6 +79,7 @@ class Agent:
         self.usage = UsageStats()
         if memory:
             self._load_memory()
+        self._load_history()
 
     @property
     def history(self) -> list[Message]:
@@ -94,15 +95,72 @@ class Agent:
 
     def record_turn(self, prompt: str, answer: str) -> None:
         """Persist one inbound turn that the Node runtime already answered."""
-        self._history.append(Message(role="user", content=prompt))
-        self._history.append(Message(role="assistant", content=answer))
+        self._remember_turn(Message(role="user", content=prompt), answer)
 
     def reset_history(self) -> None:
         self._history.clear()
+        self._save_history()
         transcript = self.plugins.get("transcript")
         clear = getattr(transcript, "clear", None)
         if callable(clear):
             clear()
+
+    def history_path(self) -> Path:
+        from universal.paths import get_history_dir
+
+        return get_history_dir() / f"{self.id}.json"
+
+    def discard_persisted_history(self) -> None:
+        try:
+            self.history_path().unlink(missing_ok=True)
+        except OSError:
+            return
+
+    def _load_history(self) -> None:
+        path = self.history_path()
+        if not path.is_file():
+            return
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        if not isinstance(loaded, list):
+            return
+        turns: list[Message] = []
+        for item in loaded:
+            if not isinstance(item, dict):
+                continue
+            role = str(item.get("role") or "")
+            if role not in {"user", "assistant", "system", "tool"}:
+                continue
+            turns.append(
+                Message(
+                    role=role,  # type: ignore[arg-type]
+                    content=str(item.get("content") or ""),
+                    name=str(item["name"]) if item.get("name") else None,
+                    tool_call_id=str(item["tool_call_id"]) if item.get("tool_call_id") else None,
+                )
+            )
+        self._history = turns
+
+    def _save_history(self) -> None:
+        path = self.history_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = [
+            {
+                "role": message.role,
+                "content": message.content,
+                **({"name": message.name} if message.name else {}),
+                **({"tool_call_id": message.tool_call_id} if message.tool_call_id else {}),
+            }
+            for message in self._history
+        ]
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def _remember_turn(self, user: Message, answer: str) -> None:
+        self._history.append(user)
+        self._history.append(Message(role="assistant", content=answer))
+        self._save_history()
 
     def memory_path(self) -> Path:
         from universal.paths import get_memory_dir
@@ -217,8 +275,7 @@ class Agent:
 
         response = self.plugins.after_complete(self, working, response)
         if remember:
-            self._history.append(user)
-            self._history.append(Message(role="assistant", content=response.text))
+            self._remember_turn(user, response.text)
         if self.memory_enabled:
             self._update_memory(prompt, response.text)
         return response.text
@@ -256,8 +313,7 @@ class Agent:
             assembled = response.text
 
         if remember:
-            self._history.append(user)
-            self._history.append(Message(role="assistant", content=assembled))
+            self._remember_turn(user, assembled)
         if self.memory_enabled:
             self._update_memory(prompt, assembled)
 

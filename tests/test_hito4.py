@@ -87,7 +87,7 @@ def test_registry_sidecar_reloads_identities_stopped(tmp_path: Path, settings: S
     assert restored.name == "keep-me"
     assert restored.template_id == "researcher"
     assert restored.plugins.names() == list(RESEARCHER_PLUGIN_NAMES)
-    assert restored.history == []
+    assert [turn.content for turn in restored.history] == ["hello there", "echo:hello there"]
     assert second.lifecycle.state_of(agent_id) is AgentState.STOPPED
     assert restored.channel is not None and not restored.channel.running
 

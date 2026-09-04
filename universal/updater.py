@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -186,9 +187,21 @@ class Updater:
         dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Universal_update.dmg"
         self._download(status.url, dmg_path)
         self._install_dmg(dmg_path, dest)
-        if sys.platform == "darwin":
-            subprocess.Popen(["open", str(dest)])
-        return f"Installed {status.latest} to {dest}"
+        self._schedule_relaunch(dest)
+        return f"Installed {status.latest} to {dest}. The app is relaunching."
+
+    def _schedule_relaunch(self, dest: Path) -> None:
+        """Open the new app, then exit this process so the user does not quit by hand."""
+
+        def _relaunch() -> None:
+            try:
+                if sys.platform == "darwin":
+                    subprocess.Popen(["open", "-n", str(dest)])
+            finally:
+                if getattr(sys, "frozen", False) or os.environ.get(ENV_ALLOW_INSTALL, "").strip() == "1":
+                    os._exit(0)
+
+        threading.Timer(1.5, _relaunch).start()
 
     def check_for_updates(self) -> UpdateStatus:
         return self.check()

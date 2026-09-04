@@ -12,12 +12,14 @@ import {
   PROVIDER_ERROR_COPY,
   getAgent,
   getHealth,
+  getSettings,
   listAgents,
   resetAgent,
   startHostRecording,
   stopHostRecording,
   transcribeAudio,
   updateAgent,
+  updateSettings,
   type Agent,
   type HistoryTurn,
 } from '../lib/api'
@@ -80,6 +82,9 @@ export function ChatPage() {
   const [transcribing, setTranscribing] = useState(false)
   const [modelPreset, setModelPreset] = useState('')
   const [savingModel, setSavingModel] = useState(false)
+  const [composerKey, setComposerKey] = useState('')
+  const [hasApiKey, setHasApiKey] = useState(false)
+  const [demoMode, setDemoMode] = useState(false)
   const { models } = useModels()
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -115,8 +120,12 @@ export function ChatPage() {
     const load = async () => {
       setLoadingList(true)
       try {
-        const rows = await refresh()
+        const [rows, settings] = await Promise.all([refresh(), getSettings().catch(() => null)])
         if (cancelled) return
+        if (settings) {
+          setHasApiKey(Boolean(settings.llm_api_key))
+          setDemoMode(Boolean(settings.demo))
+        }
         setError('')
         const current = new URLSearchParams(window.location.search).get('agent')
         if (!current && rows.length > 0) {
@@ -351,6 +360,19 @@ export function ChatPage() {
     if (next.length) showToast(next.length === 1 ? `Attached ${next[0].name}` : `Attached ${next.length} files`)
   }
 
+  const saveComposerKey = async () => {
+    const key = composerKey.trim()
+    if (!key) return
+    try {
+      const saved = await updateSettings({ llm_api_key: key })
+      setHasApiKey(Boolean(saved.llm_api_key))
+      setComposerKey('')
+      showToast('API key saved for this process')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the API key.')
+    }
+  }
+
   const changeModel = async (name: string) => {
     if (!selectedId || savingModel) return
     setModelPreset(name)
@@ -358,6 +380,7 @@ export function ChatPage() {
     try {
       const next = await updateAgent(selectedId, { provider: name })
       setAgents((current) => current.map((row) => (row.id === next.id ? { ...row, ...next } : row)))
+      if (composerKey.trim()) await saveComposerKey()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not change the model.')
     } finally {
@@ -578,18 +601,6 @@ export function ChatPage() {
                     ))}
                   </select>
                   {selected && (
-                    <ModelPicker
-                      id="chat-model"
-                      label="Models"
-                      value={modelPreset}
-                      onChange={(name) => void changeModel(name)}
-                      models={models}
-                      currentModel={selected.model}
-                      disabled={sending || savingModel}
-                      compact
-                    />
-                  )}
-                  {selected && (
                     <Badge className={selected.state === 'running' ? 'border-accent/40 text-accent' : ''}>
                       {selected.state}
                     </Badge>
@@ -761,6 +772,35 @@ export function ChatPage() {
                 {words > 5000 ? ' — still sending the full note' : ''}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-1.5 px-1">
+                {selected && (
+                  <ModelPicker
+                    id="chat-model"
+                    label="Models"
+                    value={modelPreset}
+                    onChange={(name) => void changeModel(name)}
+                    models={models}
+                    currentModel={selected.model}
+                    disabled={sending || savingModel}
+                    compact
+                  />
+                )}
+                {selected &&
+                  !demoMode &&
+                  Boolean(models.find((row) => row.name === modelPreset)?.requires_api_key) && (
+                    <label className="flex min-w-0 items-center gap-2">
+                      <span className="sr-only">API key</span>
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        placeholder={hasApiKey ? 'API key saved' : 'API key'}
+                        value={composerKey}
+                        disabled={sending}
+                        onChange={(event) => setComposerKey(event.target.value)}
+                        onBlur={() => void saveComposerKey()}
+                        className="h-8 w-36 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-ink outline-none placeholder:text-muted"
+                      />
+                    </label>
+                  )}
                 <input
                   ref={fileRef}
                   type="file"

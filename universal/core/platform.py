@@ -59,7 +59,7 @@ class Universal:
         return self.factory.generator.provider()
 
     def _restore_identities(self) -> None:
-        """Rebuild agents from the sidecar. Never auto-start. History is not stored."""
+        """Rebuild agents from the sidecar. Never auto-start. Chat history is a separate file."""
         records = self.registry.load_records()
         if not records:
             return

@@ -1,8 +1,8 @@
 """User-data locations that survive replacing Universal.app.
 
 Native plugin *code* stays in the Python package (not copied here).
-This directory holds memory, the registry sidecar, and a plugin manifest.
-Secrets and chat history are never written.
+This directory holds memory, the registry sidecar, chat history, and a plugin manifest.
+Secrets are never written. Chat history is stored under ``history/`` by agent id.
 """
 
 from __future__ import annotations
@@ -73,15 +73,29 @@ def get_registry_file() -> Path:
     return user_data_dir() / "registry.json"
 
 
+def get_history_dir() -> Path:
+    """Per-agent chat transcripts. Survives replacing Universal.app."""
+    env = os.environ.get("UNIVERSAL_HISTORY_DIR", "").strip()
+    if env:
+        path = Path(env)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    path = user_data_dir() / "history"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def ensure_user_data_dirs() -> dict[str, str]:
     plugins = get_plugins_dir()
     memory = get_memory_dir()
     runtime = get_runtime_dir()
+    history = get_history_dir()
     data = user_data_dir()
     return {
         "user_data": str(data),
         "plugins": str(plugins),
         "memory": str(memory),
         "runtime": str(runtime),
+        "history": str(history),
         "registry": str(get_registry_file()),
     }

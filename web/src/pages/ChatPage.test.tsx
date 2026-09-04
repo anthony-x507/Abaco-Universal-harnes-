@@ -218,6 +218,7 @@ describe('Chat page quality tests', () => {
     expect(screen.queryByRole('button', { name: 'Messages' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('LLM company (latest model)')).not.toBeInTheDocument()
     expect(await screen.findByLabelText('Models')).toBeInTheDocument()
+    expect(screen.getByLabelText('Models').closest('form')).toBeTruthy()
     expect(screen.getByTitle('demo-echo')).toHaveTextContent('demo-echo')
     expect(screen.queryByLabelText('Channel')).not.toBeInTheDocument()
     expect(screen.getByTestId('thinking-status')).toBeInTheDocument()
@@ -226,6 +227,32 @@ describe('Chat page quality tests', () => {
     expect(screen.queryByText('No screen connected')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Workspace' }))
     expect(screen.getByText('No screen connected')).toBeInTheDocument()
+  })
+
+  it('shows an API key field on the composer when the model needs one', async () => {
+    const user = userEvent.setup()
+    installFetchMock((path, init) => {
+      if (path === '/v1/settings') {
+        return jsonResponse({
+          llm_base_url: 'https://api.openai.com/v1',
+          llm_api_key: init?.method === 'PUT' ? '***' : '',
+          llm_model: 'gpt-4o-mini',
+          demo: false,
+          default_channel: 'cli',
+          channels: ['cli', 'webhook'],
+          channels_coming: [],
+        })
+      }
+      if (path === '/v1/agents/a1' && init?.method === 'PATCH') {
+        return jsonResponse({ ...agentFixture, model: 'gpt-5.6-sol' })
+      }
+      return null
+    })
+    renderChat()
+    const picker = await screen.findByLabelText('Models')
+    await user.selectOptions(picker, 'OpenAI (GPT-5.6 Sol)')
+    expect(await screen.findByPlaceholderText('API key')).toBeInTheDocument()
+    expect(screen.queryByLabelText('LLM company (latest model)')).not.toBeInTheDocument()
   })
 
   it('keeps a long note in the composer and accepts a dropped document', async () => {

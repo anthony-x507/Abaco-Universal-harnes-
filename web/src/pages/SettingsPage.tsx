@@ -345,7 +345,7 @@ export function SettingsPage() {
                     setApplyingUpdate(true)
                     try {
                       await applyUpdate()
-                      setUpdateNote('Update installed. The app is relaunching…')
+                      setUpdateNote('Update installed. Universal is restarting — you do not need to quit.')
                       setPendingUpdate(null)
                     } catch (err) {
                       setUpdateNote(err instanceof Error ? err.message : 'Update failed.')
@@ -354,7 +354,7 @@ export function SettingsPage() {
                     }
                   }}
                 >
-                  {applyingUpdate ? 'Downloading…' : 'Download now'}
+                  {applyingUpdate ? 'Downloading…' : 'Download & Restart'}
                 </Button>
               </div>
             </div>

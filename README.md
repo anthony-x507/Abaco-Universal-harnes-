@@ -111,7 +111,8 @@ The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspa
 |---|---|
 | Send (Auto off) | `POST /v1/agents/{id}/ask` with SSE |
 | **Auto** (toggle, default off) | `POST /v1/agents/{id}/run` — Python tool loop (native plugins). Node stays on `/v1/runtime/*`. |
-| Clear history | `POST /v1/agents/{id}/reset` — state unchanged |
+| Models + API key | On the write bar. `PATCH /v1/agents/{id}` for the model; `PUT /v1/settings` for the key (process only) |
+| Clear history | `POST /v1/agents/{id}/reset` — also clears the on-disk transcript |
 | Download ZIP | `POST /v1/agents/{id}/deploy` |
 | Plugin line | Readable labels such as `Terminal: run_command`, `Tools: utc_now` |
 | Usage meter | `Tokens: 1,234 \| Cost: $0.002` |
@@ -271,7 +272,7 @@ Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips
 
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
-Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
+Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`history/{agent_id}.json`), and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Settings → **Download & Restart** replaces `/Applications/Universal.app` and relaunches it. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
 
 ### Governance, wallet, and Tor
 

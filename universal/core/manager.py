@@ -60,6 +60,7 @@ class AgentManager:
             self.lifecycle.stop(agent_id)
         agent = self.registry.remove(agent_id)
         self.lifecycle.forget(agent_id)
+        agent.discard_persisted_history()
         return agent
 
     def deploy(self, agent_id: str, dest: Path | None = None) -> Path:

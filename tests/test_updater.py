@@ -29,7 +29,7 @@ def test_repo_is_baked_and_ignores_env(monkeypatch) -> None:
     monkeypatch.setenv("UNIVERSAL_UPDATE_REPO", "evil/other")
     data = load_release()
     assert data["repo"] == BAKED_REPO
-    assert current_version() == "1.0.6"
+    assert current_version() == "1.0.7"
     updater = Updater()
     assert updater.repo == BAKED_REPO
 
@@ -54,6 +54,42 @@ def test_check_parses_github_payload() -> None:
     assert status.available is True
     assert status.latest == "9.9.9"
     assert status.url.endswith(".dmg")
+
+
+def test_apply_schedules_relaunch_without_killing_tests(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("UNIVERSAL_UPDATE_ALLOW_INSTALL", "1")
+    scheduled: list[object] = []
+
+    class FakeTimer:
+        def __init__(self, delay: float, fn: object) -> None:
+            scheduled.append((delay, fn))
+
+        def start(self) -> None:
+            return None
+
+    monkeypatch.setattr("universal.updater.threading.Timer", FakeTimer)
+    monkeypatch.setattr(
+        Updater,
+        "check",
+        lambda self: UpdateStatus(
+            current="1.0.6",
+            latest="9.9.9",
+            available=True,
+            url="https://github.com/acme/universal/releases/download/v9.9.9/Universal.dmg",
+            release_notes="",
+            repo="acme/universal",
+        ),
+    )
+    monkeypatch.setattr(Updater, "_download", lambda self, url, dest: dest.write_bytes(b"dmg"))
+    monkeypatch.setattr(Updater, "_install_dmg", lambda self, dmg, dest: None)
+    dest = tmp_path / "Universal.app"
+    dest.mkdir()
+    updater = Updater(repo="acme/universal")
+    message = updater.apply(dest_app=dest)
+    assert "relaunching" in message.lower()
+    assert scheduled
+    delay, _fn = scheduled[0]
+    assert delay >= 1
 
 
 def test_apply_refuses_outside_packaged_mac() -> None:
@@ -103,7 +139,7 @@ def test_memory_and_registry_use_user_data(tmp_path: Path, monkeypatch, settings
 def test_http_update_check(platform: Universal, monkeypatch) -> None:
     def fake_check(self) -> UpdateStatus:  # noqa: ARG001
         return UpdateStatus(
-            current="1.0.6",
+            current="1.0.7",
             latest=None,
             available=False,
             url=None,
@@ -117,7 +153,7 @@ def test_http_update_check(platform: Universal, monkeypatch) -> None:
     health = client.get("/health")
     assert health.json()["version"] == current_version()
     body = client.get("/v1/update").json()
-    assert body["current"] == "1.0.6"
+    assert body["current"] == "1.0.7"
     assert body["repo"] == BAKED_REPO
     assert body["available"] is False
     assert "in_applications" in body
