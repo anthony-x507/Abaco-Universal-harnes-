@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import './App.css'
 import { AppShell } from './components/AppShell'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { ActivityProvider } from './lib/activity'

@@ -7,6 +7,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+echo "Building Universal icons from the Ábaco mark…"
+chmod +x scripts/make_icns.sh scripts/make_icon.py
+./scripts/make_icns.sh
+
 echo "Building Universal web face…"
 (
   cd web
@@ -37,10 +41,16 @@ python3 -m pip install -q 'pyinstaller>=6.0' 'pywebview>=5.0'
 
 # onedir + windowed → a real .app. Do not hide-import whisper (optional extra, huge).
 # Do not add a second factory tree. The package is imported as universal.
+ICON_ARGS=()
+if [[ -f Universal.icns ]]; then
+  ICON_ARGS+=(--icon Universal.icns --add-data "Universal.icns:.")
+fi
+
 python3 -m PyInstaller \
   --noconfirm \
   --windowed \
   --name Universal \
+  "${ICON_ARGS[@]}" \
   --add-data "web/dist:web/dist" \
   --add-data "version.json:." \
   --hidden-import=uvicorn.logging \

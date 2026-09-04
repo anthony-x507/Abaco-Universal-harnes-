@@ -97,6 +97,7 @@ def run_desktop(
         resizable=True,
         fullscreen=False,
         min_size=(800, 600),
+        background_color="#0B0E14",
     )
     webview.start()
     return 0

@@ -257,6 +257,8 @@ scripts/create_dmg.sh     # Universal.dmg (hdiutil)
 
 `build_macos.sh` on Linux only builds the SPA and runs `--check` (there is no `.app` on this OS). Whisper is **not** bundled; install `universal[media]` if you want local STT. TTS uses macOS `say`. Offline: terminal, TTS, STT (if Whisper is present), and local vision captions. Live LLM and `search_web` / `scrape_url` need the network.
 
+The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Universal Harness**, and the splash shown while the SPA mounts. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Universal.app`.
+
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
 Replacing `Universal.app` does **not** wipe agents. Memory and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Native plugin **code** stays in the package so an update ships the six tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.

@@ -89,6 +89,8 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "PyInstaller" in build or "pyinstaller" in build
     assert "whisper" not in build.lower() or "optional" in build.lower()
     assert "aegis" not in build.lower()
+    assert "--icon" in build
+    assert "Universal.icns" in build
     assert "hdiutil" in dmg
     assert "from universal.desktop import main" in app_entry
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
@@ -96,3 +98,20 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "openai-whisper" not in workflow
     assert "requirements.txt" not in workflow
     assert "aegis" not in app_entry.lower()
+
+
+def test_logo_ships_in_spa_and_native_icon() -> None:
+    assert (ROOT / "web" / "src" / "assets" / "logo.png").is_file()
+    assert (ROOT / "web" / "public" / "logo.png").is_file()
+    assert (ROOT / "Universal.icns").is_file()
+    assert (ROOT / "Universal.icns").read_bytes()[:4] == b"icns"
+    header = (ROOT / "web" / "src" / "components" / "Header.tsx").read_text(encoding="utf-8")
+    assert "Abaco Universal Harness" in header
+    assert "assets/logo.png" in header
+    css = (ROOT / "web" / "src" / "App.css").read_text(encoding="utf-8")
+    assert "url('/logo.png')" in css
+    assert "0.15" in css
+    assert "opacity:" not in css.split("body")[1].split("}")[0]
+    desktop = (ROOT / "universal" / "desktop.py").read_text(encoding="utf-8")
+    assert 'background_color="#0B0E14"' in desktop
+    assert "from universal.desktop import main" in (ROOT / "app.py").read_text(encoding="utf-8")

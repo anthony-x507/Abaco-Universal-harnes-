@@ -459,7 +459,7 @@ export function ChatPage() {
       )}
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-bg">
+        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-transparent">
           <header className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               {loadingList ? (

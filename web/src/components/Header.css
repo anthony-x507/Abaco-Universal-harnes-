@@ -1,0 +1,48 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #13161c;
+  border-bottom: 1px solid #1e2430;
+  position: relative;
+  z-index: 20;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.header-logo {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.2);
+}
+
+.header-title {
+  color: #e8edf5;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin: 0;
+  font-family: Inter, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 10px 16px;
+  }
+
+  .header-title {
+    font-size: 14px;
+  }
+}

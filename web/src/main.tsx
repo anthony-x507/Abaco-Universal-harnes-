@@ -8,3 +8,12 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+const splash = document.getElementById('splash')
+if (splash) {
+  requestAnimationFrame(() => {
+    splash.classList.add('is-done')
+    splash.addEventListener('transitionend', () => splash.remove(), { once: true })
+    window.setTimeout(() => splash.remove(), 600)
+  })
+}

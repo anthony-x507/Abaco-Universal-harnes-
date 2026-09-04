@@ -1,0 +1,27 @@
+/* Visible window background: the logo only, at 15% opacity.
+   Do not set opacity on body — that would fade the whole UI. */
+
+body {
+  background-color: #0b0e14;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 10;
+}
+
+#root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url('/logo.png');
+  background-size: 30% auto;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.15;
+}
