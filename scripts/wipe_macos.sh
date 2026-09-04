@@ -14,6 +14,13 @@ killall Universal 2>/dev/null || true
 pkill -f "/Applications/Universal.app" 2>/dev/null || true
 sleep 1
 
+echo "Ejecting mounted Universal DMGs..."
+for volume in /Volumes/Universal /Volumes/Universal\ *; do
+  [ -d "$volume" ] || continue
+  echo "  ejecting $volume"
+  hdiutil detach "$volume" -force >/dev/null 2>&1 || true
+done
+
 remove_if_exists() {
   local path="$1"
   if [ -e "$path" ]; then
@@ -35,6 +42,7 @@ if command -v mdfind >/dev/null 2>&1; then
   while IFS= read -r found; do
     [ -z "$found" ] && continue
     case "$found" in
+      /Volumes/*) echo "  skipping mounted image $found" ;;
       *Universal.app) remove_if_exists "$found" ;;
     esac
   done < <(mdfind 'kMDItemFSName == "Universal.app"' 2>/dev/null || true)
