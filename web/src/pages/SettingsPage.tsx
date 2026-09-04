@@ -176,20 +176,26 @@ export function SettingsPage() {
             <Label htmlFor="api-key">
               {demo ? 'Demo mode — no API key required' : `API key ${hasKey ? '(set)' : '(required for live completions)'}`}
             </Label>
-            <Input
-              id="api-key"
-              type="password"
-              value={apiKey}
-              onChange={(event) => setApiKey(event.target.value)}
-              disabled={demo}
-              placeholder={
-                demo
-                  ? 'Demo mode — no API key required'
-                  : hasKey
-                    ? '••••••••  leave blank to keep'
-                    : 'Required for live completions'
-              }
-            />
+            <div
+              onClick={() => {
+                if (demo) setMessage('Demo mode does not use an API key.')
+              }}
+            >
+              <Input
+                id="api-key"
+                type="password"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                disabled={demo}
+                placeholder={
+                  demo
+                    ? 'Demo mode — no API key required'
+                    : hasKey
+                      ? '••••••••  leave blank to keep'
+                      : 'Required for live completions'
+                }
+              />
+            </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="model">Default model</Label>

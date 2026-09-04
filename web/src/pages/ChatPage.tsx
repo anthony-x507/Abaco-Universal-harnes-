@@ -24,16 +24,18 @@ import {
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
 import { useModels } from '../hooks/useModels'
-import { laterChannels, pluginListLabel, usageLabel } from '../lib/utils'
-import { loadPaneState, savePaneState, type PaneId, type PaneState } from '../lib/layout'
-import { cn } from '../lib/utils'
+import { cn, laterChannels, pluginListLabel, usageLabel } from '../lib/utils'
+import { DragHandle } from '../components/DragHandle'
+import { useLayout } from '../lib/layout-context'
+import { SIZE_LIMITS, type PaneId } from '../lib/layout'
 
 type Attachment = { name: string; kind: 'file' | 'audio'; note: string; body?: string }
 
 export function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedId = searchParams.get('agent') ?? ''
-  const [panes, setPanes] = useState<PaneState>(() => loadPaneState())
+  const { layout, updateLayout } = useLayout()
+  const composerRef = useRef<HTMLTextAreaElement>(null)
   const [agents, setAgents] = useState<Agent[]>([])
   const [templates, setTemplates] = useState<Template[]>([])
   const [history, setHistory] = useState<HistoryTurn[]>([])
@@ -81,14 +83,13 @@ export function ChatPage() {
   )
 
   const togglePane = (id: PaneId) => {
-    setPanes((current) => {
-      const next = { ...current, [id]: !current[id] }
-      if (!next.left && !next.middle && !next.right) {
-        next.middle = true
-      }
-      savePaneState(next)
-      return next
-    })
+    const next = {
+      left: id === 'left' ? !layout.left : layout.left,
+      middle: id === 'middle' ? !layout.middle : layout.middle,
+      right: id === 'right' ? !layout.right : layout.right,
+    }
+    if (!next.left && !next.middle && !next.right) next.middle = true
+    updateLayout(next)
   }
 
   const refresh = async () => {
@@ -377,14 +378,14 @@ export function ChatPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-2 border-b border-border bg-surface px-3 py-2">
-        <Button size="sm" variant={panes.left ? 'default' : 'outline'} onClick={() => togglePane('left')}>
+        <Button size="sm" variant={layout.left ? 'default' : 'outline'} onClick={() => togglePane('left')}>
           <PanelLeft size={14} />
           Agents
         </Button>
-        <Button size="sm" variant={panes.middle ? 'default' : 'outline'} onClick={() => togglePane('middle')}>
+        <Button size="sm" variant={layout.middle ? 'default' : 'outline'} onClick={() => togglePane('middle')}>
           Messages
         </Button>
-        <Button size="sm" variant={panes.right ? 'default' : 'outline'} onClick={() => togglePane('right')}>
+        <Button size="sm" variant={layout.right ? 'default' : 'outline'} onClick={() => togglePane('right')}>
           <PanelRight size={14} />
           Workspace
         </Button>
@@ -400,8 +401,11 @@ export function ChatPage() {
       )}
 
       <div className="flex min-h-0 flex-1 overflow-x-auto">
-        {panes.left && (
-          <aside className="flex h-full min-h-0 w-80 shrink-0 flex-col border-r border-border bg-surface">
+        {layout.left && (
+          <aside
+            className="flex h-full min-h-0 shrink-0 flex-col border-r border-border bg-surface"
+            style={{ width: layout.leftWidth }}
+          >
             <header className="flex items-center justify-between border-b border-border px-3 py-2">
               <div className="text-xs font-medium uppercase tracking-wide text-muted">Agents</div>
               <button type="button" className="text-muted hover:text-ink" onClick={() => togglePane('left')} aria-label="Close agents">
@@ -513,8 +517,19 @@ export function ChatPage() {
             </div>
           </aside>
         )}
+        {layout.left && (
+          <DragHandle
+            axis="x"
+            value={layout.leftWidth}
+            min={SIZE_LIMITS.pane.min}
+            max={SIZE_LIMITS.pane.max}
+            onValue={(leftWidth) => updateLayout({ leftWidth })}
+            label="Resize agents panel"
+            testId="agents-pane-resize"
+          />
+        )}
 
-        {panes.middle && (
+        {layout.middle && (
           <section className="flex min-h-0 min-w-[22rem] flex-1 flex-col bg-bg">
             <header className="flex items-center justify-between border-b border-border px-4 py-3">
               <div>
@@ -596,109 +611,186 @@ export function ChatPage() {
                 {activity.text}
               </div>
             )}
-            <form
-              className="border-t border-border bg-surface p-3"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void send()
-              }}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault()
-                void onFiles(event.dataTransfer.files)
-              }}
-            >
-              {attachments.length > 0 && (
-                <ul className="mb-2 flex flex-wrap gap-2">
-                  {attachments.map((item) => (
-                    <li
-                      key={item.name}
-                      className="flex items-center gap-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs"
-                    >
-                      {item.kind === 'audio' ? <Mic size={12} /> : <FileText size={12} />}
-                      {item.name}
-                      <button
-                        type="button"
-                        className="text-muted hover:text-ink"
-                        onClick={() => setAttachments((current) => current.filter((row) => row.name !== item.name))}
-                        aria-label={`Remove ${item.name}`}
-                      >
-                        <X size={12} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Textarea
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    void send()
-                  }
-                }}
-                placeholder={selected ? 'Write in the middle column…' : 'Create an agent first'}
-                disabled={!selected || sending || loadingHistory}
-                rows={3}
-                className="min-h-[72px]"
-              />
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <input
-                  ref={fileRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(event) => {
-                    void onFiles(event.target.files)
-                    event.target.value = ''
-                  }}
+            {layout.composerOpen ? (
+              <div className="relative z-10 shrink-0 border-t border-border bg-surface">
+                <DragHandle
+                  axis="y"
+                  invert
+                  value={layout.composerHeight}
+                  min={SIZE_LIMITS.composer.min}
+                  max={SIZE_LIMITS.composer.max}
+                  onValue={(composerHeight) => updateLayout({ composerHeight })}
+                  label="Resize message box"
+                  testId="composer-resize"
                 />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!selected || sending || loadingHistory}
-                  title="File content is sent as text"
-                  onClick={() => fileRef.current?.click()}
+                <form
+                  className="p-3"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (!selected) {
+                      showToast('Pick or create an agent on the left first.')
+                      return
+                    }
+                    void send()
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    void onFiles(event.dataTransfer.files)
+                  }}
                 >
-                  <Paperclip size={14} />
-                  File
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={recording ? 'danger' : 'outline'}
-                  disabled={!selected || sending || loadingHistory}
-                  title="Audio is attached as a note (no STT)"
-                  onClick={() => void toggleRecord()}
-                >
-                  {recording ? <Square size={14} /> : <Mic size={14} />}
-                  {recording ? 'Stop audio' : 'Audio'}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={autoMode ? 'default' : 'outline'}
-                  disabled={!selected || sending || loadingHistory}
-                  aria-pressed={autoMode}
-                  title="Autonomous tool loop. Off keeps one-turn ask."
-                  onClick={() => setAutoMode((current) => !current)}
-                >
-                  Auto
-                </Button>
-                <Button type="submit" disabled={!selected || sending || loadingHistory || (!prompt.trim() && attachments.length === 0)}>
-                  Send
-                </Button>
-                <p className="w-full text-[11px] text-muted">
-                  Files are sent as text. Audio is attached as a note. No speech-to-text or OCR in this cut.
-                </p>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[11px] uppercase tracking-wide text-muted">Message</span>
+                    <button
+                      type="button"
+                      className="text-muted hover:text-ink"
+                      onClick={() => updateLayout({ composerOpen: false })}
+                      aria-label="Close message box"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  {attachments.length > 0 && (
+                    <ul className="mb-2 flex flex-wrap gap-2">
+                      {attachments.map((item) => (
+                        <li
+                          key={item.name}
+                          className="flex items-center gap-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs"
+                        >
+                          {item.kind === 'audio' ? <Mic size={12} /> : <FileText size={12} />}
+                          {item.name}
+                          <button
+                            type="button"
+                            className="text-muted hover:text-ink"
+                            onClick={() => setAttachments((current) => current.filter((row) => row.name !== item.name))}
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <Textarea
+                    ref={composerRef}
+                    value={prompt}
+                    onChange={(event) => setPrompt(event.target.value)}
+                    onClick={() => {
+                      if (!selected) showToast('Pick or create an agent on the left first.')
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        if (!selected) {
+                          showToast('Pick or create an agent on the left first.')
+                          return
+                        }
+                        void send()
+                      }
+                    }}
+                    placeholder={selected ? 'Write in the middle column…' : 'Create an agent first'}
+                    disabled={sending}
+                    rows={3}
+                    className="resize-none"
+                    style={{ height: layout.composerHeight }}
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(event) => {
+                        void onFiles(event.target.files)
+                        event.target.value = ''
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={sending}
+                      title="File content is sent as text"
+                      onClick={() => {
+                        if (!selected) {
+                          showToast('Pick or create an agent on the left first.')
+                          return
+                        }
+                        fileRef.current?.click()
+                      }}
+                    >
+                      <Paperclip size={14} />
+                      File
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={recording ? 'danger' : 'outline'}
+                      disabled={sending}
+                      title="Audio is attached as a note (no STT)"
+                      onClick={() => {
+                        if (!selected) {
+                          showToast('Pick or create an agent on the left first.')
+                          return
+                        }
+                        void toggleRecord()
+                      }}
+                    >
+                      {recording ? <Square size={14} /> : <Mic size={14} />}
+                      {recording ? 'Stop audio' : 'Audio'}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={autoMode ? 'default' : 'outline'}
+                      disabled={sending}
+                      aria-pressed={autoMode}
+                      title="Autonomous tool loop. Off keeps one-turn ask."
+                      onClick={() => setAutoMode((current) => !current)}
+                    >
+                      Auto
+                    </Button>
+                    <Button type="submit" disabled={sending || (!prompt.trim() && attachments.length === 0)}>
+                      Send
+                    </Button>
+                    <p className="w-full text-[11px] text-muted">
+                      Drag the bar above to make this box taller. Files are sent as text. Audio is attached as a note.
+                    </p>
+                  </div>
+                </form>
               </div>
-            </form>
+            ) : (
+              <button
+                type="button"
+                className="relative z-10 flex w-full shrink-0 items-center justify-between border-t border-border bg-surface px-4 py-3 text-left text-sm text-muted hover:bg-surface-2 hover:text-ink"
+                onClick={() => {
+                  updateLayout({ composerOpen: true })
+                  window.setTimeout(() => composerRef.current?.focus(), 0)
+                }}
+                aria-label="Open message box"
+              >
+                <span>Write a message…</span>
+                <span className="text-xs">Open</span>
+              </button>
+            )}
           </section>
         )}
 
-        {panes.right && <WorkspacePane onClose={() => togglePane('right')} />}
+        {layout.right && (
+          <>
+            <DragHandle
+              axis="x"
+              invert
+              value={layout.rightWidth}
+              min={SIZE_LIMITS.pane.min}
+              max={SIZE_LIMITS.pane.max}
+              onValue={(rightWidth) => updateLayout({ rightWidth })}
+              label="Resize workspace"
+              testId="workspace-resize"
+            />
+            <WorkspacePane width={layout.rightWidth} onClose={() => togglePane('right')} />
+          </>
+        )}
       </div>
 
       {confirmClear && selected && (

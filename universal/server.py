@@ -109,7 +109,7 @@ def _settings_payload(state: ServerState) -> dict[str, Any]:
 def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     """Build the FastAPI app around an already-constructed Universal root."""
     state = ServerState(platform=platform, demo=demo)
-    app = FastAPI(title="Universal platform", version="1.0.0")
+    app = FastAPI(title="Universal platform", version="1.0.1")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

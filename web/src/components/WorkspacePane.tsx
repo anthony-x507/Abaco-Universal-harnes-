@@ -1,15 +1,20 @@
 import { Monitor, PlugZap, Puzzle, X } from 'lucide-react'
 import { useState } from 'react'
+import { useAskSession } from '../lib/ask-session'
 import { Button } from './ui/button'
 import { cn } from '../lib/utils'
 
 type WorkspaceTab = 'screen' | 'extension'
 
-export function WorkspacePane({ onClose }: { onClose: () => void }) {
+export function WorkspacePane({ onClose, width }: { onClose: () => void; width: number }) {
   const [tab, setTab] = useState<WorkspaceTab>('screen')
+  const { showToast } = useAskSession()
 
   return (
-    <aside className="flex h-full min-h-0 w-[20rem] shrink-0 flex-col border-l border-border bg-surface">
+    <aside
+      className="flex h-full min-h-0 shrink-0 flex-col border-l border-border bg-surface"
+      style={{ width }}
+    >
       <header className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="text-xs font-medium uppercase tracking-wide text-muted">Workspace</div>
         <button type="button" className="text-muted hover:text-ink" onClick={onClose} aria-label="Close workspace">
@@ -57,7 +62,12 @@ export function WorkspacePane({ onClose }: { onClose: () => void }) {
               </p>
             </div>
           </div>
-          <Button size="sm" variant="outline" disabled title="coming soon">
+          <Button
+            size="sm"
+            variant="outline"
+            title="coming soon"
+            onClick={() => showToast('Screen connect is not available yet.')}
+          >
             Connect screen (coming soon)
           </Button>
         </div>
@@ -87,7 +97,12 @@ export function WorkspacePane({ onClose }: { onClose: () => void }) {
               </div>
             </dl>
           </div>
-          <Button size="sm" variant="outline" disabled title="coming soon">
+          <Button
+            size="sm"
+            variant="outline"
+            title="coming soon"
+            onClick={() => showToast('The companion extension is not available yet.')}
+          >
             Install extension (coming soon)
           </Button>
         </div>

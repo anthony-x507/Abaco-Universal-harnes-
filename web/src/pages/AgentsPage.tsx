@@ -35,7 +35,7 @@ export function AgentsPage() {
   const [error, setError] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Agent | null>(null)
   const [provider, setProvider] = useState('OpenAI (GPT-4o-mini)')
-  const { askingId, abortAsk } = useAskSession()
+  const { askingId, abortAsk, showToast } = useAskSession()
   const { models } = useModels()
 
   const refresh = async () => {
@@ -258,16 +258,32 @@ export function AgentsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={working === `start-${agent.id}` || agent.state === 'running'}
-                    onClick={() => void run(`start-${agent.id}`, async () => { await startAgent(agent.id) })}
+                    disabled={working === `start-${agent.id}`}
+                    onClick={() => {
+                      if (agent.state === 'running') {
+                        showToast('This agent is already running.')
+                        return
+                      }
+                      void run(`start-${agent.id}`, async () => {
+                        await startAgent(agent.id)
+                      })
+                    }}
                   >
                     Start
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={working === `stop-${agent.id}` || agent.state !== 'running'}
-                    onClick={() => void run(`stop-${agent.id}`, async () => { await stopAgent(agent.id) })}
+                    disabled={working === `stop-${agent.id}`}
+                    onClick={() => {
+                      if (agent.state !== 'running') {
+                        showToast('This agent is not running.')
+                        return
+                      }
+                      void run(`stop-${agent.id}`, async () => {
+                        await stopAgent(agent.id)
+                      })
+                    }}
                   >
                     Stop
                   </Button>

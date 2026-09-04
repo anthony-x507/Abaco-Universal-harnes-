@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
   "release_notes": "Native Mac app. Download Universal.dmg only. Updates check GitHub Releases and install to /Applications/Universal.app."
 }

@@ -187,6 +187,23 @@ describe('Chat page quality tests', () => {
     })
   })
 
+  it('toggles Agents and the message box', async () => {
+    const user = userEvent.setup()
+    installFetchMock(() => null)
+    renderChat()
+    expect(await screen.findByRole('heading', { name: 'Templates' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Close agents' }))
+    expect(screen.queryByRole('heading', { name: 'Templates' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Agents' }))
+    expect(screen.getByRole('heading', { name: 'Templates' })).toBeInTheDocument()
+    expect(screen.getByTestId('composer-resize')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Write in the middle column…')).not.toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Close message box' }))
+    expect(screen.queryByPlaceholderText('Write in the middle column…')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open message box' }))
+    expect(screen.getByPlaceholderText('Write in the middle column…')).toBeInTheDocument()
+  })
+
   it('T17 keeps the user turn and shows Retry when the stream dies', async () => {
     const user = userEvent.setup()
     installFetchMock((path, init) => {
