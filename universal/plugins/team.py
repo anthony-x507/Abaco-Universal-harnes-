@@ -11,7 +11,7 @@ from universal.permission_gate import ask_permission
 from universal.plugins._support import parse_tool_args
 from universal.rules import is_enforced
 from universal.situation import Situation
-from universal.teams import add_note, checkpoint_team, create_team, delegate, load_team
+from universal.teams import add_note, checkpoint_team, create_team, delegate, load_team, team_snapshot
 
 
 class TeamPlugin(Plugin):
@@ -77,6 +77,15 @@ class TeamPlugin(Plugin):
                 },
             ),
             ToolSpec(
+                name="resume_team",
+                description="Load the last team checkpoint and each member's current mission. Does not create agents.",
+                parameters={
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            ),
+            ToolSpec(
                 name="share_note",
                 description="Attach a short note to a team. Asks first when memory sharing is enforced.",
                 parameters={
@@ -105,6 +114,7 @@ class TeamPlugin(Plugin):
             "delegate_task",
             "team_status",
             "team_checkpoint",
+            "resume_team",
             "share_note",
             "read_team_notes",
         }:
@@ -145,7 +155,7 @@ class TeamPlugin(Plugin):
             return answer
         if call.name == "team_status":
             name = str(args.get("name") or "").strip()
-            team = load_team(name)
+            team = team_snapshot(name)
             if team is None:
                 return f"error: team {name!r} not found"
             return json.dumps(team, indent=2)
@@ -156,6 +166,14 @@ class TeamPlugin(Plugin):
             except KeyError:
                 return f"error: team {name!r} not found"
             return f"Team checkpoint at {team.get('last_checkpoint')}"
+        if call.name == "resume_team":
+            name = str(args.get("name") or "").strip()
+            team = team_snapshot(name)
+            if team is None:
+                return f"error: team {name!r} not found"
+            if not team.get("last_checkpoint"):
+                return f"error: team {name!r} has no checkpoint"
+            return json.dumps(team, indent=2)
         if call.name == "share_note":
             name = str(args.get("name") or "").strip()
             text = str(args.get("text") or "").strip()

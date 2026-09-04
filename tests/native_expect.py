@@ -28,7 +28,7 @@ NATIVE_LABELS = [
     "Scraper: scrape_url",
     "Rule Enforcer: list_rules, check_rule",
     "Navigator: set_objective, plan_steps, complete_step, report_obstacle, report_deviation, suggest_path, checkpoint, mission_status",
-    "Team: create_team, delegate_task, team_status, team_checkpoint, share_note, read_team_notes",
+    "Team: create_team, delegate_task, team_status, team_checkpoint, resume_team, share_note, read_team_notes",
 ]
 
 RESEARCHER_PLUGIN_NAMES = (*NATIVE_PLUGIN_NAMES, "tools")

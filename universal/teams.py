@@ -81,6 +81,27 @@ def checkpoint_team(name: str) -> dict[str, Any]:
     return save_team(name, team)
 
 
+def team_snapshot(name: str) -> dict[str, Any] | None:
+    """Team file plus each member's saved mission. Resume is load, not recreate."""
+    team = load_team(name)
+    if team is None:
+        return None
+    from universal.situation import Situation
+
+    members: list[dict[str, Any]] = []
+    for row in team.get("members") or []:
+        if not isinstance(row, dict):
+            continue
+        item = dict(row)
+        member_id = str(item.get("id") or "")
+        if member_id:
+            item["situation"] = Situation.load(member_id, agent_name=str(item.get("name") or "")).to_dict()
+        members.append(item)
+    payload = dict(team)
+    payload["members"] = members
+    return payload
+
+
 def delegate(agent_id: str, prompt: str) -> str:
     if _DELEGATE is None:
         return "error: team delegate is only available while the factory is running"

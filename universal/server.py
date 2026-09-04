@@ -550,9 +550,9 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
 
     @app.get("/v1/teams/{name}")
     def get_team_route(name: str) -> dict[str, Any]:
-        from universal.teams import load_team
+        from universal.teams import team_snapshot
 
-        team = load_team(name)
+        team = team_snapshot(name)
         if team is None:
             raise HTTPException(status_code=404, detail="Team not found")
         return team

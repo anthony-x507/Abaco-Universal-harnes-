@@ -196,7 +196,7 @@ Built-in catalog ids:
 | `scraper` | `scrape_url` | BeautifulSoup. http(s) only; localhost and private IPs are rejected. |
 | `rule_enforcer` | `list_rules`, `check_rule` | Signed-core catalog. The user file may only flip `enforced`. |
 | `navigator` | `set_objective`, `plan_steps`, `complete_step`, `report_obstacle`, `report_deviation`, `suggest_path`, `checkpoint`, `mission_status` | Per-agent mission phase. Not the lifecycle `AgentState`. Three failed obstacles mark the mission failed. |
-| `team` | `create_team`, `delegate_task`, `team_status`, `team_checkpoint`, `share_note`, `read_team_notes` | Groups existing agents. Delegate goes through `Agent.accept`. Sharing notes asks when `memory_share_between_agents` is on. |
+| `team` | `create_team`, `delegate_task`, `team_status`, `team_checkpoint`, `resume_team`, `share_note`, `read_team_notes` | Groups existing agents. Delegate goes through `Agent.accept`. `resume_team` reloads the checkpoint and each member's mission. Sharing notes asks when `memory_share_between_agents` is on. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 

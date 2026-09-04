@@ -104,6 +104,22 @@ def test_create_team_and_delegate_uses_accept(platform: Universal) -> None:
     checkpoint = client.post("/v1/teams/lab/checkpoint")
     assert checkpoint.status_code == 200
     assert checkpoint.json()["last_checkpoint"]
+    helper_agent = platform.registry.get(helper["id"])
+    navigator = helper_agent.plugins.get("navigator")
+    assert navigator is not None
+    navigator.invoke_tool(
+        ToolCall(id="t2", name="set_objective", arguments=json.dumps({"objective": "summarize the notes"}))
+    )
+    plugin = platform.registry.get(lead["id"]).plugins.get("team")
+    assert plugin is not None
+    resumed = plugin.invoke_tool(ToolCall(id="t3", name="resume_team", arguments=json.dumps({"name": "lab"})))
+    assert resumed is not None
+    payload = json.loads(resumed)
+    assert payload["last_checkpoint"]
+    helper_row = next(row for row in payload["members"] if row["id"] == helper["id"])
+    assert helper_row["situation"]["objective"] == "summarize the notes"
+    listed = client.get("/v1/teams/lab").json()
+    assert listed["members"][0]["situation"]["phase"]
 
 
 def test_team_plugin_share_note_asks_when_enforced(platform: Universal, tmp_path: Path, monkeypatch) -> None:
