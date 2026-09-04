@@ -41,6 +41,8 @@ def test_readme_covers_hito5_surfaces() -> None:
         "run_command",
         "search_web",
         "universal[media]",
+        "universal desktop",
+        "Universal.app",
         "DEMO.md",
         "demo.sh",
     ):

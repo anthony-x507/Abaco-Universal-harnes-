@@ -81,6 +81,7 @@ Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollam
 | `universal deploy [template]` | Create an agent and write a ZIP. |
 | `universal shell` | One process, one registry: `create` / `start` / `stop` / `list` / `delete` / `ask` / `deploy`. |
 | `universal serve [--demo]` | HTTP factory on `127.0.0.1:43124`. Localhost only. |
+| `universal desktop [--demo]` | Native window (pywebview) on the same factory + built SPA. |
 
 `ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
 
@@ -233,6 +234,28 @@ curl -sS -X POST http://127.0.0.1:43124/v1/agents/AGENT_ID/deploy -o agent.zip
 
 Unpack and recreate with `universal create <template> --name <name>` (or the SPA). The ZIP is a portable description, not a second runtime.
 
+## macOS desktop app
+
+The factory plugins above are already in the Python package. A download does **not** need a second plugin tree. The Mac wrapper starts the same `universal serve` app and opens a native window on that localhost URL (SPA + `/v1` on port **43124**, not a second factory).
+
+```bash
+python3 -m pip install -e ".[desktop]"
+cd web && bun install && bun run build && cd ..
+python3 -m universal desktop --demo          # window (needs pywebview)
+python3 -m universal desktop --check         # CI / headless: health + web/dist
+```
+
+On a Mac:
+
+```bash
+scripts/build_macos.sh    # bun build + PyInstaller → Universal.app
+scripts/create_dmg.sh     # Universal.dmg (hdiutil)
+```
+
+`build_macos.sh` on Linux only builds the SPA and runs `--check` (there is no `.app` on this OS). Whisper is **not** bundled; install `universal[media]` if you want local STT. TTS uses macOS `say`. Offline: terminal, TTS, STT (if Whisper is present), and local vision captions. Live LLM and `search_web` / `scrape_url` need the network.
+
+`app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
+
 ## Library
 
 ```python
@@ -264,6 +287,8 @@ platform = Universal(settings, provider=my_fake_provider)
 | `UNIVERSAL_LLM_ORGANIZATION` | no | empty |
 | `UNIVERSAL_REGISTRY_FILE` | no | serve: `.universal/registry.json`; empty disables |
 | `UNIVERSAL_MEMORY_DIR` | no | temp folder / `universal-memory` |
+| `UNIVERSAL_WEB_DIST` | no | `web/dist` (or the PyInstaller extract dir) |
+| `UNIVERSAL_TERMINAL_DIR` | no | process cwd for `run_command` |
 
 Copy `.env.example`. **Do not commit secrets.**
 

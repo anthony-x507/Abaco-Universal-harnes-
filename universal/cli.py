@@ -77,6 +77,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="In-process factory session: create/start/stop/list/delete/ask/deploy.",
     )
 
+    desktop = sub.add_parser(
+        "desktop",
+        help="Native window around the factory + built SPA (localhost only).",
+    )
+    desktop.add_argument("--host", default="127.0.0.1")
+    desktop.add_argument("--port", type=int, default=43124)
+    desktop.add_argument(
+        "--demo",
+        action="store_true",
+        help="Echo provider so the window works without UNIVERSAL_LLM_API_KEY.",
+    )
+    desktop.add_argument(
+        "--check",
+        action="store_true",
+        help="Verify web/dist and factory health without opening a window.",
+    )
+
     return parser
 
 
@@ -192,6 +209,17 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return run_server(host=args.host, port=args.port, demo=args.demo)
 
 
+def _cmd_desktop(args: argparse.Namespace) -> int:
+    from universal.desktop import main as desktop_main
+
+    argv = ["--host", args.host, "--port", str(args.port)]
+    if args.demo:
+        argv.append("--demo")
+    if args.check:
+        argv.append("--check")
+    return desktop_main(argv)
+
+
 def _cmd_list(_args: argparse.Namespace) -> int:
     platform = _platform()
     infos = platform.factory.list()
@@ -239,6 +267,7 @@ _HANDLERS = {
     "deploy": _cmd_deploy,
     "shell": _cmd_shell,
     "serve": _cmd_serve,
+    "desktop": _cmd_desktop,
 }
 
 

@@ -31,6 +31,7 @@ from universal.exceptions import (
 )
 from universal.providers.catalog import PROVIDERS, get_provider
 from universal.templates.catalog import list_templates
+from universal.web_dist import resolve_web_dist
 
 
 COMING_CHANNELS: tuple[str, ...] = ()
@@ -142,6 +143,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "product": "Universal platform",
             "demo": state.demo,
             "agents": len(state.platform.factory.list()),
+            "web": bool(getattr(app.state, "web_dist", None)),
         }
 
     @app.get("/v1/models")
@@ -355,7 +357,75 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         path = state.platform.factory.deploy(agent_id, state.deploy_dir)
         return FileResponse(path, filename=path.name, media_type="application/zip")
 
+    dist = resolve_web_dist()
+    app.state.web_dist = dist
+    if dist is not None:
+        _mount_spa(app, dist)
+
     return app
+
+
+def _mount_spa(app: FastAPI, dist: Path) -> None:
+    """Serve the Vite build from the same origin as ``/v1`` (desktop / packaged).
+
+    Must not register a catch-all route under ``/v1`` — that would turn
+    ``POST /v1/chat/completions`` into 405 instead of 404.
+    """
+    root = dist.resolve()
+
+    def _safe_file(url_path: str) -> Path | None:
+        relative = url_path.lstrip("/")
+        if not relative or relative == "health" or relative.startswith("v1/") or relative == "v1":
+            return None
+        candidate = (root / relative).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            return None
+        return candidate if candidate.is_file() else None
+
+    @app.middleware("http")
+    async def spa_fallback(request: Request, call_next):  # type: ignore[no-untyped-def]
+        if request.method == "GET":
+            existing = _safe_file(request.url.path)
+            if existing is not None:
+                return FileResponse(existing)
+        response = await call_next(request)
+        if (
+            request.method == "GET"
+            and response.status_code == 404
+            and not request.url.path.startswith("/v1")
+            and request.url.path != "/health"
+        ):
+            index = root / "index.html"
+            if index.is_file():
+                return FileResponse(index)
+        return response
+
+    @app.get("/")
+    def spa_index() -> FileResponse:
+        return FileResponse(root / "index.html")
+
+
+def build_serve_app(
+    *,
+    demo: bool = False,
+    persist: bool = True,
+    persist_path: Path | str | None = None,
+) -> FastAPI:
+    """One Universal root + factory app. Shared by ``serve`` and the desktop window."""
+    settings = Settings.from_env()
+    if persist_path is None and persist:
+        persist_path = default_serve_registry_file()
+    elif not persist:
+        persist_path = None
+    if demo:
+        from universal.providers.demo import EchoProvider
+
+        platform = Universal(settings, provider=EchoProvider(), persist_path=persist_path)
+    else:
+        platform = Universal(settings, persist_path=persist_path)
+    return create_app(platform, demo=demo)
 
 
 def run_server(*, host: str = "127.0.0.1", port: int = 43124, demo: bool = False) -> int:
@@ -364,14 +434,6 @@ def run_server(*, host: str = "127.0.0.1", port: int = 43124, demo: bool = False
     if host not in {"127.0.0.1", "localhost", "::1"}:
         raise ConfigError("v1 serve binds localhost only. Do not pass a public host.")
 
-    settings = Settings.from_env()
-    persist_path = default_serve_registry_file()
-    if demo:
-        from universal.providers.demo import EchoProvider
-
-        platform = Universal(settings, provider=EchoProvider(), persist_path=persist_path)
-    else:
-        platform = Universal(settings, persist_path=persist_path)
-    app = create_app(platform, demo=demo)
+    app = build_serve_app(demo=demo)
     uvicorn.run(app, host=host, port=port, log_level="info")
     return 0

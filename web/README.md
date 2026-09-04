@@ -21,6 +21,8 @@ Owner walkthrough: [../DEMO.md](../DEMO.md). `./demo.sh` from the repo root star
 
 Open `http://127.0.0.1:43123`. Tab title: **Universal – Agents**.
 
+After `bun run build`, `universal serve` also serves `web/dist` from the factory origin (`/`). `universal desktop` opens that same URL in a native window. On a Mac, `scripts/build_macos.sh` builds `Universal.app`.
+
 Without `--demo`, set `UNIVERSAL_LLM_*` or paste a key in Settings. Settings update the running process only; they are not written to disk.
 
 Create can choose `cli` or `webhook` once `GET /v1/channels` lists both. A webhook agent still answers in Chat via `/ask`. Other processes POST `{ "text": "…" }` to `/v1/agents/{id}/webhook`. Optional outbound URL is per agent, in memory.

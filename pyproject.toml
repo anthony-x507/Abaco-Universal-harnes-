@@ -36,6 +36,9 @@ dev = [
 media = [
   "openai-whisper",
 ]
+desktop = [
+  "pywebview>=5.0",
+]
 
 [project.scripts]
 universal = "universal.cli:main"

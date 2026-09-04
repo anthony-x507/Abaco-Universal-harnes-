@@ -79,6 +79,7 @@ The owner is sending **51 notes**, one at a time. They include advice for the ow
 | `63.md` | Hito 5 final guide + demo walkthrough | accepted — shipped |
 | `64.md` | 40+ LLM presets (same OpenAI-compat client) | accepted — shipped |
 | `65.md` | Native plugins for every agent (terminal, TTS, STT, vision, search, scraper) | accepted — shipped lock-safe (no YAML, no `os.system` TTS, Whisper optional) |
+| `66.md` | Native plugins packet + macOS PyWebView / DMG | plugins already shipped; desktop wrapper shipped lock-safe (no YAML, no second factory, Whisper not bundled) |
 
 Expected: 51. Received: 48 design notes + designer alignment (`49.md`). Original notes 49–51 never arrived; designer closed the set.
 
