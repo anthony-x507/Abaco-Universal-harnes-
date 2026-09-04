@@ -142,6 +142,16 @@ def test_t07_delete_during_ask_clears_registry_and_lock(platform: Universal) -> 
 
 def test_t08_stream_provider_error_emits_sse_error(platform: Universal) -> None:
     class BoomStream(FakeProvider):
+        def complete(
+            self,
+            messages: list[Message],
+            *,
+            tools: list[ToolSpec] | None = None,
+            model: str | None = None,
+        ) -> CompletionResponse:
+            # Factory agents always advertise native tools, so SSE uses complete().
+            raise ProviderError("stream-broke")
+
         def stream(
             self,
             messages: list[Message],
