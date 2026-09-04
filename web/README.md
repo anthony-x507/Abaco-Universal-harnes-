@@ -1,6 +1,6 @@
 # Universal web face
 
-Browser SPA for the Universal platform. Pages: Chat, Agents, Settings.
+Browser SPA for the Universal platform. Pages: Chat, Agents, Design, Settings.
 
 It talks to `python3 -m universal serve` through the Vite proxy (`/v1`, `/health` → `127.0.0.1:43124`).
 

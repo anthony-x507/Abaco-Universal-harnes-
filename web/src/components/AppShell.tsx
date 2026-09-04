@@ -1,4 +1,4 @@
-import { Bot, ChevronLeft, ChevronRight, MessageSquare, Settings } from 'lucide-react'
+import { Bot, ChevronLeft, ChevronRight, LayoutGrid, MessageSquare, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { getHealth } from '../lib/api'
@@ -10,6 +10,7 @@ import { DragHandle } from './DragHandle'
 const nav = [
   { to: '/', label: 'Chat', icon: MessageSquare, end: true },
   { to: '/agents', label: 'Agents', icon: Bot, end: false },
+  { to: '/design', label: 'Design', icon: LayoutGrid, end: false },
   { to: '/settings', label: 'Settings', icon: Settings, end: false },
 ]
 
@@ -146,20 +147,17 @@ export function AppShell() {
         </div>
       )}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
-          <div className="text-sm text-muted">Universal Platform</div>
-          <div className="flex items-center gap-2 text-xs text-muted md:hidden">
-            <span
-              className={cn(
-                'h-2 w-2 rounded-full',
-                connected === true && 'bg-emerald-400',
-                connected === false && 'bg-red-400',
-                connected === null && 'bg-muted',
-              )}
-            />
-            {connected === false ? 'Offline' : demo ? 'Demo' : 'Live'}
-          </div>
-        </header>
+        <div className="flex items-center justify-end gap-2 px-4 py-2 text-xs text-muted md:hidden">
+          <span
+            className={cn(
+              'h-2 w-2 rounded-full',
+              connected === true && 'bg-emerald-400',
+              connected === false && 'bg-red-400',
+              connected === null && 'bg-muted',
+            )}
+          />
+          {connected === false ? 'Offline' : demo ? 'Demo' : 'Live'}
+        </div>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <Outlet />
         </main>

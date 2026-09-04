@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { ActivityProvider } from '../lib/activity'
 import { AskSessionProvider } from '../lib/ask-session'
 import { ChatPage } from './ChatPage'
 import { agentFixture, installFetchMock, jsonResponse, sseResponse } from '../test/fetch'
@@ -10,7 +11,9 @@ function renderChat() {
   return render(
     <MemoryRouter initialEntries={['/?agent=a1']}>
       <AskSessionProvider>
-        <ChatPage />
+        <ActivityProvider>
+          <ChatPage />
+        </ActivityProvider>
       </AskSessionProvider>
     </MemoryRouter>,
   )
@@ -34,7 +37,7 @@ describe('Chat page quality tests', () => {
     })
 
     renderChat()
-    const box = await screen.findByPlaceholderText('Write in the middle column…')
+    const box = await screen.findByPlaceholderText('How can I help you today?')
     await user.type(box, 'hello')
     await user.click(screen.getByRole('button', { name: 'Send' }))
 
@@ -80,7 +83,7 @@ describe('Chat page quality tests', () => {
     expect(auto).toHaveAttribute('aria-pressed', 'false')
     await user.click(auto)
     expect(auto).toHaveAttribute('aria-pressed', 'true')
-    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'investigate and summarize')
+    await user.type(await screen.findByPlaceholderText('How can I help you today?'), 'investigate and summarize')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     await waitFor(() => {
       expect(calls.some((call) => call.path === '/v1/agents/a1/run')).toBe(true)
@@ -116,7 +119,7 @@ describe('Chat page quality tests', () => {
     })
 
     renderChat()
-    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'time')
+    await user.type(await screen.findByPlaceholderText('How can I help you today?'), 'time')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     expect(await screen.findByText('🔧 Executing tool: utc_now...')).toBeInTheDocument()
     expect(await screen.findByText('now')).toBeInTheDocument()
@@ -145,7 +148,7 @@ describe('Chat page quality tests', () => {
     })
 
     renderChat()
-    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'hi')
+    await user.type(await screen.findByPlaceholderText('How can I help you today?'), 'hi')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     expect(await screen.findByText('Hello')).toBeInTheDocument()
     expect(screen.getByText('hi')).toBeInTheDocument()
@@ -161,9 +164,9 @@ describe('Chat page quality tests', () => {
     })
 
     renderChat()
-    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'again')
+    await user.type(await screen.findByPlaceholderText('How can I help you today?'), 'again')
     await user.click(screen.getByRole('button', { name: 'Send' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Agent is already answering')
+    expect(await screen.findByText(/Agent is already answering/)).toBeInTheDocument()
     expect(screen.getByText('again')).toBeInTheDocument()
   })
 
@@ -187,23 +190,22 @@ describe('Chat page quality tests', () => {
     })
   })
 
-  it('toggles Agents and the message box', async () => {
+  it('keeps Chat free of create-agent chrome and shows a glass composer', async () => {
     const user = userEvent.setup()
     installFetchMock(() => null)
     renderChat()
-    expect(await screen.findByRole('heading', { name: 'Templates' })).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText('How can I help you today?')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Templates' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agents' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Messages' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('LLM company (latest model)')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Channel')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Close agents' }))
-    expect(screen.queryByRole('heading', { name: 'Templates' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Agents' }))
-    expect(screen.getByRole('heading', { name: 'Templates' })).toBeInTheDocument()
-    expect(screen.getByTestId('composer-resize')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Write in the middle column…')).not.toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Close message box' }))
-    expect(screen.queryByPlaceholderText('Write in the middle column…')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Open message box' }))
-    expect(screen.getByPlaceholderText('Write in the middle column…')).toBeInTheDocument()
+    expect(screen.getByTestId('activity-feed')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Workspace' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Workspace' }))
+    expect(screen.queryByText('No screen connected')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Workspace' }))
+    expect(screen.getByText('No screen connected')).toBeInTheDocument()
   })
 
   it('T17 keeps the user turn and shows Retry when the stream dies', async () => {
@@ -223,7 +225,7 @@ describe('Chat page quality tests', () => {
     })
 
     renderChat()
-    await user.type(await screen.findByPlaceholderText('Write in the middle column…'), 'keep-me')
+    await user.type(await screen.findByPlaceholderText('How can I help you today?'), 'keep-me')
     await user.click(screen.getByRole('button', { name: 'Send' }))
     expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument()
     expect(screen.getByText('keep-me')).toBeInTheDocument()

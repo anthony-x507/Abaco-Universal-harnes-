@@ -9,7 +9,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - Three templates: `general`, `researcher`, `coder`
 - Live OpenAI-compatible HTTP, plus `--demo` echo for the SPA
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
-- Browser face: Chat, Agents, Settings
+- Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
 - Native tools on every agent: terminal, TTS (voice + speed), Whisper STT, vision, web search, scraper
 - ZIP export with no secrets
@@ -69,7 +69,7 @@ python3 -m universal ask --template coder "Write a Python function that reverses
 
 Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollama `/v1`, a company gateway). Hugging Face and MLX are not stubbed here.
 
-`GET /v1/models` and `universal models` list **40 companies**, each with that lab's **latest** flagship (OpenAI GPT-5.6 Sol, Anthropic Claude Fable 5.1, Google Gemini 3.8 Flash, …). There is not a second OpenAI row and not ten Llama hosts. They only fill `UNIVERSAL_LLM_BASE_URL` and `UNIVERSAL_LLM_MODEL` for the existing `OpenAICompatProvider`. Settings and Create Agent offer the same picker. This is not 40 HTTP clients. Labs without a public OpenAI-compatible API are reached through OpenRouter.
+`GET /v1/models` and `universal models` list **40 companies**, each with that lab's **latest** flagship (OpenAI GPT-5.6 Sol, Anthropic Claude Fable 5.1, Google Gemini 3.8 Flash, …). There is not a second OpenAI row and not ten Llama hosts. They only fill `UNIVERSAL_LLM_BASE_URL` and `UNIVERSAL_LLM_MODEL` for the existing `OpenAICompatProvider`. Settings offers the same picker; Design create uses the process default. This is not 40 HTTP clients. Labs without a public OpenAI-compatible API are reached through OpenRouter.
 
 ## CLI
 
@@ -331,7 +331,7 @@ universal/
   deploy/        ZIP packager + GitHub stub
   session.py     in-process factory shell
   server.py      HTTP factory control plane
-web/             SPA (Chat, Agents, Settings)
+web/             SPA (Chat, Agents, Design, Settings)
 ```
 
 ### Templates

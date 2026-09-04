@@ -1,31 +1,26 @@
-import { FileText, Mic, Paperclip, PanelLeft, PanelRight, Square, Trash2, X } from 'lucide-react'
+import { ArrowUp, FileText, Mic, Paperclip, PanelRight, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { WorkspacePane } from '../components/WorkspacePane'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Textarea } from '../components/ui/textarea'
 import {
   ApiError,
   askAgentStream,
-  createAgent,
   friendlyError,
   PROVIDER_ERROR_COPY,
   getAgent,
   listAgents,
-  listTemplates,
   resetAgent,
   type Agent,
   type HistoryTurn,
-  type Template,
 } from '../lib/api'
+import { useActivity } from '../lib/activity'
 import { useAskSession } from '../lib/ask-session'
-import { cn, pluginListLabel, usageLabel } from '../lib/utils'
+import { cn, usageLabel } from '../lib/utils'
 import { DragHandle } from '../components/DragHandle'
 import { useLayout } from '../lib/layout-context'
-import { SIZE_LIMITS, type PaneId } from '../lib/layout'
+import { SIZE_LIMITS } from '../lib/layout'
 
 type Attachment = {
   name: string
@@ -35,8 +30,6 @@ type Attachment = {
   data?: string
   body?: string
 }
-
-const FACE_EMOJIS = ['💬', '🔎', '💻', '😊', '😎', '🤖', '🧠', '🦊', '🐱', '🦉', '🐲', '⭐', '🔥', '🌱', '🎯']
 
 function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -57,25 +50,19 @@ export function ChatPage() {
   const { layout, updateLayout } = useLayout()
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const [agents, setAgents] = useState<Agent[]>([])
-  const [templates, setTemplates] = useState<Template[]>([])
   const [history, setHistory] = useState<HistoryTurn[]>([])
   const [prompt, setPrompt] = useState('')
-  const [name, setName] = useState('')
-  const [template, setTemplate] = useState('general')
-  const [emoji, setEmoji] = useState('💬')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const { beginAsk, endAsk, showToast } = useAskSession()
+  const { events, pushActivity } = useActivity()
   const [loadingList, setLoadingList] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [sending, setSending] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
   const [clearing, setClearing] = useState(false)
-  const [activity, setActivity] = useState({ visible: false, text: '' })
   const [autoMode, setAutoMode] = useState(false)
-  const activityTimer = useRef<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -88,34 +75,14 @@ export function ChatPage() {
     selectedIdRef.current = selectedId
   }, [selectedId])
 
-  useEffect(() => {
-    return () => {
-      if (activityTimer.current) window.clearTimeout(activityTimer.current)
-    }
-  }, [])
-
   const selected = useMemo(
     () => agents.find((agent) => agent.id === selectedId) ?? null,
     [agents, selectedId],
   )
 
-  const togglePane = (id: PaneId) => {
-    const next = {
-      left: id === 'left' ? !layout.left : layout.left,
-      middle: id === 'middle' ? !layout.middle : layout.middle,
-      right: id === 'right' ? !layout.right : layout.right,
-    }
-    if (!next.left && !next.middle && !next.right) next.middle = true
-    updateLayout(next)
-  }
-
   const refresh = async () => {
-    const [rows, tpls] = await Promise.all([listAgents(), listTemplates()])
+    const rows = await listAgents()
     setAgents(rows)
-    setTemplates(tpls)
-    if (tpls.length > 0 && !tpls.some((item) => item.id === template)) {
-      setTemplate(tpls[0].id)
-    }
     return rows
   }
 
@@ -189,15 +156,6 @@ export function ChatPage() {
     return `${text}\n\n${extras}`
   }
 
-  const showActivity = (text: string, ms: number) => {
-    if (activityTimer.current) window.clearTimeout(activityTimer.current)
-    setActivity({ visible: true, text })
-    activityTimer.current = window.setTimeout(() => {
-      setActivity((current) => ({ ...current, visible: false }))
-      activityTimer.current = null
-    }, ms)
-  }
-
   const sendPrompt = async (
     outbound: string,
     appendUser: boolean,
@@ -207,8 +165,10 @@ export function ChatPage() {
     const controller = beginAsk(selectedId)
     if (!controller) return
     const agentId = selectedId
+    const agentName = selected?.name || 'Agent'
     setSending(true)
     setError('')
+    pushActivity(`${agentName} is working…`, 'agent')
     setHistory((current) => {
       const next = current.filter((turn) => !turn.failed)
       if (appendUser) next.push({ role: 'user', content: outbound })
@@ -233,11 +193,11 @@ export function ChatPage() {
         controller.signal,
         (status) => {
           if (status.type === 'tool_execution') {
-            showActivity(`🔧 Executing tool: ${status.tool || 'tool'}...`, 2000)
+            pushActivity(`🔧 Executing tool: ${status.tool || 'tool'}...`, 'tool')
             return
           }
           if (status.type === 'delegating') {
-            showActivity(`📤 Agent sent message to "${status.target || 'another agent'}"`, 3000)
+            pushActivity(`📤 Agent sent message to "${status.target || 'another agent'}"`, 'agent')
           }
         },
         {
@@ -255,6 +215,7 @@ export function ChatPage() {
       if (selectedIdRef.current !== agentId) return
       setHistory(result.history ?? [])
       setAgents((current) => current.map((agent) => (agent.id === result.id ? result : agent)))
+      pushActivity(`${result.name || agentName} finished`, 'agent')
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       if (err instanceof ApiError && err.status === 409) {
@@ -271,6 +232,7 @@ export function ChatPage() {
         showToast(message)
       }
       if (selectedIdRef.current !== agentId) return
+      pushActivity(`${agentName} did not finish`, 'agent')
       setHistory((current) => {
         const next = [...current]
         const last = next[next.length - 1]
@@ -299,6 +261,12 @@ export function ChatPage() {
     setPrompt('')
     setAttachments([])
     await sendPrompt(outbound, true, pending)
+  }
+
+  const requireAgent = () => {
+    if (selected) return true
+    showToast('Create an agent in Design first.')
+    return false
   }
 
   const clearHistory = async () => {
@@ -425,41 +393,11 @@ export function ChatPage() {
     }
   }
 
-  const create = async () => {
-    setCreating(true)
-    setError('')
-    try {
-      const agent = await createAgent({
-        template,
-        name: name.trim() || undefined,
-        emoji,
-      })
-      setName('')
-      await refresh()
-      setSearchParams({ agent: agent.id })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Create failed.')
-    } finally {
-      setCreating(false)
-    }
-  }
+  const emptyThread = !loadingHistory && history.length === 0
+  const visibleEvents = events.slice(0, 6)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b border-border bg-surface px-3 py-2">
-        <Button size="sm" variant={layout.left ? 'default' : 'outline'} onClick={() => togglePane('left')}>
-          <PanelLeft size={14} />
-          Agents
-        </Button>
-        <Button size="sm" variant={layout.middle ? 'default' : 'outline'} onClick={() => togglePane('middle')}>
-          Messages
-        </Button>
-        <Button size="sm" variant={layout.right ? 'default' : 'outline'} onClick={() => togglePane('right')}>
-          <PanelRight size={14} />
-          Workspace
-        </Button>
-      </div>
-
       {error && (
         <div className="flex items-center justify-between gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
           <span>{error}</span>
@@ -469,374 +407,263 @@ export function ChatPage() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 overflow-x-auto">
-        {layout.left && (
-          <aside
-            className="flex h-full min-h-0 shrink-0 flex-col border-r border-border bg-surface"
-            style={{ width: layout.leftWidth }}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-bg">
+          <header className="flex items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0">
+              {loadingList ? (
+                <p className="text-sm text-muted">Loading agents…</p>
+              ) : agents.length === 0 ? (
+                <p className="text-sm text-muted">
+                  No agents yet.{' '}
+                  <Link className="text-accent hover:underline" to="/design">
+                    Create one in Design
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="sr-only" htmlFor="chat-agent">
+                    Agent
+                  </label>
+                  <select
+                    id="chat-agent"
+                    value={selectedId}
+                    onChange={(event) => setSearchParams({ agent: event.target.value })}
+                    className="max-w-[16rem] rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-ink"
+                  >
+                    {agents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.emoji || '💬'} {agent.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selected && (
+                    <Badge className={selected.state === 'running' ? 'border-accent/40 text-accent' : ''}>
+                      {selected.state}
+                    </Badge>
+                  )}
+                  {selected && (
+                    <span className="text-xs text-muted" data-testid="usage-meter">
+                      {usageLabel(selected.usage)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {selected && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={sending || clearing}
+                  title="Clear history"
+                  onClick={() => setConfirmClear(true)}
+                >
+                  <Trash2 size={14} />
+                  Clear history
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant={layout.right ? 'default' : 'ghost'}
+                onClick={() => updateLayout({ right: !layout.right, middle: true })}
+              >
+                <PanelRight size={14} />
+                Workspace
+              </Button>
+            </div>
+          </header>
+
+          <div
+            ref={threadRef}
+            className={cn(
+              'min-h-0 flex-1 overflow-auto px-4',
+              emptyThread ? 'flex flex-col items-center justify-end pb-2' : 'space-y-3 py-2',
+            )}
           >
-            <header className="flex items-center justify-between border-b border-border px-3 py-2">
-              <div className="text-xs font-medium uppercase tracking-wide text-muted">Agents</div>
-              <button type="button" className="text-muted hover:text-ink" onClick={() => togglePane('left')} aria-label="Close agents">
-                <X size={14} />
-              </button>
-            </header>
-            <div className="min-h-0 flex-1 overflow-auto">
-              <section className="space-y-3 border-b border-border p-3">
-                <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Templates</h2>
-                <ul className="grid grid-cols-3 gap-2">
-                  {templates.map((item) => (
-                    <li key={item.id}>
+            {emptyThread ? (
+              <div className="mb-4 max-w-xl text-center">
+                <h1 className="font-serif text-3xl text-ink md:text-4xl">What should we work on?</h1>
+                <p className="mt-2 text-sm text-muted">
+                  Write in the glass bar. Actions from agents show up right under it.
+                </p>
+              </div>
+            ) : !selected ? (
+              <p className="mx-auto max-w-lg py-10 text-center text-sm text-muted">
+                Create an agent in Design, then come back here.
+              </p>
+            ) : loadingHistory ? (
+              <p className="text-sm text-muted">Loading conversation…</p>
+            ) : (
+              history
+                .filter((turn) => turn.role === 'user' || turn.role === 'assistant')
+                .map((turn, index) => (
+                  <div
+                    key={`${selectedId}-${turn.role}-${index}`}
+                    className={cn(
+                      'mx-auto max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed',
+                      turn.role === 'user'
+                        ? 'ml-auto bg-white/6 text-ink'
+                        : turn.failed
+                          ? 'bg-red-500/10 text-red-100 ring-1 ring-red-500/40'
+                          : 'bg-white/4 text-ink ring-1 ring-white/8',
+                    )}
+                  >
+                    <div className="mb-1 text-[11px] uppercase tracking-wide text-muted">
+                      {turn.failed ? 'error' : turn.role}
+                    </div>
+                    <div className="whitespace-pre-wrap">{turn.content || (turn.role === 'assistant' && sending ? '…' : '')}</div>
+                    {turn.failed && (
+                      <Button size="sm" variant="outline" className="mt-2" onClick={() => void retryLast()} disabled={sending}>
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                ))
+            )}
+            {sending && history.at(-1)?.role === 'assistant' && !history.at(-1)?.content && (
+              <p className="mx-auto max-w-2xl text-sm text-accent">Waiting for the agent…</p>
+            )}
+          </div>
+
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 pb-5 pt-1">
+            <form
+              className="glass-panel rounded-[28px] p-3"
+              onSubmit={(event) => {
+                event.preventDefault()
+                if (!requireAgent()) return
+                void send()
+              }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault()
+                if (!requireAgent()) return
+                void onFiles(event.dataTransfer.files)
+              }}
+            >
+              {attachments.length > 0 && (
+                <ul className="mb-2 flex flex-wrap gap-2 px-1">
+                  {attachments.map((item) => (
+                    <li
+                      key={item.name}
+                      className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2 py-1 text-xs"
+                    >
+                      {item.kind === 'audio' ? <Mic size={12} /> : <FileText size={12} />}
+                      {item.name}
                       <button
                         type="button"
-                        onClick={() => {
-                          setTemplate(item.id)
-                          setEmoji(item.emoji || '💬')
-                        }}
-                        className={cn(
-                          'flex w-full flex-col items-center rounded-md border px-1 py-2 text-center',
-                          template === item.id ? 'border-accent/40 bg-surface-2' : 'border-border hover:bg-surface-2',
-                        )}
+                        className="text-muted hover:text-ink"
+                        onClick={() => setAttachments((current) => current.filter((row) => row.name !== item.name))}
+                        aria-label={`Remove ${item.name}`}
                       >
-                        <span className="text-2xl" aria-hidden>
-                          {item.emoji || '💬'}
-                        </span>
-                        <span className="mt-1 text-xs font-medium">{item.name}</span>
-                        <p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted">{item.description}</p>
+                        <X size={12} />
                       </button>
                     </li>
                   ))}
                 </ul>
-                <div>
-                  <Label>Face</Label>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {FACE_EMOJIS.map((face) => (
-                      <button
-                        key={face}
-                        type="button"
-                        onClick={() => setEmoji(face)}
-                        className={cn(
-                          'flex h-8 w-8 items-center justify-center rounded-md border text-lg',
-                          emoji === face ? 'border-accent bg-surface-2' : 'border-border hover:bg-surface-2',
-                        )}
-                        aria-label={`Face ${face}`}
-                        aria-pressed={emoji === face}
-                      >
-                        {face}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <Label htmlFor="new-name">Name (optional)</Label>
-                <Input id="new-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Name (optional)" />
-                <p className="text-[11px] text-muted">Model and channel live in Settings.</p>
-                <Button size="sm" onClick={() => void create()} disabled={creating}>
-                  {creating ? 'Creating…' : `Create ${templates.find((item) => item.id === template)?.name ?? 'agent'}`}
-                </Button>
-              </section>
-              {loadingList ? (
-                <p className="px-3 py-4 text-sm text-muted">Loading agents…</p>
-              ) : agents.length === 0 ? (
-                <p className="px-3 py-4 text-sm text-muted">No agents in this process yet. Create one above.</p>
-              ) : (
-                <ul>
-                  {agents.map((agent) => {
-                    const info = templates.find((item) => item.id === agent.template_id)
-                    return (
-                      <li key={agent.id}>
-                        <button
-                          type="button"
-                          onClick={() => setSearchParams({ agent: agent.id })}
-                          className={cn(
-                            'flex w-full flex-col items-start gap-1 px-3 py-3 text-left hover:bg-surface-2',
-                            agent.id === selectedId && 'bg-surface-2',
-                          )}
-                        >
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <span className="flex items-center gap-2 text-sm font-medium">
-                              <span className="text-xl" aria-hidden>
-                                {agent.emoji || info?.emoji || '💬'}
-                              </span>
-                              {agent.name}
-                            </span>
-                            <Badge className={agent.state === 'running' ? 'border-accent/40 text-accent' : ''}>
-                              {agent.state}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] leading-snug text-muted">{info?.description ?? agent.template_id}</p>
-                          <p className="text-[11px] text-muted">
-                            {agent.channel} · {pluginListLabel(agent.plugin_labels, agent.plugins.length)}
-                          </p>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
               )}
-            </div>
-          </aside>
-        )}
-        {layout.left && (
-          <DragHandle
-            axis="x"
-            value={layout.leftWidth}
-            min={SIZE_LIMITS.pane.min}
-            max={SIZE_LIMITS.pane.max}
-            onValue={(leftWidth) => updateLayout({ leftWidth })}
-            label="Resize agents panel"
-            testId="agents-pane-resize"
-          />
-        )}
-
-        {layout.middle && (
-          <section className="flex min-h-0 min-w-[22rem] flex-1 flex-col bg-bg">
-            <header className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <div className="font-medium">
-                  {selected ? `${selected.emoji || '💬'} ${selected.name}` : 'Select an agent'}
-                </div>
-                <div className="text-xs text-muted">
-                  {selected
-                    ? `${selected.template_id} · ${selected.state} · one thread in memory`
-                    : 'Create or pick an agent on the left.'}
-                </div>
-                {selected && (
-                  <div className="mt-1 text-xs text-muted" data-testid="usage-meter">
-                    {usageLabel(selected.usage)}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {selected && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={sending || clearing}
-                    title="Clear history"
-                    onClick={() => setConfirmClear(true)}
-                  >
-                    <Trash2 size={14} />
-                    Clear history
-                  </Button>
-                )}
-                <button type="button" className="text-muted hover:text-ink" onClick={() => togglePane('middle')} aria-label="Close messages">
-                  <X size={14} />
-                </button>
-              </div>
-            </header>
-
-            <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-auto px-4 py-4">
-              {!selected ? (
-                <p className="text-sm text-muted">The writing area is here. Choose an agent to start the thread.</p>
-              ) : loadingHistory ? (
-                <p className="text-sm text-muted">Loading conversation…</p>
-              ) : history.length === 0 ? (
-                <p className="text-sm text-muted">No messages yet. Type below, or attach a file or audio note.</p>
-              ) : (
-                history
-                  .filter((turn) => turn.role === 'user' || turn.role === 'assistant')
-                  .map((turn, index) => (
-                    <div
-                      key={`${selectedId}-${turn.role}-${index}`}
-                      className={cn(
-                        'max-w-3xl rounded-lg px-3 py-2 text-sm leading-relaxed',
-                        turn.role === 'user'
-                          ? 'ml-auto bg-surface-2 text-ink'
-                          : turn.failed
-                            ? 'bg-red-500/10 text-red-100 ring-1 ring-red-500/40'
-                            : 'bg-surface text-ink ring-1 ring-border',
-                      )}
-                    >
-                      <div className="mb-1 text-[11px] uppercase tracking-wide text-muted">
-                        {turn.failed ? 'error' : turn.role}
-                      </div>
-                      <div className="whitespace-pre-wrap">{turn.content || (turn.role === 'assistant' && sending ? '…' : '')}</div>
-                      {turn.failed && (
-                        <Button size="sm" variant="outline" className="mt-2" onClick={() => void retryLast()} disabled={sending}>
-                          Retry
-                        </Button>
-                      )}
-                    </div>
-                  ))
-              )}
-              {sending && history.at(-1)?.role === 'assistant' && !history.at(-1)?.content && (
-                <p className="text-sm text-accent">Waiting for the agent…</p>
-              )}
-            </div>
-
-            {activity.visible && (
-              <div
-                role="status"
-                className="mx-3 mb-0 mt-2 rounded-md border border-border bg-surface px-3 py-1.5 text-center text-sm text-muted"
-              >
-                {activity.text}
-              </div>
-            )}
-            {layout.composerOpen ? (
-              <div className="relative z-10 shrink-0 border-t border-border bg-surface">
-                <DragHandle
-                  axis="y"
-                  invert
-                  value={layout.composerHeight}
-                  min={SIZE_LIMITS.composer.min}
-                  max={SIZE_LIMITS.composer.max}
-                  onValue={(composerHeight) => updateLayout({ composerHeight })}
-                  label="Resize message box"
-                  testId="composer-resize"
-                />
-                <form
-                  className="p-3"
-                  onSubmit={(event) => {
+              <textarea
+                ref={composerRef}
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                onClick={() => {
+                  if (!selected) showToast('Create an agent in Design first.')
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault()
-                    if (!selected) {
-                      showToast('Pick or create an agent on the left first.')
-                      return
-                    }
+                    if (!requireAgent()) return
                     void send()
+                  }
+                }}
+                placeholder={selected ? 'How can I help you today?' : 'Create an agent in Design first'}
+                disabled={sending}
+                rows={3}
+                className="w-full resize-none bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-muted"
+              />
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 px-1">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  multiple
+                  accept="image/*,audio/*,.txt,.md,.json,.csv,.py,.ts,.tsx,.js"
+                  className="hidden"
+                  onChange={(event) => {
+                    void onFiles(event.target.files)
+                    event.target.value = ''
                   }}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
-                    event.preventDefault()
-                    void onFiles(event.dataTransfer.files)
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={sending}
+                  title="Attach a file or photo"
+                  onClick={() => {
+                    if (!requireAgent()) return
+                    fileRef.current?.click()
                   }}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-wide text-muted">Message</span>
-                    <button
-                      type="button"
-                      className="text-muted hover:text-ink"
-                      onClick={() => updateLayout({ composerOpen: false })}
-                      aria-label="Close message box"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  {attachments.length > 0 && (
-                    <ul className="mb-2 flex flex-wrap gap-2">
-                      {attachments.map((item) => (
-                        <li
-                          key={item.name}
-                          className="flex items-center gap-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs"
-                        >
-                          {item.kind === 'audio' ? <Mic size={12} /> : <FileText size={12} />}
-                          {item.name}
-                          <button
-                            type="button"
-                            className="text-muted hover:text-ink"
-                            onClick={() => setAttachments((current) => current.filter((row) => row.name !== item.name))}
-                            aria-label={`Remove ${item.name}`}
-                          >
-                            <X size={12} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <Textarea
-                    ref={composerRef}
-                    value={prompt}
-                    onChange={(event) => setPrompt(event.target.value)}
-                    onClick={() => {
-                      if (!selected) showToast('Pick or create an agent on the left first.')
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && !event.shiftKey) {
-                        event.preventDefault()
-                        if (!selected) {
-                          showToast('Pick or create an agent on the left first.')
-                          return
-                        }
-                        void send()
-                      }
-                    }}
-                    placeholder={selected ? 'Write in the middle column…' : 'Create an agent first'}
-                    disabled={sending}
-                    rows={3}
-                    className="resize-none"
-                    style={{ height: layout.composerHeight }}
-                  />
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      multiple
-                      accept="image/*,audio/*,.txt,.md,.json,.csv,.py,.ts,.tsx,.js"
-                      className="hidden"
-                      onChange={(event) => {
-                        void onFiles(event.target.files)
-                        event.target.value = ''
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={sending}
-                      title="File content is sent as text"
-                      onClick={() => {
-                        if (!selected) {
-                          showToast('Pick or create an agent on the left first.')
-                          return
-                        }
-                        fileRef.current?.click()
-                      }}
-                    >
-                      <Paperclip size={14} />
-                      File
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={recording ? 'danger' : 'outline'}
-                      disabled={sending}
-                      title="Audio is attached as a note (no STT)"
-                      onClick={() => {
-                        if (!selected) {
-                          showToast('Pick or create an agent on the left first.')
-                          return
-                        }
-                        void toggleRecord()
-                      }}
-                    >
-                      {recording ? <Square size={14} /> : <Mic size={14} />}
-                      {recording ? 'Stop audio' : 'Audio'}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={autoMode ? 'default' : 'outline'}
-                      disabled={sending}
-                      aria-pressed={autoMode}
-                      title="Autonomous tool loop. Off keeps one-turn ask."
-                      onClick={() => setAutoMode((current) => !current)}
-                    >
-                      Auto
-                    </Button>
-                    <Button type="submit" disabled={sending || (!prompt.trim() && attachments.length === 0)}>
-                      Send
-                    </Button>
-                    <p className="w-full text-[11px] text-muted">
-                      Drag the bar above to make this box taller. Photos are sent to the agent. Audio is transcribed.
-                    </p>
-                  </div>
-                </form>
+                  <Paperclip size={14} />
+                  File
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={recording ? 'danger' : 'ghost'}
+                  disabled={sending}
+                  title="Record audio for the agent"
+                  onClick={() => {
+                    if (!requireAgent()) return
+                    void toggleRecord()
+                  }}
+                >
+                  {recording ? <Square size={14} /> : <Mic size={14} />}
+                  {recording ? 'Stop audio' : 'Audio'}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={autoMode ? 'default' : 'ghost'}
+                  disabled={sending}
+                  aria-pressed={autoMode}
+                  title="Autonomous tool loop. Off keeps one-turn ask."
+                  onClick={() => setAutoMode((current) => !current)}
+                >
+                  Auto
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="ml-auto h-9 w-9 rounded-xl p-0"
+                  disabled={sending || (!prompt.trim() && attachments.length === 0)}
+                  aria-label="Send"
+                >
+                  <ArrowUp size={16} />
+                </Button>
               </div>
-            ) : (
-              <button
-                type="button"
-                className="relative z-10 flex w-full shrink-0 items-center justify-between border-t border-border bg-surface px-4 py-3 text-left text-sm text-muted hover:bg-surface-2 hover:text-ink"
-                onClick={() => {
-                  updateLayout({ composerOpen: true })
-                  window.setTimeout(() => composerRef.current?.focus(), 0)
-                }}
-                aria-label="Open message box"
-              >
-                <span>Write a message…</span>
-                <span className="text-xs">Open</span>
-              </button>
-            )}
-          </section>
-        )}
+            </form>
+
+            <div data-testid="activity-feed" className="min-h-[4.5rem] space-y-1.5">
+              {visibleEvents.length === 0 ? (
+                <p className="px-2 text-center text-xs text-muted">
+                  When an agent works, tools run, or someone creates a skill, the notice lands here.
+                </p>
+              ) : (
+                visibleEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    role="status"
+                    className="rounded-2xl border border-white/8 bg-white/4 px-3 py-2 text-sm text-muted"
+                  >
+                    {event.text}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
 
         {layout.right && (
           <>
@@ -850,14 +677,14 @@ export function ChatPage() {
               label="Resize workspace"
               testId="workspace-resize"
             />
-            <WorkspacePane width={layout.rightWidth} onClose={() => togglePane('right')} />
+            <WorkspacePane width={layout.rightWidth} onClose={() => updateLayout({ right: false })} />
           </>
         )}
       </div>
 
       {confirmClear && selected && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
-          <div className="max-w-md space-y-3 rounded-lg border border-border bg-surface p-5">
+          <div className="max-w-md space-y-3 rounded-2xl border border-border bg-surface p-5">
             <h2 className="text-sm font-medium">Clear history?</h2>
             <p className="text-sm text-muted">Are you sure? This will delete the conversation history.</p>
             <div className="flex justify-end gap-2">

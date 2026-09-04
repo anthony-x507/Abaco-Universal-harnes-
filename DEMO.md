@@ -41,7 +41,7 @@ You should see `"status":"ok"`, `"product":"Universal platform"`, `"demo":true`.
 
 ## Step 2 — Create a researcher (memory + tools)
 
-**In the SPA (Agents):** template **Researcher**, name `demo-researcher`, channel `cli`, **Create**, then **Start**.
+**In the SPA (Design or Agents):** Design → **Create an agent** → template **Researcher**, name `demo-researcher`. Channel and model stay in Settings. Or create on Agents with channel `cli`, then **Start**.
 
 The card should show readable labels (`Terminal: run_command`, …, **Tools: utc_now**), not raw catalog ids. Every template ships the six native tools; researcher adds `utc_now` and turns memory on. Facts go to `memory.json` keyed by this name.
 
@@ -74,7 +74,7 @@ Open Chat, pick `demo-researcher`. Confirm **Auto** next to Send is **off** (one
 1. Turn **Auto** on.
 2. Send: `What time is it in UTC? Investigate and summarize.`
 
-Echo asks for `utc_now` once. A short banner (`Executing tool: utc_now`) appears above the composer and is **not** a chat turn. The reply comes back without a second prompt.
+Echo asks for `utc_now` once. A short notice (`Executing tool: utc_now`) appears under the write bar and is **not** a chat turn. The reply comes back without a second prompt.
 
 Same path from the terminal:
 

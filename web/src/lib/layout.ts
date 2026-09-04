@@ -19,7 +19,7 @@ export type PaneState = Pick<LayoutState, 'left' | 'middle' | 'right'>
 export const LAYOUT_DEFAULTS: LayoutState = {
   navOpen: true,
   navWidth: 224,
-  left: true,
+  left: false,
   leftWidth: 320,
   middle: true,
   right: true,
