@@ -1,5 +1,5 @@
 {
-  "version": "1.2.3",
+  "version": "1.2.4",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Keep the Abaco Harness Chat face after updates. index.html is no-store so WKWebView cannot show the old create-on-Chat layout. Header shows the installed version."
+  "release_notes": "Load Chat with ?v= so WKWebView cannot keep the v1.0.0 Universal Platform face after a GitHub update. WebView storage lives under Application Support."
 }

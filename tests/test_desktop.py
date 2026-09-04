@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from universal.cli import main
 from universal.core.platform import Universal
-from universal.desktop import build_parser
+from universal.desktop import WINDOW_TITLE, build_parser, desktop_face_url
 from universal.plugins.catalog import NATIVE_PLUGIN_NAMES
 from universal.server import create_app
 from universal.web_dist import resolve_web_dist
@@ -37,6 +37,7 @@ def test_spa_served_from_dist(platform: Universal, tmp_path: Path, monkeypatch) 
     root = client.get("/")
     assert root.status_code == 200
     assert "Universal face" in root.text
+    assert "no-store" in root.headers.get("cache-control", "").lower()
     agents = client.get("/agents")
     assert agents.status_code == 200
     assert "Universal face" in agents.text
@@ -72,6 +73,11 @@ def test_desktop_check_cli(capsys) -> None:
     out = capsys.readouterr().out
     assert "universal desktop: ok" in out
     assert "factory=" in out
+
+
+def test_desktop_face_url_busts_wkwebview_cache() -> None:
+    assert desktop_face_url("127.0.0.1", 43124, "1.2.4") == "http://127.0.0.1:43124/?v=1.2.4"
+    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.4")
 
 
 def test_desktop_parser_defaults() -> None:
@@ -127,5 +133,8 @@ def test_logo_ships_in_spa_and_native_icon() -> None:
     assert 'background_color="#0B0E14"' in desktop
     assert "private_mode=False" in desktop
     assert "mediaDevicesEnabled" in desktop
+    assert "desktop_face_url" in desktop
+    assert "webview_storage_dir" in desktop
+    assert WINDOW_TITLE == "Abaco Universal Harness"
     assert "NSMicrophoneUsageDescription" in (ROOT / "scripts" / "build_macos.sh").read_text(encoding="utf-8")
     assert "from universal.desktop import main" in (ROOT / "app.py").read_text(encoding="utf-8")

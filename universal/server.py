@@ -862,13 +862,12 @@ def _mount_spa(app: FastAPI, dist: Path) -> None:
 
 
 def _spa_headers(path: Path) -> dict[str, str]:
-    """index.html must not stick in WKWebView after a GitHub app update."""
-    if path.name == "index.html":
-        return {
-            "Cache-Control": "no-store, no-cache, must-revalidate",
-            "Pragma": "no-cache",
-        }
-    return {"Cache-Control": "public, max-age=60"}
+    """Localhost SPA must not stick in WKWebView after a GitHub app update."""
+    _ = path
+    return {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+    }
 
 
 def build_serve_app(

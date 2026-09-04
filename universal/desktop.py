@@ -11,15 +11,30 @@ import socket
 import threading
 import time
 from collections.abc import Sequence
+from pathlib import Path
 
 import httpx
 
 from universal.exceptions import ConfigError
+from universal.paths import user_data_dir
+from universal.release import current_version
 from universal.server import build_serve_app
 from universal.web_dist import resolve_web_dist
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 43124
+WINDOW_TITLE = "Abaco Universal Harness"
+
+
+def desktop_face_url(host: str, port: int, version: str | None = None) -> str:
+    """Version the first document so WKWebView cannot reuse a v1.0.0 index.html."""
+    return f"http://{host}:{port}/?v={version or current_version()}"
+
+
+def webview_storage_dir() -> Path:
+    path = user_data_dir() / "webview"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _request_macos_microphone() -> None:
@@ -141,6 +156,7 @@ def run_desktop(
         )
     start_factory_thread(host=host, port=port, demo=demo, persist=True)
     url = f"http://{host}:{port}"
+    face = desktop_face_url(host, port)
     wait_for_health(url)
     from universal.rules import ensure_rules_file
     from universal.runtime_manager import default_manager
@@ -161,8 +177,8 @@ def run_desktop(
         pass
     _request_macos_microphone()
     window = webview.create_window(
-        "Universal platform",
-        url,
+        WINDOW_TITLE,
+        face,
         width=1200,
         height=800,
         resizable=True,
@@ -175,7 +191,16 @@ def run_desktop(
         _enable_webkit_media(window)
 
     # private_mode=True (the default) leaves mediaDevices undefined in WKWebView.
-    webview.start(func=_after_start, private_mode=False)
+    # Store site data under Application Support so a wipe actually deletes it.
+    start_kwargs: dict[str, object] = {
+        "func": _after_start,
+        "private_mode": False,
+        "storage_path": str(webview_storage_dir()),
+    }
+    try:
+        webview.start(**start_kwargs)
+    except TypeError:
+        webview.start(func=_after_start, private_mode=False)
     return 0
 
 
