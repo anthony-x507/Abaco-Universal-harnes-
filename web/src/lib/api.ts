@@ -31,6 +31,14 @@ export type Agent = {
   usage?: Usage
 }
 
+export type ModelPreset = {
+  name: string
+  base_url: string
+  default_model: string
+  docs: string
+  requires_api_key: boolean
+}
+
 export type Template = {
   id: string
   name: string
@@ -99,6 +107,11 @@ export async function getHealth(): Promise<{ status: string; demo: boolean; agen
   return request('/health')
 }
 
+export async function listModels(): Promise<ModelPreset[]> {
+  const data = await request<{ models: ModelPreset[] }>('/v1/models')
+  return data.models
+}
+
 export async function listTemplates(): Promise<Template[]> {
   const data = await request<{ templates: Template[] }>('/v1/templates')
   return data.templates
@@ -131,6 +144,7 @@ export async function createAgent(body: {
   name?: string
   channel?: string
   outbound_url?: string
+  provider?: string
 }): Promise<Agent> {
   return request('/v1/agents', { method: 'POST', body: JSON.stringify(body) })
 }

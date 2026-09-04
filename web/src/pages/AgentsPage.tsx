@@ -18,6 +18,7 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
+import { useModels } from '../hooks/useModels'
 import { laterChannels, pluginListLabel } from '../lib/utils'
 
 export function AgentsPage() {
@@ -33,7 +34,9 @@ export function AgentsPage() {
   const [working, setWorking] = useState('')
   const [error, setError] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Agent | null>(null)
+  const [provider, setProvider] = useState('OpenAI (GPT-4o-mini)')
   const { askingId, abortAsk } = useAskSession()
+  const { models } = useModels()
 
   const refresh = async () => {
     const [rows, tpls, settings] = await Promise.all([listAgents(), listTemplates(), getSettings()])
@@ -146,6 +149,7 @@ export function AgentsPage() {
                 name: name.trim() || undefined,
                 channel,
                 outbound_url: channel === 'webhook' ? outboundUrl.trim() || undefined : undefined,
+                provider: provider || undefined,
               })
               setName('')
               setOutboundUrl('')
@@ -167,6 +171,21 @@ export function AgentsPage() {
               {templates.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="agent-provider">LLM provider</Label>
+            <select
+              id="agent-provider"
+              value={provider}
+              onChange={(event) => setProvider(event.target.value)}
+              className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
+            >
+              {models.map((row) => (
+                <option key={row.name} value={row.name}>
+                  {row.name}
                 </option>
               ))}
             </select>

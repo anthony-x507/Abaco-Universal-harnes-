@@ -66,6 +66,8 @@ python3 -m universal ask --template coder "Write a Python function that reverses
 
 Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollama `/v1`, a company gateway). Hugging Face and MLX are not stubbed here.
 
+`GET /v1/models` and `universal models` list **42 named presets** (DeepSeek, Groq, Mistral, local Ollama, …). They only fill `UNIVERSAL_LLM_BASE_URL` and `UNIVERSAL_LLM_MODEL` for the existing `OpenAICompatProvider`. Settings and Create Agent offer the same picker. This is not 42 HTTP clients.
+
 ## CLI
 
 | Command | What it does |

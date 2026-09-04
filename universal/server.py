@@ -29,6 +29,7 @@ from universal.exceptions import (
     TemplateNotFound,
     UniversalError,
 )
+from universal.providers.catalog import PROVIDERS, get_provider
 from universal.templates.catalog import list_templates
 
 
@@ -40,6 +41,7 @@ class CreateAgentBody(BaseModel):
     name: str | None = None
     channel: str | None = None
     outbound_url: str | None = None
+    provider: str | None = None
 
 
 class WebhookBody(BaseModel):
@@ -142,6 +144,10 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             "agents": len(state.platform.factory.list()),
         }
 
+    @app.get("/v1/models")
+    def list_models() -> dict[str, Any]:
+        return {"models": [row.to_dict() for row in PROVIDERS]}
+
     @app.get("/v1/templates")
     def templates() -> dict[str, Any]:
         return {
@@ -187,8 +193,22 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             ]
         }
 
+    def _apply_provider_preset(name: str) -> None:
+        preset = get_provider(name)
+        if preset is None:
+            raise ConfigError(f"Unknown model preset {name!r}")
+        updates: dict[str, str] = {}
+        if preset.base_url:
+            updates["llm_base_url"] = preset.base_url
+        if preset.default_model:
+            updates["llm_model"] = preset.default_model
+        if updates:
+            state.platform.replace_settings(state.platform.settings.with_updates(**updates))
+
     @app.post("/v1/agents")
     def create_agent(body: CreateAgentBody) -> dict[str, Any]:
+        if body.provider:
+            _apply_provider_preset(body.provider)
         channel = body.channel or state.default_channel
         agent = state.platform.factory.create(
             body.template,

@@ -65,6 +65,31 @@ export function defaultCatalog() {
     },
     agents: { agents: [{ ...agentFixture }] },
     agent: { ...agentFixture },
+    models: {
+      models: [
+        {
+          name: 'OpenAI (GPT-4o-mini)',
+          base_url: 'https://api.openai.com/v1',
+          default_model: 'gpt-4o-mini',
+          docs: 'https://platform.openai.com/',
+          requires_api_key: true,
+        },
+        {
+          name: 'Ollama (Llama 3.2)',
+          base_url: 'http://localhost:11434/v1',
+          default_model: 'llama3.2',
+          docs: 'https://ollama.com/',
+          requires_api_key: false,
+        },
+        {
+          name: 'Custom (URL)',
+          base_url: '',
+          default_model: 'custom-model',
+          docs: '',
+          requires_api_key: true,
+        },
+      ],
+    },
   }
 }
 
@@ -80,6 +105,7 @@ export function installFetchMock(
     if (custom) return custom
     if (path === '/health') return jsonResponse(catalog.health)
     if (path === '/v1/settings') return jsonResponse(catalog.settings)
+    if (path === '/v1/models') return jsonResponse(catalog.models)
     if (path === '/v1/templates') return jsonResponse(catalog.templates)
     if (path === '/v1/agents') return jsonResponse(catalog.agents)
     if (path === `/v1/agents/${agentFixture.id}`) return jsonResponse(catalog.agent)

@@ -38,6 +38,9 @@ def build_parser() -> argparse.ArgumentParser:
     templates = sub.add_parser("templates", help="List the three built-in templates.")
     templates.add_argument("--json", action="store_true")
 
+    models = sub.add_parser("models", help="List OpenAI-compatible model presets.")
+    models.add_argument("--json", action="store_true")
+
     create = sub.add_parser(
         "create",
         help="Create an agent in this process and print its id (gone when the process exits).",
@@ -79,6 +82,23 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _platform() -> Universal:
     return Universal.from_env()
+
+
+def _cmd_models(args: argparse.Namespace) -> int:
+    from universal.providers.catalog import PROVIDERS
+
+    if args.json:
+        print(json.dumps([row.to_dict() for row in PROVIDERS], indent=2))
+        return 0
+    print("Available LLM presets (same OpenAI-compatible client):\n")
+    for row in PROVIDERS:
+        print(f"  {row.name}")
+        print(f"    URL: {row.base_url or '(custom)'}")
+        print(f"    Model: {row.default_model}")
+        if row.docs:
+            print(f"    Docs: {row.docs}")
+        print()
+    return 0
 
 
 def _cmd_templates(args: argparse.Namespace) -> int:
@@ -213,6 +233,7 @@ _HANDLERS = {
     "ask": _cmd_ask,
     "chat": _cmd_chat,
     "templates": _cmd_templates,
+    "models": _cmd_models,
     "create": _cmd_create,
     "list": _cmd_list,
     "deploy": _cmd_deploy,

@@ -49,9 +49,14 @@ class AgentGenerator:
     def provider(self) -> Provider:
         """One shared provider per generator. Do not construct a client per agent."""
         if self._provider is None:
+            from universal.providers.catalog import is_local_base_url
+
+            api_key = self.settings.llm_api_key
+            if not api_key and is_local_base_url(self.settings.llm_base_url):
+                api_key = "local"
             self._provider = OpenAICompatProvider(
                 base_url=self.settings.llm_base_url,
-                api_key=self.settings.llm_api_key,
+                api_key=api_key,
                 model=self.settings.llm_model,
                 timeout=self.settings.llm_timeout,
                 organization=self.settings.llm_organization,

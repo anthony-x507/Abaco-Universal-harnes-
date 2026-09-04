@@ -3,6 +3,7 @@ import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { useModels } from '../hooks/useModels'
 import { getHealth, getSettings, updateSettings } from '../lib/api'
 import { laterChannels } from '../lib/utils'
 
@@ -21,6 +22,8 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [preset, setPreset] = useState('OpenAI (GPT-4o-mini)')
+  const { models } = useModels()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -48,6 +51,15 @@ export function SettingsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (models.length === 0 || !baseUrl) return
+    const match = models.find(
+      (row) =>
+        row.base_url.replace(/\/$/, '') === baseUrl.replace(/\/$/, '') && row.default_model === model,
+    )
+    setPreset(match?.name || 'Custom (URL)')
+  }, [models, baseUrl, model])
 
   const save = async () => {
     setSaving(true)
@@ -109,6 +121,42 @@ export function SettingsPage() {
               </Button>
             </div>
           )}
+          <div className="space-y-1">
+            <Label htmlFor="llm-preset">LLM provider</Label>
+            <select
+              id="llm-preset"
+              value={preset}
+              onChange={(event) => {
+                const name = event.target.value
+                setPreset(name)
+                const row = models.find((item) => item.name === name)
+                if (!row) return
+                if (row.base_url) setBaseUrl(row.base_url)
+                if (row.default_model) setModel(row.default_model)
+              }}
+              className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
+            >
+              {(models.length > 0 ? models : [{ name: preset, base_url: '', default_model: '', docs: '', requires_api_key: true }]).map(
+                (row) => (
+                  <option key={row.name} value={row.name}>
+                    {row.name}
+                  </option>
+                ),
+              )}
+            </select>
+            {models.find((row) => row.name === preset)?.docs && (
+              <p className="text-[11px] text-muted">
+                <a
+                  href={models.find((row) => row.name === preset)?.docs}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Provider docs
+                </a>
+              </p>
+            )}
+          </div>
           <div className="space-y-1">
             <Label htmlFor="base-url">LLM base URL</Label>
             <Input id="base-url" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} />

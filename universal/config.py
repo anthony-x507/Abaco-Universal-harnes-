@@ -67,10 +67,12 @@ class Settings:
 
     def require_live(self) -> None:
         """Raise if this settings object cannot make a live provider call."""
+        from universal.providers.catalog import is_local_base_url
+
         missing: list[str] = []
         if not self.llm_base_url:
             missing.append(ENV_BASE_URL)
-        if not self.llm_api_key:
+        if not self.llm_api_key and not is_local_base_url(self.llm_base_url):
             missing.append(ENV_API_KEY)
         if not self.llm_model:
             missing.append(ENV_MODEL)

@@ -23,6 +23,7 @@ import {
   type Template,
 } from '../lib/api'
 import { useAskSession } from '../lib/ask-session'
+import { useModels } from '../hooks/useModels'
 import { laterChannels, pluginListLabel, usageLabel } from '../lib/utils'
 import { loadPaneState, savePaneState, type PaneId, type PaneState } from '../lib/layout'
 import { cn } from '../lib/utils'
@@ -55,6 +56,8 @@ export function ChatPage() {
   const [clearing, setClearing] = useState(false)
   const [activity, setActivity] = useState({ visible: false, text: '' })
   const [autoMode, setAutoMode] = useState(false)
+  const [provider, setProvider] = useState('OpenAI (GPT-4o-mini)')
+  const { models } = useModels()
   const activityTimer = useRef<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -358,6 +361,7 @@ export function ChatPage() {
         name: name.trim() || undefined,
         channel,
         outbound_url: channel === 'webhook' ? outboundUrl.trim() || undefined : undefined,
+        provider: provider || undefined,
       })
       setName('')
       setOutboundUrl('')
@@ -426,6 +430,19 @@ export function ChatPage() {
                 </ul>
                 <Label htmlFor="new-name">New agent</Label>
                 <Input id="new-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Name (optional)" />
+                <Label htmlFor="new-provider">LLM provider</Label>
+                <select
+                  id="new-provider"
+                  value={provider}
+                  onChange={(event) => setProvider(event.target.value)}
+                  className="h-9 w-full rounded-md border border-border bg-surface-2 px-2 text-sm"
+                >
+                  {models.map((row) => (
+                    <option key={row.name} value={row.name}>
+                      {row.name}
+                    </option>
+                  ))}
+                </select>
                 <Label htmlFor="new-channel">Channel</Label>
                 <select
                   id="new-channel"
