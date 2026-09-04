@@ -29,6 +29,7 @@ def test_default_rules_include_finance_and_tor() -> None:
     assert "navigator_allow_deviations" in ids
     assert "navigator_no_false_promises" in ids
     assert "memory_share_between_agents" in ids
+    assert "strategist_deepseek_tracking" in ids
     assert set(RULE_IDS) <= ids
     assert is_enforced("no_purchase_without_permission")
     assert is_enforced("no_dark_web_without_permission")

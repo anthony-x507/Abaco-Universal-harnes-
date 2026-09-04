@@ -1,5 +1,5 @@
 {
-  "version": "1.0.8",
+  "version": "1.0.9",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native Mac app. Download Universal.dmg only. Workspace Mission tab shows per-agent situation. Agents plan steps, report blockers, and coordinate existing teammates. Notices appear in Chat. Chat history and mission files survive updates."
+  "release_notes": "Native Mac app. Download Universal.dmg only. Settings shows DeepSeek Insights: official DSH GitHub releases compared with Universal. Scan on demand. Mission, teams, and chat history survive updates."
 }

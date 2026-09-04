@@ -37,6 +37,10 @@ describe('T10 Settings demo mode', () => {
     expect(screen.getByText('no_dark_web_without_permission')).toBeInTheDocument()
     expect(screen.getByText('navigator_auto_notify')).toBeInTheDocument()
     expect(screen.getByText('memory_share_between_agents')).toBeInTheDocument()
+    expect(screen.getByText('strategist_deepseek_tracking')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'DeepSeek Insights' })).toBeInTheDocument()
+    expect(screen.getAllByText('deepseek-ai/deepseek-harness').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Scan DeepSeek' })).toBeInTheDocument()
   })
 
   it('Check for Updates shows no-updates copy', async () => {

@@ -11,7 +11,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist (`deepseek_monitor`)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Signed-core governance: encrypted card vault (simulated purchases), permission-gated Tor fetch
 - ZIP export with no secrets
@@ -197,6 +197,7 @@ Built-in catalog ids:
 | `rule_enforcer` | `list_rules`, `check_rule` | Signed-core catalog. The user file may only flip `enforced`. |
 | `navigator` | `set_objective`, `plan_steps`, `complete_step`, `report_obstacle`, `report_deviation`, `suggest_path`, `checkpoint`, `mission_status` | Per-agent mission phase. Not the lifecycle `AgentState`. Three failed obstacles mark the mission failed. |
 | `team` | `create_team`, `delegate_task`, `team_status`, `team_checkpoint`, `resume_team`, `share_note`, `read_team_notes` | Groups existing agents. Delegate goes through `Agent.accept`. `resume_team` reloads the checkpoint and each member's mission. Sharing notes asks when `memory_share_between_agents` is on. |
+| `strategist` | `deepseek_monitor` | Public GitHub scan of DeepSeek Harness plus a comparison with Universal. Settings → DeepSeek Insights. Off when `strategist_deepseek_tracking` is off. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
@@ -284,7 +285,7 @@ Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`histo
 
 The signed factory is the supervisor. There is no fourth “mother” YAML template.
 
-Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, and team memory sharing. You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
+Rules live in `~/.abaco_rules.json` (and, on a Mac, also under Application Support). The catalog is fixed: system delete, self-modify, external sharing, UI changes, purchases, Tor, mission notices, plan deviations, no false promises, team memory sharing, and DeepSeek tracking. You may only flip `enforced`. Settings shows On/Off; it does not rewrite the file. `GET /v1/rules` returns the live list. There is no `mother.yaml`.
 
 `wallet` (Node) and `POST /v1/wallet/*` store card aliases. The core encrypts PAN/CVV with a local key (`wallet.key`) into `wallet.json` (mode 0600). Listing returns names only. **Purchases are simulated** after an allow when `no_purchase_without_permission` is on. Nothing is sent to a merchant.
 

@@ -99,7 +99,38 @@ export function defaultCatalog() {
         { id: 'navigator_allow_deviations', description: 'Ask before a planned step is replaced.', enforced: true },
         { id: 'navigator_no_false_promises', description: 'Do not claim a result you did not produce.', enforced: true },
         { id: 'memory_share_between_agents', description: 'Share team notes only after an explicit allow.', enforced: false },
+        { id: 'strategist_deepseek_tracking', description: 'Scan official DeepSeek Harness repos and keep a comparison report.', enforced: true },
       ],
+    },
+    deepseek: {
+      ok: true,
+      blocked: false,
+      scanned: true,
+      scanned_at: '2026-09-04T12:00:00+00:00',
+      harness: {
+        full_name: 'deepseek-ai/deepseek-harness',
+        stars: 111894,
+        updated_at: '2026-09-01T00:00:00Z',
+        description: 'Everything is a plugin.',
+        url: 'https://github.com/deepseek-ai/deepseek-harness',
+      },
+      new_releases: [
+        {
+          repo: 'harness',
+          tag: 'v0.1.0',
+          name: 'Developer preview',
+          body: 'Everything is a plugin.',
+          published_at: '2026-08-13T00:00:00Z',
+        },
+      ],
+      comparisons: [
+        {
+          feature: 'plugin_surface',
+          status: 'DSH makes the UI and agent loop plugins. Universal keeps a signed factory.',
+          recommendation: 'Watch sandbox and schedule ideas. Do not move the factory into Node.',
+        },
+      ],
+      popularity: { mention_count: 2, twitter: 'not_available' },
     },
     situation: {
       agent_id: 'a1',
@@ -168,6 +199,9 @@ export function installFetchMock(
     if (path === '/v1/agents') return jsonResponse(catalog.agents)
     if (path === `/v1/agents/${agentFixture.id}`) return jsonResponse(catalog.agent)
     if (path === `/v1/agents/${agentFixture.id}/situation`) return jsonResponse(catalog.situation)
+    if (path === '/v1/strategist/deepseek' || path === '/v1/strategist/deepseek/scan') {
+      return jsonResponse(catalog.deepseek)
+    }
     return jsonResponse({ error: `unmocked ${path}` }, 404)
   }
   globalThis.fetch = fetchMock as typeof fetch

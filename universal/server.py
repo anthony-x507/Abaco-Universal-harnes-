@@ -534,6 +534,26 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
             raise HTTPException(status_code=404, detail="Notification not found")
         return row
 
+    @app.get("/v1/strategist/deepseek")
+    def get_deepseek_report() -> dict[str, Any]:
+        from universal.strategist import empty_report, load_report, scan_deepseek
+        from universal.rules import is_enforced
+
+        if not is_enforced("strategist_deepseek_tracking"):
+            cached = load_report()
+            payload = dict(cached) if cached else empty_report(blocked=True, reason="strategist_deepseek_tracking is off")
+            payload["ok"] = False
+            payload["blocked"] = True
+            payload["reason"] = "strategist_deepseek_tracking is off"
+            return payload
+        return load_report() or empty_report()
+
+    @app.post("/v1/strategist/deepseek/scan")
+    def scan_deepseek_report() -> dict[str, Any]:
+        from universal.strategist import scan_deepseek
+
+        return scan_deepseek(refresh=True)
+
     @app.post("/v1/teams")
     def create_team_route(body: TeamCreateBody) -> dict[str, Any]:
         from universal.teams import create_team

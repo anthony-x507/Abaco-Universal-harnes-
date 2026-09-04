@@ -311,6 +311,62 @@ export async function ackNotification(id: string): Promise<Notice> {
   return request(`/v1/notifications/${id}/ack`, { method: 'POST' })
 }
 
+export type DeepSeekRepo = {
+  key?: string
+  repo?: string
+  name?: string
+  full_name?: string
+  description?: string
+  stars?: number
+  forks?: number
+  updated_at?: string | null
+  url?: string
+  language?: string
+  missing?: boolean
+  error?: string
+}
+
+export type DeepSeekRelease = {
+  repo: string
+  tag: string
+  name?: string
+  body?: string
+  published_at?: string | null
+  url?: string
+}
+
+export type DeepSeekComparison = {
+  feature: string
+  status: string
+  recommendation: string
+  priority?: string
+}
+
+export type DeepSeekReport = {
+  ok: boolean
+  blocked?: boolean
+  reason?: string
+  scanned?: boolean
+  scanned_at?: string | null
+  harness: DeepSeekRepo | null
+  coder?: DeepSeekRepo | null
+  chat?: DeepSeekRepo | null
+  new_releases: DeepSeekRelease[]
+  updated_at?: string | null
+  changes_detected?: { type?: string; message?: string }[]
+  popularity?: { stars?: number; mention_count?: number; twitter?: string; source?: string } | null
+  comparisons: DeepSeekComparison[]
+  product?: string
+}
+
+export async function getDeepSeekReport(): Promise<DeepSeekReport> {
+  return request('/v1/strategist/deepseek')
+}
+
+export async function scanDeepSeek(): Promise<DeepSeekReport> {
+  return request('/v1/strategist/deepseek/scan', { method: 'POST' })
+}
+
 export async function askAgent(id: string, prompt: string): Promise<Agent> {
   return request(`/v1/agents/${id}/ask`, {
     method: 'POST',

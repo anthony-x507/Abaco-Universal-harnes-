@@ -8,6 +8,7 @@ from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
 from universal.plugins.navigator import NavigatorPlugin
 from universal.plugins.rules import RuleEnforcerPlugin
+from universal.plugins.strategist import StrategistPlugin
 from universal.plugins.team import TeamPlugin
 from universal.plugins.scraper import ScraperPlugin
 from universal.plugins.stt import STTPlugin
@@ -31,6 +32,7 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "rule_enforcer",
     "navigator",
     "team",
+    "strategist",
 )
 
 
@@ -116,6 +118,10 @@ def _team_plugin(**_kwargs: object) -> TeamPlugin:
     return TeamPlugin()
 
 
+def _strategist_plugin(**_kwargs: object) -> StrategistPlugin:
+    return StrategistPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
@@ -130,6 +136,7 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("rule_enforcer", _rules_plugin)
     catalog.register("navigator", _navigator_plugin)
     catalog.register("team", _team_plugin)
+    catalog.register("strategist", _strategist_plugin)
     return catalog
 
 

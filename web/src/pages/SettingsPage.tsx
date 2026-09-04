@@ -14,6 +14,7 @@ import {
   type GovernanceRule,
   type RuntimeStatus,
 } from '../lib/api'
+import { StrategistReport } from '../components/StrategistReport'
 import { laterChannels } from '../lib/utils'
 
 export function SettingsPage() {
@@ -265,6 +266,12 @@ export function SettingsPage() {
           ) : (
             <p className="text-sm text-muted">Rules are not available.</p>
           )}
+        </Card>
+      )}
+
+      {loadedOnce && (
+        <Card className="space-y-3 p-5">
+          <StrategistReport />
         </Card>
       )}
 
