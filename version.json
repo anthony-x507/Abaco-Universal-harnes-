@@ -1,5 +1,5 @@
 {
-  "version": "1.2.7",
+  "version": "1.2.8",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Keep Chat replies above the write bar and darken the glass composer so typed text stays readable."
+  "release_notes": "Provider adapter layer: one HTTP client, host dialects for OpenAI-compatible APIs plus native Anthropic and Gemini."
 }
