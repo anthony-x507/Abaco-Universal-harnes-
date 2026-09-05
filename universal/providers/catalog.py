@@ -1,8 +1,8 @@
-"""Named OpenAI-compatible presets. One company, one latest model.
+"""Named model presets. One company, one latest model.
 
 China: 10 labs. United States: 40 hosts (labs, inference, local).
-Companies without a public OpenAI-compatible API go through OpenRouter.
-Nothing here constructs an HTTP client. One ``OpenAICompatProvider``.
+Each row names an adapter id. The live client is still one HTTP socket;
+the factory picks the dialect (OpenAI, Anthropic, Gemini, or China/local).
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ class ModelProvider:
     docs: str = ""
     requires_api_key: bool = True
     region: str = "us"
+    adapter: str = "openai"
 
     def to_dict(self) -> dict[str, str | bool]:
         return {
@@ -31,6 +32,7 @@ class ModelProvider:
             "docs": self.docs,
             "requires_api_key": self.requires_api_key,
             "region": self.region,
+            "adapter": self.adapter,
         }
 
 
@@ -43,6 +45,7 @@ def _row(
     *,
     region: str = "us",
     requires_api_key: bool = True,
+    adapter: str = "openai",
 ) -> ModelProvider:
     return ModelProvider(
         company=company,
@@ -52,6 +55,7 @@ def _row(
         docs=docs,
         requires_api_key=requires_api_key,
         region=region,
+        adapter=adapter,
     )
 
 
@@ -68,9 +72,9 @@ def _via_openrouter(company: str, label: str, model: str, docs: str, *, region: 
 
 # 10 China + 40 United States. One latest flagship each. Custom is extra.
 PROVIDERS: tuple[ModelProvider, ...] = (
-    _row("DeepSeek", "V4 Pro", "https://api.deepseek.com/v1", "deepseek-v4-pro", "https://api-docs.deepseek.com/", region="cn"),
-    _row("MiniMax", "M3", "https://api.minimax.chat/v1", "MiniMax-M3", "https://www.minimax.io/", region="cn"),
-    _row("Zhipu", "GLM-5.2", "https://open.bigmodel.cn/api/paas/v4", "glm-5.2", "https://open.bigmodel.cn/", region="cn"),
+    _row("DeepSeek", "V4 Pro", "https://api.deepseek.com/v1", "deepseek-v4-pro", "https://api-docs.deepseek.com/", region="cn", adapter="deepseek"),
+    _row("MiniMax", "M3", "https://api.minimax.chat/v1", "MiniMax-M3", "https://www.minimax.io/", region="cn", adapter="minimax"),
+    _row("Zhipu", "GLM-5.2", "https://open.bigmodel.cn/api/paas/v4", "glm-5.2", "https://open.bigmodel.cn/", region="cn", adapter="zhipu"),
     _row(
         "Baidu",
         "ERNIE 4.5 Turbo",
@@ -78,6 +82,7 @@ PROVIDERS: tuple[ModelProvider, ...] = (
         "ernie-4.5-turbo-128k",
         "https://cloud.baidu.com/doc/qianfan",
         region="cn",
+        adapter="baidu",
     ),
     _row(
         "Alibaba",
@@ -86,6 +91,7 @@ PROVIDERS: tuple[ModelProvider, ...] = (
         "qwen3.8-max",
         "https://www.alibabacloud.com/help/dashscope",
         region="cn",
+        adapter="alibaba",
     ),
     _row(
         "Tencent",
@@ -94,9 +100,10 @@ PROVIDERS: tuple[ModelProvider, ...] = (
         "hunyuan-turbos-latest",
         "https://cloud.tencent.com/document/product/1729",
         region="cn",
+        adapter="tencent",
     ),
-    _row("Moonshot", "Kimi K2.7", "https://api.moonshot.ai/v1", "kimi-k2.7", "https://platform.moonshot.ai/", region="cn"),
-    _row("01.AI", "Yi Lightning", "https://api.lingyiwanwu.com/v1", "yi-lightning", "https://platform.lingyiwanwu.com/", region="cn"),
+    _row("Moonshot", "Kimi K2.7", "https://api.moonshot.ai/v1", "kimi-k2.7", "https://platform.moonshot.ai/", region="cn", adapter="moonshot"),
+    _row("01.AI", "Yi Lightning", "https://api.lingyiwanwu.com/v1", "yi-lightning", "https://platform.lingyiwanwu.com/", region="cn", adapter="yi"),
     _row(
         "ByteDance",
         "Doubao Seed 1.6",
@@ -104,6 +111,7 @@ PROVIDERS: tuple[ModelProvider, ...] = (
         "doubao-seed-1-6-250615",
         "https://www.volcengine.com/docs/82379",
         region="cn",
+        adapter="doubao",
     ),
     _via_openrouter("SenseTime", "SenseNova 5.5", "sensenova/sensechat-5", "https://platform.sensenova.cn/", region="cn"),
     _row("OpenAI", "GPT-5.6 Sol", "https://api.openai.com/v1", "gpt-5.6-sol", "https://platform.openai.com/docs/models"),
@@ -117,13 +125,14 @@ PROVIDERS: tuple[ModelProvider, ...] = (
     ),
     _row("xAI", "Grok 4.6", "https://api.x.ai/v1", "grok-4.6", "https://docs.x.ai/"),
     _row("Meta", "Muse Spark 1.3", "https://api.meta.ai/v1", "muse-spark-1.3", "https://llama.meta.com/docs/"),
-    _row("Mistral", "Medium 3.5", "https://api.mistral.ai/v1", "mistral-medium-3-5", "https://docs.mistral.ai/"),
+    _row("Mistral", "Medium 3.5", "https://api.mistral.ai/v1", "mistral-medium-3-5", "https://docs.mistral.ai/", adapter="mistral"),
     _row(
         "Cohere",
         "Command A",
         "https://api.cohere.com/compatibility/v1",
         "command-a-03-2025",
         "https://docs.cohere.com/docs/compatibility-api",
+        adapter="cohere",
     ),
     _row("Perplexity", "Sonar Pro", "https://api.perplexity.ai", "sonar-pro", "https://docs.perplexity.ai/"),
     _row("Groq", "Compound", "https://api.groq.com/openai/v1", "groq/compound", "https://console.groq.com/docs"),
@@ -151,9 +160,9 @@ PROVIDERS: tuple[ModelProvider, ...] = (
     ),
     _row("Lepton", "Latest", "https://llama3-1-405b.lepton.run/api/v1", "llama3.1-405b", "https://www.lepton.ai/"),
     _row("OpenRouter", "Auto", OPENROUTER, "openrouter/auto", "https://openrouter.ai/docs"),
-    _row("Ollama", "Local", "http://127.0.0.1:11434/v1", "llama3.2", "https://ollama.com/", requires_api_key=False),
-    _row("LM Studio", "Local", "http://127.0.0.1:1234/v1", "local-model", "https://lmstudio.ai/", requires_api_key=False),
-    _row("vLLM", "Local", "http://127.0.0.1:8000/v1", "local-model", "https://docs.vllm.ai/", requires_api_key=False),
+    _row("Ollama", "Local", "http://127.0.0.1:11434/v1", "llama3.2", "https://ollama.com/", requires_api_key=False, adapter="ollama"),
+    _row("LM Studio", "Local", "http://127.0.0.1:1234/v1", "local-model", "https://lmstudio.ai/", requires_api_key=False, adapter="lmstudio"),
+    _row("vLLM", "Local", "http://127.0.0.1:8000/v1", "local-model", "https://docs.vllm.ai/", requires_api_key=False, adapter="vllm"),
     _row(
         "Text Generation WebUI",
         "Local",
@@ -209,6 +218,7 @@ PROVIDERS: tuple[ModelProvider, ...] = (
         docs="Any other OpenAI-compatible endpoint. Fill the base URL and model yourself.",
         requires_api_key=True,
         region="",
+        adapter="openai",
     ),
 )
 

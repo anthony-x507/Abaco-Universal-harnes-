@@ -269,6 +269,28 @@ class Agent:
         turn.append(user)
         return user, turn
 
+    def set_model(
+        self,
+        provider_type: str,
+        base_url: str,
+        api_key: str | None = None,
+        model: str | None = None,
+    ) -> None:
+        """Rebind this agent to the dialect adapter for ``provider_type``."""
+        from universal.providers.factory import build_live_provider
+
+        chosen = (model or self.llm_model or "").strip()
+        if not chosen:
+            raise ProviderError("Model id is required")
+        self.provider = build_live_provider(
+            base_url=base_url,
+            api_key=api_key or "",
+            model=chosen,
+            adapter_type=provider_type,
+        )
+        self.llm_model = chosen
+        self.llm_provider = provider_type
+
     def complete(self, prompt: str, *, remember: bool = True) -> str:
         """Send ``prompt`` through plugins and the provider; return assistant text."""
         user, turn = self._prompt_messages(prompt)

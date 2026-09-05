@@ -72,6 +72,7 @@ export type ModelPreset = {
   docs: string
   requires_api_key: boolean
   region?: string
+  adapter?: string
 }
 
 export type Template = {
