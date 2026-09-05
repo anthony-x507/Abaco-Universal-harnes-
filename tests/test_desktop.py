@@ -134,10 +134,57 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
 
 
 def test_logo_ships_in_spa_and_native_icon() -> None:
-    assert (ROOT / "web" / "src" / "assets" / "logo.png").is_file()
-    assert (ROOT / "web" / "public" / "logo.png").is_file()
-    assert (ROOT / "Universal.icns").is_file()
-    assert (ROOT / "Universal.icns").read_bytes()[:4] == b"icns"
+    import hashlib
+    import struct
+    from io import BytesIO
+
+    from PIL import Image
+
+    assets_logo = ROOT / "web" / "src" / "assets" / "logo.png"
+    public_logo = ROOT / "web" / "public" / "logo.png"
+    assert assets_logo.is_file()
+    assert public_logo.is_file()
+    assets_bytes = assets_logo.read_bytes()
+    public_bytes = public_logo.read_bytes()
+    assert assets_bytes == public_bytes
+    assert hashlib.sha256(assets_bytes).digest() == hashlib.sha256(public_bytes).digest()
+    assets_img = Image.open(BytesIO(assets_bytes))
+    public_img = Image.open(BytesIO(public_bytes))
+    assert assets_img.size == public_img.size
+    assert assets_img.size[0] >= 1024 and assets_img.size[1] >= 1024
+    assert assets_img.mode == public_img.mode
+    assert assets_img.tobytes() == public_img.tobytes()
+
+    icns_path = ROOT / "Universal.icns"
+    assert icns_path.is_file()
+    icns = icns_path.read_bytes()
+    assert icns[:4] == b"icns"
+    assert struct.unpack(">I", icns[4:8])[0] == len(icns)
+    # PNG-in-icns types emitted by scripts/make_icon.py (modern macOS sizes).
+    expected_icns_tags = {
+        "icp4",  # 16
+        "icp5",  # 32
+        "icp6",  # 64
+        "ic07",  # 128
+        "ic08",  # 256
+        "ic09",  # 512
+        "ic10",  # 1024
+        "ic11",  # 32@2x
+        "ic12",  # 64@2x
+        "ic13",  # 256@2x
+        "ic14",  # 512@2x
+    }
+    offset = 8
+    found_tags: set[str] = set()
+    while offset + 8 <= len(icns):
+        tag = icns[offset : offset + 4].decode("ascii")
+        size = struct.unpack(">I", icns[offset + 4 : offset + 8])[0]
+        assert size >= 8
+        assert offset + size <= len(icns)
+        found_tags.add(tag)
+        offset += size
+    assert expected_icns_tags <= found_tags
+
     header = (ROOT / "web" / "src" / "components" / "Header.tsx").read_text(encoding="utf-8")
     assert "Abaco Universal Harness" in header
     assert "assets/logo.png" in header
