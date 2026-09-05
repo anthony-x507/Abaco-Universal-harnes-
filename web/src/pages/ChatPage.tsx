@@ -67,8 +67,6 @@ export function ChatPage() {
   const selectedId = searchParams.get('agent') ?? ''
   const { layout, updateLayout } = useLayout()
   const composerRef = useRef<HTMLTextAreaElement>(null)
-  const composerDockRef = useRef<HTMLDivElement>(null)
-  const [dockPad, setDockPad] = useState(168)
   const [agents, setAgents] = useState<Agent[]>([])
   const [history, setHistory] = useState<HistoryTurn[]>([])
   const [prompt, setPrompt] = useState('')
@@ -233,16 +231,6 @@ export function ChatPage() {
     box.style.height = 'auto'
     box.style.height = `${Math.min(box.scrollHeight, COMPOSER_MAX_PX)}px`
   }, [prompt])
-
-  useEffect(() => {
-    const dock = composerDockRef.current
-    if (!dock || typeof ResizeObserver === 'undefined') return
-    const apply = () => setDockPad(Math.round(dock.offsetHeight * 0.45))
-    apply()
-    const observer = new ResizeObserver(apply)
-    observer.observe(dock)
-    return () => observer.disconnect()
-  }, [attachments.length, statusLine, selectedId])
 
   const copyTurn = async (full: string) => {
     const selection = window.getSelection()?.toString() ?? ''
@@ -715,11 +703,11 @@ export function ChatPage() {
 
           <div
             ref={threadRef}
+            data-testid="chat-thread"
             className={cn(
               'min-h-0 flex-1 overflow-auto px-4',
-              emptyThread ? 'flex flex-col items-center justify-end' : 'space-y-3 py-2',
+              emptyThread ? 'flex flex-col items-center justify-end' : 'space-y-3 py-2 pb-3',
             )}
-            style={{ paddingBottom: dockPad }}
           >
             {emptyThread ? (
               <div className="mb-4 max-w-xl text-center">
@@ -788,9 +776,8 @@ export function ChatPage() {
           </div>
 
           <div
-            ref={composerDockRef}
             data-testid="composer-dock"
-            className="composer-dock absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-2xl flex-col gap-1.5 px-4 pb-3 pt-2"
+            className="composer-dock relative z-10 mx-auto flex w-full max-w-2xl shrink-0 flex-col gap-1.5 px-4 pb-3 pt-1"
           >
             <form
               className={cn('glass-composer relative rounded-[22px] p-2', dropActive && 'ring-2 ring-accent/50')}
@@ -857,7 +844,7 @@ export function ChatPage() {
                 placeholder={selected ? 'How can I help you today?' : 'Create an agent in Design first'}
                 disabled={sending || transcribing}
                 rows={3}
-                className="max-h-[252px] min-h-[4.5rem] w-full resize-y overflow-y-auto bg-transparent px-3 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-muted"
+                className="max-h-[252px] min-h-[4.5rem] w-full resize-y overflow-y-auto rounded-xl bg-[#07090e]/70 px-3 py-1.5 text-sm leading-relaxed text-[#f4f7fb] outline-none placeholder:text-[#9aa4b8] [text-shadow:0_1px_2px_rgba(0,0,0,0.75)]"
               />
               <div className="px-3 text-[11px] text-muted">
                 {words.toLocaleString('en-US')} / 5,000 words

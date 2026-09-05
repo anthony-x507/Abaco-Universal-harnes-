@@ -52,7 +52,7 @@ export function defaultCatalog() {
       status: 'ok',
       demo: true,
       agents: 1,
-      version: '1.2.6',
+      version: '1.2.7',
       whisper: true,
       runtime: { ok: false, url: 'http://127.0.0.1:43126', dir: '', plugins: [] },
     },
