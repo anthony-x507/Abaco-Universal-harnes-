@@ -6,7 +6,7 @@ Idioma del repo: inglés. Puedes responder en español.
 
 **Repo:** https://github.com/anthony-x507/Abaco-Universal-harnes-  
 **Producto en Mac:** solo `Abaco-Harness.dmg` → `/Applications/Abaco Harness.app`  
-**Current version:** 1.2.16 (header **Abaco Harness**)  
+**Current version:** 1.2.17 (header **Abaco Harness**)  
 **Paquete Python:** `universal` (no se renombra). Env vars `UNIVERSAL_*` igual. Clase interna `Universal` en `platform.py` se queda.
 
 ---
@@ -72,7 +72,7 @@ Puertos fijos en desarrollo:
 - Cara Vite: `http://127.0.0.1:43123` (proxy a la factory)
 - Factory: `http://127.0.0.1:43124`
 
-En el `.app` de Mac, pywebview abre la factory (la SPA empaquetada en `web/dist`). La versión va en la URL (`/?v=1.2.16`) para no servir un Chat cacheado de v1.0.0.
+En el `.app` de Mac, pywebview abre la factory (la SPA empaquetada en `web/dist`). La versión va en la URL (`/?v=1.2.17`) para no servir un Chat cacheado de v1.0.0.
 
 ---
 
