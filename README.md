@@ -1,6 +1,6 @@
-# Universal platform
+# Abaco Harness
 
-Universal is a **plugin-based agent factory and harness**. You assemble an agent from a **model**, a **channel**, and **plugins**, then run it from a CLI, a localhost HTTP factory, or the browser SPA.
+Abaco Harness is a **plugin-based agent factory and harness**. You assemble an agent from a **model**, a **channel**, and **plugins**, then run it from a CLI, a localhost HTTP factory, or the browser SPA.
 
 It is for people who want a small, honest runtime: one registry, one lifecycle, one OpenAI-compatible provider, and inbound text that always goes through the agent’s bound channel. It is not a Chat Completions clone and not a bag of placeholder providers.
 
@@ -18,13 +18,13 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - Signed-core governance: encrypted card vault (simulated purchases), permission-gated Tor fetch
 - ZIP export with no secrets
 
-Package name: `universal`. Product name: **Universal platform**.
+Package name: `universal`. Product name: **Abaco Harness**. The console script, imports, and `UNIVERSAL_*` env vars stay `universal`.
 
 Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-command setup: **[demo.sh](demo.sh)**. Integrator audit: **[audit/README.md](audit/README.md)** (`python3 -m universal audit`). Handoff for a new person (Spanish): **[docs/handoff.md](docs/handoff.md)**.
 
 ## Install
 
-**Mac:** download **only** `Universal.dmg` from [Releases](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases). Open it and drag **Universal.app** to `/Applications`. That is the official install. Source zips are not a product install and cannot self-update.
+**Mac:** download **only** `Abaco-Harness.dmg` from [Releases](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases). Open it and drag **Abaco Harness.app** to `/Applications`. That is the official install. Source zips are not a product install and cannot self-update.
 
 Python 3.11+. The supported path is pip (the project uses hatchling; Poetry is not required).
 
@@ -88,7 +88,7 @@ Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollam
 | `universal shell` | One process, one registry: `create` / `start` / `stop` / `list` / `delete` / `ask` / `deploy`. |
 | `universal serve [--demo]` | HTTP factory on `127.0.0.1:43124`. Localhost only. |
 | `universal desktop [--demo]` | Native window (pywebview) on the same factory + built SPA. |
-| `universal update` | Check GitHub Releases for a newer `Universal.dmg`. `--apply` on the packaged Mac app. |
+| `universal update` | Check GitHub Releases for a newer `Abaco-Harness.dmg`. `--apply` on the packaged Mac app. |
 | `universal audit` | Offline harness audit. Seals an HMAC proof (`VERIFIED` / `PARTIAL` / `FAILED`). Not quantum. Not an npm CLI. |
 
 `ask` and `chat` go through the bound CLI channel after `factory.start` (`Agent.accept`). `complete` is the model path the channel handler calls — do not call it from a started agent if you want the channel contract.
@@ -206,7 +206,7 @@ Built-in catalog ids:
 | `improvement` | `propose_improvement`, `accept_improvement`, `reject_improvement`, `list_improvements` | Visible plan change. The user accepts or rejects. Off when `improvement_allow_suggestions` is off. |
 | `package_manager` | `package_manager` | Install pip / npm / brew packages after the permission dialog. Logic in `universal/packages.py`. |
 | `self_modify` | `self_modify` | Propose a code change after the permission dialog. Never touches AgentRegistry / AgentLifecycle / AgentFactory. |
-| `identity` | `show_identity`, `list_capabilities` | Report who the agent is (Abaco Universal Harness Agent) and list its capabilities. Canonical source `universal/identity.py`. Not a template; no `mother.yaml`. |
+| `identity` | `show_identity`, `list_capabilities` | Report who the agent is (Abaco Harness Agent) and list its capabilities. Canonical source `universal/identity.py`. Not a template; no `mother.yaml`. |
 | `language_policy` | — | Adaptive language + strict three-line replies. Detects Spanish/English/French for guidance; always caps normal answers at three non-empty lines; localized details offer on truncate. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
@@ -271,13 +271,13 @@ python3 -m universal desktop --check         # CI / headless: health + web/dist
 On a Mac:
 
 ```bash
-scripts/build_macos.sh    # bun build + PyInstaller → Universal.app
-scripts/create_dmg.sh     # Universal.dmg (hdiutil)
+scripts/build_macos.sh    # bun build + PyInstaller → Abaco Harness.app
+scripts/create_dmg.sh     # Abaco-Harness.dmg (hdiutil)
 ```
 
 `build_macos.sh` on Linux only builds the SPA and runs `--check` (there is no `.app` on this OS). Release DMGs bundle Whisper; source installs need `universal[media]` for local STT. TTS uses macOS `say`. Offline: terminal, TTS, STT, and local vision captions. Live LLM and `search_web` / `scrape_url` need the network.
 
-The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Universal Harness**, and the splash shown while the SPA mounts. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Universal.app`.
+The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Harness**, and the splash shown while the SPA mounts. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Abaco Harness.app`.
 
 ### Hybrid runtime (Python core + Node)
 
@@ -285,11 +285,11 @@ The signed factory stays on **43124**. A Node process on **43126** holds the evo
 
 Sensitive writes go through `POST /v1/runtime/evolve` and `POST /v1/permission/ask`. On macOS that is a native dialog. Node cannot write plugin files itself — it only proposes. `POST /v1/llm/complete` is the localhost bridge so Node uses the one Python provider (not a second Chat Completions API). Chat `ask` still goes through `Agent.accept`. Auto/`run` always uses the Python tool loop. Node stays on `/v1/runtime/*`.
 
-Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips starting Node. `scripts/sign_macos.sh` always signs `Universal.app` with `entitlements.plist` (microphone). A Developer ID is used when `APPLE_SIGNING_IDENTITY` is set; otherwise the bundle is ad-hoc signed so it can appear in Privacy → Microphone. An unsigned `.app` never appears in that list.
+Set `UNIVERSAL_PERMISSION_MODE=allow` only in tests. `UNIVERSAL_RUNTIME=0` skips starting Node. `scripts/sign_macos.sh` always signs `Abaco Harness.app` with `entitlements.plist` (microphone). A Developer ID is used when `APPLE_SIGNING_IDENTITY` is set; otherwise the bundle is ad-hoc signed so it can appear in Privacy → Microphone. An unsigned `.app` never appears in that list.
 
 `app.py` is the PyInstaller entry. It calls `universal.desktop.main` — it does not construct a second registry.
 
-Replacing `Universal.app` does **not** wipe agents. Memory, chat history (`history/{agent_id}.json`), mission files (`situation/{agent_id}.json`), team files, notices, and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. Settings → **Download & Restart** replaces `/Applications/Universal.app` and relaunches it. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
+Replacing `Abaco Harness.app` does **not** wipe agents. Memory, chat history (`history/{agent_id}.json`), mission files (`situation/{agent_id}.json`), team files, notices, and the identity sidecar live under Application Support (`~/Library/Application Support/Universal` on a Mac), not inside the `.app`. That folder name is the existing user-data path for the `universal` package; it is not the product display name. Settings → **Download & Restart** replaces `/Applications/Abaco Harness.app` and relaunches it. Native plugin **code** stays in the package so an update ships the tools again. A `plugins/manifest.json` records the ids; the factory does not import `.py` from that folder.
 
 ### Governance, wallet, and Tor
 
@@ -305,22 +305,22 @@ When `sentinel_proof_required` is on, the last mission step stays `verifying` un
 
 Set `UNIVERSAL_PERMISSION_MODE=allow` or `deny` in tests. On macOS, a native dialog is the grant.
 
-Self-update (packaged Mac app only): the repo `anthony-x507/Abaco-Universal-harnes-` is baked into `version.json`. On launch the SPA checks silently and prompts if a newer `.dmg` exists. Settings → **Check for Updates**. **Download now** replaces `/Applications/Universal.app` and relaunches. Nothing is overwritten until you confirm. If the app is not in `/Applications`, Settings warns that updates will fail. Gatekeeper override is required until signing exists.
+Self-update (packaged Mac app only): the repo `anthony-x507/Abaco-Universal-harnes-` is baked into `version.json`. On launch the SPA checks silently and prompts if a newer `.dmg` exists. Settings → **Check for Updates**. **Download now** replaces `/Applications/Abaco Harness.app` and relaunches. Nothing is overwritten until you confirm. If the app is not in `/Applications`, Settings warns that updates will fail. Gatekeeper override is required until signing exists.
 
-GitHub Releases always serves the **same** `Universal.dmg` to every computer. Two Macs do not share Application Support. On **one** Mac, WKWebView can keep a cached `http://127.0.0.1:43124/` from v1.0.0 (Universal Platform + Create General) even after you replace the `.app`. From 1.2.4 the window loads `/?v=<version>` and stores WebView data under Application Support. Incident notes for the designer: [docs/designer_incident_report.md](docs/designer_incident_report.md). To wipe **this** Mac (deletes chats and saved keys on that Mac only):
+GitHub Releases always serves the **same** `Abaco-Harness.dmg` to every computer. Two Macs do not share Application Support. On **one** Mac, WKWebView can keep a cached `http://127.0.0.1:43124/` from v1.0.0 (Universal Platform + Create General) even after you replace the `.app`. From 1.2.4 the window loads `/?v=<version>` and stores WebView data under Application Support. Incident notes for the designer: [docs/designer_incident_report.md](docs/designer_incident_report.md). To wipe **this** Mac (deletes chats and saved keys on that Mac only):
 
 ```bash
 bash scripts/wipe_macos.sh
 ```
 
-Then download [Universal.dmg v1.2.16](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.16/Universal.dmg), drag it to `/Applications` only, and open it from there. The header must say **Abaco Universal Harness** and **1.2.16**.
+Then download [Abaco-Harness.dmg](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases) for the current tag, drag **Abaco Harness.app** to `/Applications` only, and open it from there. The header must say **Abaco Harness**.
 
 ```bash
 universal update                 # check
 universal update --apply         # packaged Mac app only
 ```
 
-A tag `v*` on GitHub runs `.github/workflows/release.yml` (macOS runner with desktop + media extras) and attaches `Universal.dmg`.
+A tag `v*` on GitHub runs `.github/workflows/release.yml` (macOS runner with desktop + media extras) and attaches `Abaco-Harness.dmg`.
 
 ## Library
 

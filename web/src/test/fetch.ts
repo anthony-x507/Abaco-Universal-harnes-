@@ -131,7 +131,7 @@ export function defaultCatalog() {
       comparisons: [
         {
           feature: 'plugin_surface',
-          status: 'DSH makes the UI and agent loop plugins. Universal keeps a signed factory.',
+          status: 'DSH makes the UI and agent loop plugins. Abaco Harness keeps a signed factory.',
           recommendation: 'Watch sandbox and schedule ideas. Do not move the factory into Node.',
         },
       ],

@@ -1,12 +1,13 @@
-# Handoff — Universal (Abaco Universal Harness)
+# Handoff — Abaco Harness
 
 Esto es para **pasar el trabajo** a otra persona (ingeniería o diseño). No es un plan de producto nuevo. Lee esto antes de tocar archivos.
 
 Idioma del repo: inglés. Puedes responder en español.
 
 **Repo:** https://github.com/anthony-x507/Abaco-Universal-harnes-  
-**Producto en Mac:** solo `Universal.dmg` → `/Applications/Universal.app`  
-**Current version:** 1.2.16 (header **Abaco Universal Harness**)
+**Producto en Mac:** solo `Abaco-Harness.dmg` → `/Applications/Abaco Harness.app`  
+**Current version:** 1.2.16 (header **Abaco Harness**)  
+**Paquete Python:** `universal` (no se renombra). Env vars `UNIVERSAL_*` igual. Clase interna `Universal` en `platform.py` se queda.
 
 ---
 
@@ -175,7 +176,7 @@ python3 -m universal audit
 
 `GET https://api.github.com/repos/anthony-x507/Abaco-Universal-harnes-/releases/latest`
 
-Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`Universal.dmg`**. Si solo hay commits en `main`, Settings dice que no hay update. Eso no es un bug.
+Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`.dmg`** (`Abaco-Harness.dmg`). Si solo hay commits en `main`, Settings dice que no hay update. Eso no es un bug.
 
 ### Receta para el agente / ingeniero nuevo
 
@@ -196,12 +197,12 @@ Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`Un
    git push github v1.2.8
    ```
    Sin este paso **no hay Release y no hay update**.
-5. **Esperar Actions.** En el repo: Actions → workflow **Release**. Tiene que terminar en verde y adjuntar `Universal.dmg` al Release `v1.2.8`.
+5. **Esperar Actions.** En el repo: Actions → workflow **Release**. Tiene que terminar en verde y adjuntar `Abaco-Harness.dmg` al Release `v1.2.8`.
 6. Comprobar a mano:
    - https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/latest
-   - Tiene que listar **Universal.dmg** (no un zip de source).
+   - Tiene que listar **Abaco-Harness.dmg** (no un zip de source).
    - El tag tiene que ser **más alto** que el número del header en la Mac de Anthony (si la app dice 1.2.7, el Release tiene que ser 1.2.8 o más).
-7. En la Mac: app en **`/Applications/Universal.app`** → Settings → **Check for Updates** → **Download now**. Si el `.app` está en Descargas, el updater avisa y no instala.
+7. En la Mac: app en **`/Applications/Abaco Harness.app`** → Settings → **Check for Updates** → **Download now**. Si el `.app` está en Descargas, el updater avisa y no instala.
 
 ### Qué no sirve
 
@@ -214,7 +215,7 @@ Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`Un
 | Tag igual o menor que la app (`v1.2.7` si ya tiene 1.2.7) | “Already up to date.” |
 | Subir solo el source zip a Releases | El updater busca un asset que termina en `.dmg`. |
 
-`workflow_dispatch` en `.github/workflows/release.yml` también puede armar un Release, pero el camino normal es **tag `v*`**. No se “prepara el update” editando Settings. Se prepara en GitHub: **versión + tag + Actions + `Universal.dmg`**.
+`workflow_dispatch` en `.github/workflows/release.yml` también puede armar un Release, pero el camino normal es **tag `v*`**. No se “prepara el update” editando Settings. Se prepara en GitHub: **versión + tag + Actions + `Abaco-Harness.dmg`**.
 
 ---
 

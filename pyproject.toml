@@ -5,11 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "universal"
 version = "1.2.16"
-description = "Universal platform — plugin-based agent factory and harness"
+description = "Abaco Harness — plugin-based agent factory and harness"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Universal platform" }]
+authors = [{ name = "Abaco Harness" }]
 keywords = ["agent", "factory", "harness", "llm", "plugins"]
 classifiers = [
   "Development Status :: 3 - Alpha",

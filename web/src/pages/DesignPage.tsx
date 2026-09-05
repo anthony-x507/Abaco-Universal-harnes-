@@ -381,7 +381,7 @@ function SkillRecorder({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">
-        Press record, work in the browser frame, add the clicks you take, then stop. Universal turns that pass into a
+        Press record, work in the browser frame, add the clicks you take, then stop. Abaco Harness turns that pass into a
         skill the team can reuse.
       </p>
 

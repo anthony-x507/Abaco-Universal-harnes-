@@ -1,5 +1,5 @@
 {
   "version": "1.2.16",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "New Abaco Universal Harness crystal logo across the web header, favicon, app background, and macOS Finder/Dock icon. Universal.icns is regenerated from the delivered 1254x1254 source."
+  "release_notes": "Product display name is now Abaco Harness. Mac installer is Abaco-Harness.dmg → /Applications/Abaco Harness.app. The Python package, console script, and env vars stay universal / UNIVERSAL_*."
 }

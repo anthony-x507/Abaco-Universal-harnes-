@@ -1,23 +1,26 @@
 #!/usr/bin/env bash
-# Build the Universal desktop bundle. On macOS this produces Universal.app.
+# Build the Abaco Harness desktop bundle. On macOS this produces Abaco Harness.app.
 # Plugins (terminal, TTS, STT, vision, search, scraper) ship in the Python package;
 # they are not copied as a second tree. Release builds bundle openai-whisper for STT.
+# The Python package, console script, and env vars stay `universal` / UNIVERSAL_*.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+APP_BUNDLE="Abaco Harness.app"
 
 # ffmpeg may live in Homebrew. Append so Actions/setup-python stays first.
 if [[ -d /opt/homebrew/bin ]]; then
   export PATH="${PATH}:/opt/homebrew/bin"
 fi
 
-echo "Building Universal icons from the Ábaco mark…"
+echo "Building Abaco Harness icons from the Ábaco mark…"
 chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
 ./scripts/make_icns.sh
 ./scripts/download_node.sh
 
-echo "Building Universal web face…"
+echo "Building Abaco Harness web face…"
 (
   cd web
   bun install
@@ -28,8 +31,12 @@ if [[ ! -f web/dist/index.html ]]; then
   echo "web/dist/index.html missing after build" >&2
   exit 1
 fi
-if ! grep -q "Abaco Universal Harness" web/dist/index.html; then
-  echo "web/dist is the old face (missing Abaco Universal Harness)" >&2
+if ! grep -q "Abaco Harness" web/dist/index.html; then
+  echo "web/dist is the old face (missing Abaco Harness)" >&2
+  exit 1
+fi
+if grep -q "Abaco Universal Harness" web/dist/index.html; then
+  echo "web/dist still has the old Abaco Universal Harness product name" >&2
   exit 1
 fi
 if grep -R -q "Write in the middle column" web/dist; then
@@ -47,10 +54,10 @@ if ! python3 -c "import universal.desktop" >/dev/null 2>&1; then
 fi
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "Not macOS — skipping Universal.app (PyInstaller .app is Darwin-only)."
+  echo "Not macOS — skipping ${APP_BUNDLE} (PyInstaller .app is Darwin-only)."
   echo "Checking the desktop factory + SPA on this machine…"
   python3 -m universal desktop --check --demo
-  echo "On a Mac, re-run this script to produce Universal.app."
+  echo "On a Mac, re-run this script to produce ${APP_BUNDLE}."
   exit 0
 fi
 
@@ -59,16 +66,16 @@ fi
 # Recorded WAV goes through universal/audio_io.py, which decodes without ffmpeg.
 if ! command -v ffmpeg >/dev/null 2>&1; then
   echo "note: ffmpeg is not on PATH. WAV transcription still works; other formats"
-  echo "note: need 'brew install ffmpeg' on the machine running Universal.app."
+  echo "note: need 'brew install ffmpeg' on the machine running ${APP_BUNDLE}."
 fi
 
 if ! python3 -c "import whisper" >/dev/null 2>&1; then
-  echo "openai-whisper is required before packaging Universal.app." >&2
+  echo "openai-whisper is required before packaging ${APP_BUNDLE}." >&2
   echo "Install: python3 -m pip install -e '.[desktop,media]'" >&2
   exit 1
 fi
 
-echo "Packaging Universal.app with PyInstaller…"
+echo "Packaging ${APP_BUNDLE} with PyInstaller…"
 python3 -m pip install -q 'pyinstaller>=6.0' 'pywebview>=5.0'
 
 # onedir + windowed → a real .app. Collect whisper package code + data for STT.
@@ -85,7 +92,7 @@ fi
 python3 -m PyInstaller \
   --noconfirm \
   --windowed \
-  --name Universal \
+  --name "Abaco Harness" \
   "${ICON_ARGS[@]}" \
   "${DATA_ARGS[@]}" \
   --add-data "web/dist:web/dist" \
@@ -102,30 +109,32 @@ python3 -m PyInstaller \
   --collect-data=whisper \
   app.py
 
-rm -rf Universal.app
-if [[ -d dist/Universal.app ]]; then
-  mv dist/Universal.app .
+rm -rf "${APP_BUNDLE}"
+if [[ -d "dist/${APP_BUNDLE}" ]]; then
+  mv "dist/${APP_BUNDLE}" .
 else
-  echo "PyInstaller did not produce dist/Universal.app" >&2
+  echo "PyInstaller did not produce dist/${APP_BUNDLE}" >&2
   exit 1
 fi
 
-rm -rf build dist Universal.spec
+rm -rf build dist "Abaco Harness.spec"
 python3 - <<'PY'
 from pathlib import Path
 import plistlib
-path = Path("Universal.app/Contents/Info.plist")
+path = Path("Abaco Harness.app/Contents/Info.plist")
 if path.is_file():
     data = plistlib.loads(path.read_bytes())
+    data["CFBundleName"] = "Abaco Harness"
+    data["CFBundleDisplayName"] = "Abaco Harness"
     data["NSMicrophoneUsageDescription"] = (
-        "Universal needs the microphone to record voice notes and transcribe them with Whisper."
+        "Abaco Harness needs the microphone to record voice notes and transcribe them with Whisper."
     )
     data["NSCameraUsageDescription"] = (
-        "Universal can attach a photo from the camera roll when you pick a file."
+        "Abaco Harness can attach a photo from the camera roll when you pick a file."
     )
     path.write_bytes(plistlib.dumps(data))
-    print("Info.plist: microphone usage string added")
+    print("Info.plist: display name and microphone usage string added")
 PY
-./scripts/sign_macos.sh Universal.app
-echo "Universal.app is in the repo root. Drag it to Applications to install."
+./scripts/sign_macos.sh "${APP_BUNDLE}"
+echo "${APP_BUNDLE} is in the repo root. Drag it to Applications to install."
 echo "Next: scripts/create_dmg.sh"

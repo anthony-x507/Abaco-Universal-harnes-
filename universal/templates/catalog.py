@@ -1,4 +1,4 @@
-"""Built-in templates — the first three faces of the Universal platform."""
+"""Built-in templates — the first three faces of Abaco Harness."""
 
 from __future__ import annotations
 

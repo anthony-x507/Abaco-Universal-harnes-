@@ -17,6 +17,7 @@ from universal.core.types import ToolCall
 from universal.identity import (
     IDENTITY_NAME,
     IDENTITY_VERSION,
+    PRODUCT,
     capabilities_text,
     identity_payload,
     identity_prompt_block,
@@ -29,6 +30,13 @@ from universal.templates.catalog import get_template
 
 def _call(name: str) -> ToolCall:
     return ToolCall(id="t1", name=name, arguments="{}")
+
+
+def test_product_display_name_is_abaco_harness() -> None:
+    assert PRODUCT == "Abaco Harness"
+    assert IDENTITY_NAME == "Abaco Harness Agent"
+    assert "Universal" not in PRODUCT
+    assert "Avaco" not in PRODUCT
 
 
 def test_identity_is_a_native_plugin() -> None:

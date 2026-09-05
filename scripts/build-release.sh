@@ -30,11 +30,11 @@ echo "4/4 dmg"
 if [[ -f scripts/create_dmg.sh ]]; then
   ./scripts/create_dmg.sh
 else
-  echo "create_dmg.sh missing — packager still writes Universal.dmg on a Mac runner"
+  echo "create_dmg.sh missing — packager still writes Abaco-Harness.dmg on a Mac runner"
 fi
 
-if command -v codesign >/dev/null 2>&1 && [[ -d Universal.app ]]; then
-  codesign -vvv Universal.app || true
+if command -v codesign >/dev/null 2>&1 && [[ -d "Abaco Harness.app" ]]; then
+  codesign -vvv "Abaco Harness.app" || true
 else
   echo "codesign/notarize not available on this host (expected on Linux CI)"
 fi

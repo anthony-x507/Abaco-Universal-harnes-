@@ -9,7 +9,7 @@ from universal._version import __version__
 from universal.web_dist import resource_root
 
 BAKED_REPO = "anthony-x507/Abaco-Universal-harnes-"
-DEFAULT_NOTES = "Native Mac app. Download Universal.dmg only."
+DEFAULT_NOTES = "Native Mac app. Download Abaco-Harness.dmg only."
 
 
 def version_file() -> Path:

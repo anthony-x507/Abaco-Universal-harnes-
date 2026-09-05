@@ -1,6 +1,6 @@
 # Universal web face
 
-Browser SPA for the Universal platform. Pages: Chat, Agents, Design, Settings.
+Browser SPA for Abaco Harness. Pages: Chat, Agents, Design, Settings.
 
 It talks to `python3 -m universal serve` through the Vite proxy (`/v1`, `/health` → `127.0.0.1:43124`).
 
@@ -19,9 +19,9 @@ bun run test
 Owner walkthrough: [../DEMO.md](../DEMO.md). `./demo.sh` from the repo root starts the factory and sample agents.
 
 
-Open `http://127.0.0.1:43123`. Tab title: **Universal – Agents**.
+Open `http://127.0.0.1:43123`. Tab title: **Abaco Harness**.
 
-After `bun run build`, `universal serve` also serves `web/dist` from the factory origin (`/`). `universal desktop` opens that same URL in a native window. On a Mac, `scripts/build_macos.sh` builds `Universal.app`.
+After `bun run build`, `universal serve` also serves `web/dist` from the factory origin (`/`). `universal desktop` opens that same URL in a native window. On a Mac, `scripts/build_macos.sh` builds `Abaco Harness.app`.
 
 Without `--demo`, set `UNIVERSAL_LLM_*` or paste a key in Settings or in the agent's Settings tab. Keys persist under user data and rebind existing agents. They are never written into a ZIP.
 

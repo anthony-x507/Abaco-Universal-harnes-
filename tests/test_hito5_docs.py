@@ -42,9 +42,9 @@ def test_readme_covers_hito5_surfaces() -> None:
         "search_web",
         "universal[media]",
         "universal desktop",
-        "Universal.app",
+        "Abaco Harness.app",
         "universal update",
-        "Universal.dmg",
+        "Abaco-Harness.dmg",
         "Check for Updates",
         "DEMO.md",
         "demo.sh",
@@ -74,7 +74,7 @@ def test_documented_http_examples_work(platform: Universal) -> None:
     health = client.get("/health")
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
-    assert health.json()["product"] == "Universal platform"
+    assert health.json()["product"] == "Abaco Harness"
 
     researcher = client.post(
         "/v1/agents",
