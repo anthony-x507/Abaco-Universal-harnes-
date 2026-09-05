@@ -1,0 +1,2 @@
+# Media extra for transcription (same as: pip install 'universal[media]')
+openai-whisper

@@ -33,6 +33,8 @@ def test_default_rules_include_finance_and_tor() -> None:
     assert "sentinel_proof_required" in ids
     assert "improvement_allow_suggestions" in ids
     assert "allow_self_install" in ids
+    assert "install_packages_allowed" in ids
+    assert "self_modify_allowed" in ids
     assert "auto_attempt" in ids
     assert set(RULE_IDS) <= ids
     assert is_enforced("allow_self_install")

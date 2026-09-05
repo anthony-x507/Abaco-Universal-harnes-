@@ -22,6 +22,7 @@ NATIVE_TOOL_NAMES = (
     "seal_proof",
     "propose_improvement",
     "package_manager",
+    "self_modify",
 )
 
 NATIVE_LABELS = [
@@ -38,6 +39,7 @@ NATIVE_LABELS = [
     "Proof: draft_contract, record_oracle, challenge_requirement, seal_proof, proof_status",
     "Improvement: propose_improvement, accept_improvement, reject_improvement, list_improvements",
     "Package Manager: package_manager",
+    "Self Modify: self_modify",
 ]
 
 RESEARCHER_PLUGIN_NAMES = (*NATIVE_PLUGIN_NAMES, "tools")

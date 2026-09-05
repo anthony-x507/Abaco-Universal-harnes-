@@ -7,6 +7,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+export PATH="/opt/homebrew/bin:$PATH"
+python3 -m pip install -q -e ".[desktop,media]" || python3 -m pip install -q -e ".[desktop]"
+
 echo "Building Universal icons from the Ábaco mark…"
 chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
 ./scripts/make_icns.sh

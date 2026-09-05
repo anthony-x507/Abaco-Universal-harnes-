@@ -59,7 +59,8 @@ class STTPlugin(Plugin):
             except ImportError:
                 raise RuntimeError(
                     "openai-whisper is not installed. "
-                    "Install optional extra: pip install 'universal[media]'"
+                    "I can try to install it with package_manager (pip, openai-whisper) after you allow it, "
+                    "or run: pip install 'universal[media]'"
                 ) from None
             self._models[size] = whisper.load_model(size)
         return self._models[size]

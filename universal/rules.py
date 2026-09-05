@@ -14,13 +14,26 @@ ENV_RULES_FILE = "UNIVERSAL_RULES_FILE"
 DEFAULT_RULES: tuple[dict[str, object], ...] = (
     {
         "id": "no_system_delete",
-        "description": "Do not delete system files without confirmation.",
+        "description": "Do not delete system files.",
         "enforced": True,
+        "exception": "Only with explicit user permission.",
     },
     {
         "id": "ask_before_self_modify",
         "description": "Ask before changing the evolvable runtime.",
         "enforced": True,
+    },
+    {
+        "id": "self_modify_allowed",
+        "description": "The agent may change its own plugins and evolvable runtime.",
+        "enforced": True,
+        "exception": "Never AgentRegistry, AgentLifecycle, or AgentFactory.",
+    },
+    {
+        "id": "install_packages_allowed",
+        "description": "The agent may install packages in the Universal environment.",
+        "enforced": True,
+        "exception": "Only after the user allows that command.",
     },
     {
         "id": "no_external_sharing",
@@ -97,9 +110,17 @@ class Rule:
     id: str
     description: str
     enforced: bool
+    exception: str = ""
 
     def to_dict(self) -> dict[str, object]:
-        return {"id": self.id, "description": self.description, "enforced": self.enforced}
+        payload: dict[str, object] = {
+            "id": self.id,
+            "description": self.description,
+            "enforced": self.enforced,
+        }
+        if self.exception:
+            payload["exception"] = self.exception
+        return payload
 
 
 def default_rules_path() -> Path:
@@ -141,6 +162,7 @@ def load_rules() -> list[Rule]:
             id=str(row["id"]),
             description=str(row["description"]),
             enforced=overrides.get(str(row["id"]), bool(row["enforced"])),
+            exception=str(row.get("exception") or ""),
         )
         for row in DEFAULT_RULES
     ]
@@ -162,6 +184,7 @@ def _catalog_payload(overrides: dict[str, bool]) -> dict[str, object]:
                 "id": row["id"],
                 "description": row["description"],
                 "enforced": overrides.get(str(row["id"]), bool(row["enforced"])),
+                **({"exception": row["exception"]} if row.get("exception") else {}),
             }
             for row in DEFAULT_RULES
         ],

@@ -64,6 +64,13 @@ class EvolveBody(BaseModel):
     agent: str = "evolution"
 
 
+class SelfModifyBody(BaseModel):
+    file_path: str
+    new_content: str
+    reason: str = ""
+    agent: str = "self_modify"
+
+
 class ThinkBody(BaseModel):
     prompt: str
     agent_id: str | None = None
@@ -229,6 +236,17 @@ def register_runtime_routes(app: FastAPI, state: Any) -> None:
         from universal.packages import run_package_manager
 
         return run_package_manager(action=body.action, package=body.package, manager=body.manager)
+
+    @app.post("/v1/self-modify/run")
+    def self_modify_run(body: SelfModifyBody) -> dict[str, Any]:
+        from universal.self_modify import apply_self_modify
+
+        return apply_self_modify(
+            file_path=body.file_path,
+            new_content=body.new_content,
+            reason=body.reason,
+            agent=body.agent,
+        )
 
     @app.post("/v1/runtime/evolve")
     def runtime_evolve(body: EvolveBody) -> dict[str, Any]:

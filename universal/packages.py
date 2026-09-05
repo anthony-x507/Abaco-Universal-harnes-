@@ -46,7 +46,7 @@ def run_package_manager(*, action: str, package: str, manager: str, agent: str =
         return {"ok": False, "error": "package is required"}
     if package and not PACKAGE_RE.match(package):
         return {"ok": False, "error": "package name is not allowed"}
-    if not is_enforced("allow_self_install"):
+    if not is_enforced("allow_self_install") or not is_enforced("install_packages_allowed"):
         return {"ok": False, "error": "allow_self_install is off. The agent may not install packages."}
     if action != "list":
         decision = ask_permission(
