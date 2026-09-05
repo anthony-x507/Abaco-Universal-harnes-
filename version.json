@@ -1,5 +1,5 @@
 {
-  "version": "1.2.14",
+  "version": "1.2.15",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Concise replies by default (response_style plugin: concise/detailed/default), identity no longer dumps capabilities unprompted, and macOS builds bundle openai-whisper for STT. A missing ffmpeg no longer breaks the release; WAV transcribes without it."
+  "release_notes": "Adaptive-language replies: answer only in the user language, max three lines with a localized details prompt. STT attachment output is trimmed plain text without duplicate Transcript/Attached labels."
 }
