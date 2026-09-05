@@ -155,6 +155,20 @@ def test_logo_ships_in_spa_and_native_icon() -> None:
     assert assets_img.mode == public_img.mode
     assert assets_img.tobytes() == public_img.tobytes()
 
+    # The mark ships with a transparent backdrop: it sits on the dark window,
+    # the header, and the Dock without a white tile behind it.
+    assert assets_img.mode == "RGBA"
+    alpha = assets_img.split()[3]
+    width, height = assets_img.size
+    corners = [
+        alpha.getpixel((0, 0)),
+        alpha.getpixel((width - 1, 0)),
+        alpha.getpixel((0, height - 1)),
+        alpha.getpixel((width - 1, height - 1)),
+    ]
+    assert corners == [0, 0, 0, 0]
+    assert alpha.getextrema() == (0, 255)
+
     icns_path = ROOT / "Universal.icns"
     assert icns_path.is_file()
     icns = icns_path.read_bytes()
@@ -182,6 +196,9 @@ def test_logo_ships_in_spa_and_native_icon() -> None:
         assert size >= 8
         assert offset + size <= len(icns)
         found_tags.add(tag)
+        icon = Image.open(BytesIO(icns[offset + 8 : offset + size]))
+        assert icon.mode == "RGBA"
+        assert icon.split()[3].getpixel((0, 0)) == 0
         offset += size
     assert expected_icns_tags <= found_tags
 

@@ -277,7 +277,7 @@ scripts/create_dmg.sh     # Universal.dmg (hdiutil)
 
 `build_macos.sh` on Linux only builds the SPA and runs `--check` (there is no `.app` on this OS). Release DMGs bundle Whisper; source installs need `universal[media]` for local STT. TTS uses macOS `say`. Offline: terminal, TTS, STT, and local vision captions. Live LLM and `search_web` / `scrape_url` need the network.
 
-The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Universal Harness**, and the splash shown while the SPA mounts. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Universal.app`.
+The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Universal Harness**, and the splash shown while the SPA mounts. The PNG carries a transparent backdrop, so it sits on the dark window, the header, and the Dock without a white tile. `scripts/make_logo_transparent.py` regenerates that alpha from the opaque studio render; pass the opaque original, since it refuses a file that already has alpha. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Universal.app`.
 
 ### Hybrid runtime (Python core + Node)
 

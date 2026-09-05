@@ -1,5 +1,5 @@
 {
   "version": "1.2.17",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Hide model <think> reasoning from chat, history, SSE, CLI, and the Node LLM bridge. Incremental strip so split tags cannot leak. Language policy and the three-line cap are unchanged."
+  "release_notes": "Hide model <think> reasoning from chat, history, SSE, CLI, and the Node LLM bridge, with an incremental strip so split tags cannot leak. The crystal logo now ships with a transparent backdrop across the header, favicon, splash, window watermark, and the macOS Finder/Dock icon. Language policy and the three-line cap are unchanged."
 }

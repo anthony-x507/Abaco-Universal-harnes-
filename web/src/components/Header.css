@@ -16,13 +16,13 @@
   min-width: 0;
 }
 
+/* The mark carries its own alpha, so no tile: a radius and glow would draw a
+   rounded box around transparent pixels. */
 .header-logo {
   width: 36px;
   height: 36px;
   flex-shrink: 0;
   object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.2);
 }
 
 .header-title {
