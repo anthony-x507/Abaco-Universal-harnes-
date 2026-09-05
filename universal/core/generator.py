@@ -11,7 +11,7 @@ from universal.core.registry import AgentRegistry
 from universal.plugins.catalog import PluginCatalog, merge_native_plugin_ids
 from universal.plugins.catalog import catalog as default_plugins
 from universal.providers.base import Provider
-from universal.providers.openai_compat import OpenAICompatProvider
+from universal.providers.factory import build_live_provider
 from universal.templates.catalog import TemplateCatalog, catalog as default_catalog
 
 
@@ -54,7 +54,7 @@ class AgentGenerator:
             api_key = self.settings.llm_api_key
             if not api_key and is_local_base_url(self.settings.llm_base_url):
                 api_key = "local"
-            self._provider = OpenAICompatProvider(
+            self._provider = build_live_provider(
                 base_url=self.settings.llm_base_url,
                 api_key=api_key,
                 model=self.settings.llm_model,

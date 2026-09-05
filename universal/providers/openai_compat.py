@@ -1,16 +1,17 @@
-"""One real OpenAI-compatible HTTP provider. Configured only by env / Settings."""
+"""Live HTTP provider. One client; dialect comes from ``ProviderAdapter``."""
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterator
 from typing import Any
 
 import httpx
 
-from universal.core.types import CompletionResponse, Message, ToolCall, ToolSpec
+from universal.core.types import CompletionResponse, Message, ToolSpec
 from universal.exceptions import ProviderError
-from universal.providers.base import Provider
+from universal.providers.base import Provider, ProviderAdapter
+from universal.providers.factory import detect_adapter_type, get_provider_adapter
+from universal.providers.openai import OpenAIAdapter
 
 EMPTY_KEY_MESSAGE = (
     "No API key for this agent. Save one in Chat, Settings, or the agent's Settings tab."
@@ -18,12 +19,7 @@ EMPTY_KEY_MESSAGE = (
 
 
 class OpenAICompatProvider(Provider):
-    """POST ``{base_url}/chat/completions`` with a Bearer token.
-
-    Works with OpenAI, Azure-compatible gateways, OpenRouter, Ollama's OpenAI
-    shim, and any other server that speaks the Chat Completions API. Hugging
-    Face and MLX are deferred as real plugins — they are not stubbed here.
-    """
+    """POST through the selected adapter. Default dialect is OpenAI-compatible."""
 
     def __init__(
         self,
@@ -34,6 +30,8 @@ class OpenAICompatProvider(Provider):
         timeout: float = 60.0,
         organization: str = "",
         client: httpx.Client | None = None,
+        adapter: ProviderAdapter | None = None,
+        adapter_type: str | None = None,
     ) -> None:
         if not base_url:
             raise ProviderError("Provider base_url is required")
@@ -46,6 +44,11 @@ class OpenAICompatProvider(Provider):
         self._organization = organization
         self._owns_client = client is None
         self._client = client or httpx.Client(timeout=timeout)
+        kind = adapter_type or detect_adapter_type(self._base_url, model)
+        self._adapter = adapter or get_provider_adapter(kind, self._base_url, api_key, model)
+        self._adapter.api_key = api_key
+        self._adapter.model = model
+        self.adapter_type = kind
 
     @property
     def base_url(self) -> str:
@@ -60,12 +63,11 @@ class OpenAICompatProvider(Provider):
         cleaned = (api_key or "").strip()
         if cleaned:
             self._api_key = cleaned
+            self._adapter.api_key = cleaned
 
     @property
     def completions_url(self) -> str:
-        if self._base_url.endswith("/chat/completions"):
-            return self._base_url
-        return f"{self._base_url}/chat/completions"
+        return self._adapter.request_url()
 
     def complete(
         self,
@@ -74,17 +76,13 @@ class OpenAICompatProvider(Provider):
         tools: list[ToolSpec] | None = None,
         model: str | None = None,
     ) -> CompletionResponse:
-        if not self._api_key:
-            raise ProviderError(EMPTY_KEY_MESSAGE)
-        payload: dict[str, Any] = {
-            "model": model or self._model,
-            "messages": [message.to_openai() for message in messages],
-        }
-        if tools:
-            payload["tools"] = [spec.to_openai() for spec in tools]
-            payload["tool_choice"] = "auto"
-
-        return self._parse(self._post_json(payload))
+        self._require_key()
+        if model:
+            self._adapter.model = model
+        payload = self._adapter.build_payload(
+            messages, tools=tools, model=model or self._model, stream=False
+        )
+        return self._adapter.parse_response(self._post_json(payload, stream=False))
 
     def complete_vision(
         self,
@@ -95,8 +93,9 @@ class OpenAICompatProvider(Provider):
         model: str | None = None,
     ) -> str:
         """One multimodal completion on the same HTTP client. Not a second provider."""
-        if not self._api_key:
-            raise ProviderError(EMPTY_KEY_MESSAGE)
+        self._require_key()
+        if not isinstance(self._adapter, OpenAIAdapter):
+            raise ProviderError("Vision is only available on OpenAI-compatible hosts")
         payload: dict[str, Any] = {
             "model": model or self._model,
             "messages": [
@@ -112,28 +111,31 @@ class OpenAICompatProvider(Provider):
                 }
             ],
         }
-        return self._parse(self._post_json(payload)).text or ""
+        return self._adapter.parse_response(self._post_json(payload, stream=False)).text or ""
 
-    def _post_json(self, payload: dict[str, Any]) -> dict[str, Any]:
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-        }
-        if self._organization:
+    def _require_key(self) -> None:
+        if self._api_key or self._adapter.allows_empty_key():
+            return
+        raise ProviderError(EMPTY_KEY_MESSAGE)
+
+    def _headers(self) -> dict[str, str]:
+        headers = dict(self._adapter.get_headers())
+        if self._organization and "OpenAI-Organization" not in headers:
             headers["OpenAI-Organization"] = self._organization
+        return headers
 
+    def _post_json(self, payload: dict[str, Any], *, stream: bool) -> dict[str, Any]:
+        url = self._adapter.request_url(stream=stream)
         try:
-            response = self._client.post(self.completions_url, json=payload, headers=headers)
+            response = self._client.post(url, json=payload, headers=self._headers())
         except httpx.TimeoutException as exc:
             raise ProviderError("LLM request timed out", status_code=408) from exc
         except httpx.ConnectError as exc:
             raise ProviderError("Cannot reach LLM service", status_code=503) from exc
         except httpx.HTTPError as exc:
             raise ProviderError(f"Provider HTTP error: {exc}", status_code=502) from exc
-
         if response.status_code >= 400:
             raise self._http_status_error(response.status_code, response.text[:400])
-
         try:
             data = response.json()
         except ValueError as exc:
@@ -152,44 +154,24 @@ class OpenAICompatProvider(Provider):
         if tools:
             yield from super().stream(messages, tools=tools, model=model)
             return
-        if not self._api_key:
-            raise ProviderError(EMPTY_KEY_MESSAGE)
-        payload: dict[str, Any] = {
-            "model": model or self._model,
-            "messages": [message.to_openai() for message in messages],
-            "stream": True,
-        }
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-        }
-        if self._organization:
-            headers["OpenAI-Organization"] = self._organization
+        self._require_key()
+        if model:
+            self._adapter.model = model
+        payload = self._adapter.build_payload(
+            messages, tools=None, model=model or self._model, stream=True
+        )
+        url = self._adapter.request_url(stream=True)
         try:
-            with self._client.stream(
-                "POST", self.completions_url, json=payload, headers=headers
-            ) as response:
+            with self._client.stream("POST", url, json=payload, headers=self._headers()) as response:
                 if response.status_code >= 400:
                     snippet = response.read().decode("utf-8", errors="replace")[:400]
                     raise self._http_status_error(response.status_code, snippet)
                 for line in response.iter_lines():
                     if not line:
                         continue
-                    if line.startswith("data:"):
-                        line = line[5:].strip()
-                    if line == "[DONE]":
-                        break
-                    try:
-                        data = json.loads(line)
-                    except ValueError:
-                        continue
-                    choices = data.get("choices") or []
-                    if not choices:
-                        continue
-                    delta = choices[0].get("delta") or {}
-                    piece = delta.get("content")
+                    piece = self._adapter.parse_stream_line(line)
                     if piece:
-                        yield str(piece)
+                        yield piece
         except ProviderError:
             raise
         except httpx.TimeoutException as exc:
@@ -218,37 +200,3 @@ class OpenAICompatProvider(Provider):
         if status_code == 408:
             return ProviderError("LLM request timed out", status_code=408)
         return ProviderError(f"LLM error: HTTP {status_code}: {snippet}", status_code=status_code)
-
-    @staticmethod
-    def _parse(data: dict[str, Any]) -> CompletionResponse:
-        choices = data.get("choices") or []
-        if not choices:
-            raise ProviderError("Provider response has no choices")
-        message = choices[0].get("message") or {}
-        raw_calls = message.get("tool_calls") or []
-        tool_calls: list[ToolCall] = []
-        for index, call in enumerate(raw_calls):
-            if not isinstance(call, dict):
-                continue
-            fn = call.get("function") if isinstance(call.get("function"), dict) else {}
-            name = str(fn.get("name") or call.get("name") or "")
-            if not name:
-                continue
-            arguments = fn.get("arguments", call.get("arguments", "{}"))
-            if not isinstance(arguments, str):
-                arguments = json.dumps(arguments)
-            tool_calls.append(
-                ToolCall(
-                    id=str(call.get("id") or f"call_{index}"),
-                    name=name,
-                    arguments=arguments or "{}",
-                )
-            )
-        text = message.get("content") or ""
-        return CompletionResponse(
-            text=text,
-            tool_calls=tool_calls,
-            model=str(data.get("model") or ""),
-            finish_reason=str(choices[0].get("finish_reason") or "stop"),
-            raw=data,
-        )

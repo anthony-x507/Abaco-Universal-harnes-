@@ -30,6 +30,7 @@ User
 | Audit | `audit/` + `universal audit` | Offline oracles, sealed verdict |
 | Events | `events.jsonl` | `GET /v1/events`. In-process. No Redis |
 | Circuit | `universal/nervous.py` | Opens after 3 provider failures |
+| LLM dialect | `universal/providers/factory.py` | One HTTP client; adapter picks auth/payload/parse |
 | Health | `GET /health` | Includes `nervous` snapshot |
 | Mac install | `Universal.dmg` → `/Applications` | `scripts/build_macos.sh`, `sign_macos.sh`, `create_dmg.sh` |
 
