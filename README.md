@@ -20,7 +20,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 
 Package name: `universal`. Product name: **Universal platform**.
 
-Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-command setup: **[demo.sh](demo.sh)**. Integrator audit: **[audit/README.md](audit/README.md)** (`python3 -m universal audit`).
+Walk through every face in about ten minutes: **[DEMO.md](DEMO.md)**. One-command setup: **[demo.sh](demo.sh)**. Integrator audit: **[audit/README.md](audit/README.md)** (`python3 -m universal audit`). Handoff for a new person (Spanish): **[docs/handoff.md](docs/handoff.md)**.
 
 ## Install
 
