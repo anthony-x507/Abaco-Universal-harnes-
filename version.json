@@ -1,5 +1,5 @@
 {
-  "version": "1.2.16",
+  "version": "1.2.17",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Product display name is now Abaco Harness. Mac installer is Abaco-Harness.dmg → /Applications/Abaco Harness.app. The Python package, console script, and env vars stay universal / UNIVERSAL_*."
+  "release_notes": "Display name is Abaco Harness. Mac installer is Abaco-Harness.dmg → /Applications/Abaco Harness.app."
 }
