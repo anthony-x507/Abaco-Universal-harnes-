@@ -83,7 +83,7 @@ Hay **dos pisos**. No los mezcles.
 
 Vive en el paquete `universal`. Lista canónica: `NATIVE_PLUGIN_NAMES` en `universal/plugins/catalog.py`.
 
-Hoy siempre se instalan: `terminal`, `tts`, `stt`, `vision`, `web_search`, `scraper`, `rule_enforcer`, `navigator`, `team`, `strategist`, `proof`, `improvement`, `package_manager`.
+Hoy siempre se instalan: `terminal`, `tts`, `stt`, `vision`, `web_search`, `scraper`, `rule_enforcer`, `navigator`, `team`, `strategist`, `proof`, `improvement`, `package_manager`, `self_modify`, `identity`.
 
 Un plugin Python:
 

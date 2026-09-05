@@ -11,7 +11,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager, self modify, identity
 - In-process wiring (`events.jsonl` + provider circuit). Not Redis. Map: [docs/wiring.md](docs/wiring.md)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Sentinel Proof: HMAC-sealed evidence (contract → oracles → challenges → reducer). Not quantum.
@@ -204,6 +204,9 @@ Built-in catalog ids:
 | `strategist` | `deepseek_monitor` | Public GitHub scan of DeepSeek Harness plus a comparison with Universal. Settings → DeepSeek Insights. Off when `strategist_deepseek_tracking` is off. |
 | `proof` | `draft_contract`, `record_oracle`, `challenge_requirement`, `seal_proof`, `proof_status` | Sentinel Proof stages on the same agent. Seal writes `proofs/{id}.json` with HMAC (`proof.key`). Not quantum. Roles are stages, not extra templates. |
 | `improvement` | `propose_improvement`, `accept_improvement`, `reject_improvement`, `list_improvements` | Visible plan change. The user accepts or rejects. Off when `improvement_allow_suggestions` is off. |
+| `package_manager` | `package_manager` | Install pip / npm / brew packages after the permission dialog. Logic in `universal/packages.py`. |
+| `self_modify` | `self_modify` | Propose a code change after the permission dialog. Never touches AgentRegistry / AgentLifecycle / AgentFactory. |
+| `identity` | `show_identity`, `list_capabilities` | Report who the agent is (Abaco Universal Harness Agent) and list its capabilities. Canonical source `universal/identity.py`. Not a template; no `mother.yaml`. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
