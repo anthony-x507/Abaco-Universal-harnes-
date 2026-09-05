@@ -11,7 +11,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager, self modify, identity, response style
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager, self modify, identity, language policy
 - In-process wiring (`events.jsonl` + provider circuit). Not Redis. Map: [docs/wiring.md](docs/wiring.md)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Sentinel Proof: HMAC-sealed evidence (contract → oracles → challenges → reducer). Not quantum.
@@ -207,7 +207,7 @@ Built-in catalog ids:
 | `package_manager` | `package_manager` | Install pip / npm / brew packages after the permission dialog. Logic in `universal/packages.py`. |
 | `self_modify` | `self_modify` | Propose a code change after the permission dialog. Never touches AgentRegistry / AgentLifecycle / AgentFactory. |
 | `identity` | `show_identity`, `list_capabilities` | Report who the agent is (Abaco Universal Harness Agent) and list its capabilities. Canonical source `universal/identity.py`. Not a template; no `mother.yaml`. |
-| `response_style` | `set_response_style` | Persist `concise` (default), `detailed`, or `default` under user data. Concise replies have at most three non-empty lines unless the user requests detail. |
+| `language_policy` | — | Adaptive language + strict three-line replies. Detects Spanish/English/French for guidance; always caps normal answers at three non-empty lines; localized details offer on truncate. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 

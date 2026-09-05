@@ -25,7 +25,6 @@ NATIVE_TOOL_NAMES = (
     "self_modify",
     "show_identity",
     "list_capabilities",
-    "set_response_style",
 )
 
 NATIVE_LABELS = [
@@ -44,7 +43,7 @@ NATIVE_LABELS = [
     "Package Manager: package_manager",
     "Self Modify: self_modify",
     "Identity: show_identity, list_capabilities",
-    "Response Style: set_response_style",
+    "Language Policy",
 ]
 
 RESEARCHER_PLUGIN_NAMES = (*NATIVE_PLUGIN_NAMES, "tools")

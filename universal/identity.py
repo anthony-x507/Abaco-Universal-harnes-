@@ -1,9 +1,7 @@
 """Canonical identity for the Universal harness agent.
 
-This is the source of truth in Python. ``universal/agent_identity.yaml`` is a
-human-readable mirror of this file — there is no PyYAML in the dependencies and
-nothing loads that YAML at runtime. This is NOT a factory template and there is
-no ``mother.yaml``: identity is injected into the three existing templates
+This Python module is the single source of truth. It is NOT a factory template
+and there is no ``mother.yaml``: identity is injected into the three existing templates
 (``general``, ``researcher``, ``coder``) and shipped as a native plugin.
 """
 
@@ -33,7 +31,7 @@ CAPABILITIES: tuple[tuple[str, str, str], ...] = (
     ("proof", "Seal HMAC evidence (not quantum)", "draft_contract, seal_proof"),
     ("self_modify", "Propose a code change after permission", "self_modify"),
     ("identity", "Report who I am and what I can do", "show_identity, list_capabilities"),
-    ("response_style", "Change reply length and detail", "set_response_style"),
+    ("language_policy", "Keep replies in the user language within three lines", "(policy hooks)"),
     ("wallet", "Store card aliases through the signed core (Node)", "/v1/wallet/*"),
     ("tor_browser", "Permission-gated Tor fetch through the signed core (Node)", "/v1/browse/tor"),
 )

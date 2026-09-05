@@ -10,7 +10,7 @@ from universal.plugins.identity import IdentityPlugin
 from universal.plugins.improvement import ImprovementPlugin
 from universal.plugins.navigator import NavigatorPlugin
 from universal.plugins.package_manager import PackageManagerPlugin
-from universal.plugins.response_style import ResponseStylePlugin
+from universal.plugins.language_policy import LanguagePolicyPlugin
 from universal.plugins.self_modify import SelfModifyPlugin
 from universal.plugins.proof import ProofPlugin
 from universal.plugins.rules import RuleEnforcerPlugin
@@ -44,7 +44,7 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "package_manager",
     "self_modify",
     "identity",
-    "response_style",
+    "language_policy",
 )
 
 
@@ -154,8 +154,8 @@ def _identity_plugin(**_kwargs: object) -> IdentityPlugin:
     return IdentityPlugin()
 
 
-def _response_style_plugin(**_kwargs: object) -> ResponseStylePlugin:
-    return ResponseStylePlugin()
+def _language_policy_plugin(**_kwargs: object) -> LanguagePolicyPlugin:
+    return LanguagePolicyPlugin()
 
 
 def default_plugin_catalog() -> PluginCatalog:
@@ -178,7 +178,7 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("package_manager", _package_manager_plugin)
     catalog.register("self_modify", _self_modify_plugin)
     catalog.register("identity", _identity_plugin)
-    catalog.register("response_style", _response_style_plugin)
+    catalog.register("language_policy", _language_policy_plugin)
     return catalog
 
 

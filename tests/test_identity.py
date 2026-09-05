@@ -33,8 +33,8 @@ def _call(name: str) -> ToolCall:
 
 def test_identity_is_a_native_plugin() -> None:
     assert "identity" in NATIVE_PLUGIN_NAMES
-    assert "response_style" in NATIVE_PLUGIN_NAMES
-    assert NATIVE_PLUGIN_NAMES[-1] == "response_style"
+    assert "language_policy" in NATIVE_PLUGIN_NAMES
+    assert NATIVE_PLUGIN_NAMES[-1] == "language_policy"
 
 
 def test_every_created_agent_has_identity(platform: Universal) -> None:
