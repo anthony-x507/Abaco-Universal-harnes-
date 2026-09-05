@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the Universal desktop bundle. On macOS this produces Universal.app.
 # Plugins (terminal, TTS, STT, vision, search, scraper) ship in the Python package;
-# they are not copied as a second tree. Whisper is optional and is not bundled.
+# they are not copied as a second tree. Release builds bundle openai-whisper for STT.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,7 +11,6 @@ cd "$ROOT"
 if [[ -d /opt/homebrew/bin ]]; then
   export PATH="${PATH}:/opt/homebrew/bin"
 fi
-# Media extra (Whisper) is optional: python3 -m pip install -e ".[media]"
 
 echo "Building Universal icons from the Ábaco mark…"
 chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
@@ -43,7 +42,7 @@ if ! grep -R -q "How can I help you today" web/dist; then
 fi
 
 if ! python3 -c "import universal.desktop" >/dev/null 2>&1; then
-  echo "Install the package first: python3 -m pip install -e '.[desktop]'" >&2
+  echo "Install the package first: python3 -m pip install -e '.[desktop,media]'" >&2
   exit 1
 fi
 
@@ -55,10 +54,22 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 0
 fi
 
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo "ffmpeg not found on PATH (required for Whisper STT in Universal.app)." >&2
+  echo "Install ffmpeg (e.g. brew install ffmpeg) so it is on PATH, then re-run." >&2
+  exit 1
+fi
+
+if ! python3 -c "import whisper" >/dev/null 2>&1; then
+  echo "openai-whisper is required before packaging Universal.app." >&2
+  echo "Install: python3 -m pip install -e '.[desktop,media]'" >&2
+  exit 1
+fi
+
 echo "Packaging Universal.app with PyInstaller…"
 python3 -m pip install -q 'pyinstaller>=6.0' 'pywebview>=5.0'
 
-# onedir + windowed → a real .app. Do not hide-import whisper (optional extra, huge).
+# onedir + windowed → a real .app. Collect whisper package code + data for STT.
 # Do not add a second factory tree. The package is imported as universal.
 ICON_ARGS=()
 if [[ -f Universal.icns ]]; then
@@ -85,6 +96,8 @@ python3 -m PyInstaller \
   --hidden-import=webview \
   --hidden-import=bs4 \
   --collect-submodules=universal \
+  --collect-submodules=whisper \
+  --collect-data=whisper \
   app.py
 
 rm -rf Universal.app

@@ -19,10 +19,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install Universal desktop extra
+      - name: Install Universal desktop and media extras
         run: |
           python3 -m pip install -U pip
-          python3 -m pip install -e ".[desktop]"
+          python3 -m pip install -e ".[desktop,media]"
           python3 -m pip install "pyinstaller>=6.0"
       - name: Build Universal.app and Universal.dmg
         run: |

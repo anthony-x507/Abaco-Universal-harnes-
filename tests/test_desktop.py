@@ -77,7 +77,7 @@ def test_desktop_check_cli(capsys) -> None:
 
 def test_desktop_face_url_busts_wkwebview_cache() -> None:
     assert desktop_face_url("127.0.0.1", 43124, "1.2.7") == "http://127.0.0.1:43124/?v=1.2.7"
-    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.12")
+    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.13")
 
 
 def test_desktop_parser_defaults() -> None:
@@ -91,9 +91,16 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     build = (ROOT / "scripts" / "build_macos.sh").read_text(encoding="utf-8")
     dmg = (ROOT / "scripts" / "create_dmg.sh").read_text(encoding="utf-8")
     app_entry = (ROOT / "app.py").read_text(encoding="utf-8")
+    reqs = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     assert "Universal.app" in build
     assert "PyInstaller" in build or "pyinstaller" in build
-    assert "whisper" not in build.lower() or "optional" in build.lower()
+    assert 'PATH="${PATH}:/opt/homebrew/bin"' in build
+    assert 'PATH="/opt/homebrew/bin:${PATH}"' not in build
+    assert "command -v ffmpeg" in build
+    assert 'import whisper' in build
+    assert "--collect-submodules=whisper" in build
+    assert "--collect-data=whisper" in build
+    assert "--hidden-import=whisper" not in build
     assert "aegis" not in build.lower()
     assert "--icon" in build
     assert "Universal.icns" in build
@@ -101,7 +108,6 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "download_node.sh" in build
     assert "sign_macos.sh" in build
     assert "NSMicrophoneUsageDescription" in build
-    assert "--hidden-import=whisper" not in build
     entitlements = (ROOT / "entitlements.plist").read_text(encoding="utf-8")
     assert "com.apple.security.device.audio-input" in entitlements
     signer = (ROOT / "scripts" / "sign_macos.sh").read_text(encoding="utf-8")
@@ -112,8 +118,15 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "from universal.desktop import main" in app_entry
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "macos-latest" in workflow
+    assert '".[desktop,media]"' in workflow or "'.[desktop,media]'" in workflow
+    assert "brew install" not in workflow
     assert "openai-whisper" not in workflow
     assert "requirements.txt" not in workflow
+    req_lines = [
+        ln.strip() for ln in reqs.splitlines() if ln.strip() and not ln.strip().startswith("#")
+    ]
+    assert any(ln == "openai-whisper" or ln.startswith("openai-whisper") for ln in req_lines)
+    assert not any(ln.startswith("universal[media]") for ln in req_lines)
     assert "aegis" not in app_entry.lower()
 
 
