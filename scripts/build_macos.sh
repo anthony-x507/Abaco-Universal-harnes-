@@ -8,7 +8,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export PATH="/opt/homebrew/bin:$PATH"
-python3 -m pip install -q -e ".[desktop,media]" || python3 -m pip install -q -e ".[desktop]"
+# Media extra (Whisper) is optional and huge. Install in the user env:
+#   python3 -m pip install -e ".[media]"
+# Do not pip-install here: Actions already ran ".[desktop]"; a second pip
+# on a PEP 668 Mac Python aborts the DMG.
 
 echo "Building Universal icons from the Ábaco mark…"
 chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
