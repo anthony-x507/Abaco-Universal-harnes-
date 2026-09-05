@@ -167,6 +167,18 @@ def register_runtime_routes(app: FastAPI, state: Any) -> None:
 
         return rules_payload()
 
+    @app.get("/v1/identity")
+    def get_identity() -> dict[str, Any]:
+        from universal.identity import identity_payload
+
+        return identity_payload()
+
+    @app.post("/v1/identity")
+    def post_identity() -> dict[str, Any]:
+        from universal.identity import identity_payload
+
+        return identity_payload()
+
     @app.post("/v1/permission/ask")
     def permission_ask(body: PermissionBody) -> dict[str, Any]:
         return ask_permission(

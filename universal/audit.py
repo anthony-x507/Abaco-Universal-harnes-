@@ -129,6 +129,7 @@ def check_native_plugins(root: Path) -> tuple[bool, str]:
         "improvement",
         "package_manager",
         "self_modify",
+        "identity",
     )
     ok = NATIVE_PLUGIN_NAMES == expected
     return ok, f"NATIVE_PLUGIN_NAMES={list(NATIVE_PLUGIN_NAMES)}"

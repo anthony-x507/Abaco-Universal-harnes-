@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
+from universal.plugins.identity import IdentityPlugin
 from universal.plugins.improvement import ImprovementPlugin
 from universal.plugins.navigator import NavigatorPlugin
 from universal.plugins.package_manager import PackageManagerPlugin
@@ -41,6 +42,7 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "improvement",
     "package_manager",
     "self_modify",
+    "identity",
 )
 
 
@@ -146,6 +148,10 @@ def _self_modify_plugin(**_kwargs: object) -> SelfModifyPlugin:
     return SelfModifyPlugin()
 
 
+def _identity_plugin(**_kwargs: object) -> IdentityPlugin:
+    return IdentityPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
@@ -165,6 +171,7 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("improvement", _improvement_plugin)
     catalog.register("package_manager", _package_manager_plugin)
     catalog.register("self_modify", _self_modify_plugin)
+    catalog.register("identity", _identity_plugin)
     return catalog
 
 

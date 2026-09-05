@@ -23,6 +23,8 @@ NATIVE_TOOL_NAMES = (
     "propose_improvement",
     "package_manager",
     "self_modify",
+    "show_identity",
+    "list_capabilities",
 )
 
 NATIVE_LABELS = [
@@ -40,6 +42,7 @@ NATIVE_LABELS = [
     "Improvement: propose_improvement, accept_improvement, reject_improvement, list_improvements",
     "Package Manager: package_manager",
     "Self Modify: self_modify",
+    "Identity: show_identity, list_capabilities",
 ]
 
 RESEARCHER_PLUGIN_NAMES = (*NATIVE_PLUGIN_NAMES, "tools")
