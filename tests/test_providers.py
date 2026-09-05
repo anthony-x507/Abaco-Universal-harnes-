@@ -46,6 +46,8 @@ def test_list_providers() -> None:
     zhipu = get_provider("Zhipu (GLM-5.2)")
     mini = get_provider("MiniMax (M3)")
     assert zhipu is not None and zhipu.default_model == "glm-5.2"
+    assert zhipu.adapter == "zhipu"
+    assert get_provider("OpenAI (GPT-5.6 Sol)").adapter == "openai"
     assert mini is not None and mini.default_model == "MiniMax-M3"
     assert "Custom (URL)" in names
     assert "Custom (URL)" not in list_providers_without_custom()

@@ -151,7 +151,7 @@ class AgentFactory:
         from universal.exceptions import ConfigError
         from universal.llm_store import load_agent_api_key
         from universal.providers.catalog import get_provider, is_local_base_url
-        from universal.providers.openai_compat import OpenAICompatProvider
+        from universal.providers.factory import build_live_provider
 
         model = (llm_model or "").strip()
         base_url = ""
@@ -187,12 +187,13 @@ class AgentFactory:
         url = target_url or shared_url
         if not url:
             return
-        agent.provider = OpenAICompatProvider(
+        agent.provider = build_live_provider(
             base_url=url,
             api_key=key,
             model=model or str(getattr(shared, "model", "") or "gpt-4o-mini"),
             timeout=self.settings.llm_timeout,
             organization=self.settings.llm_organization,
+            preset_name=preset_name,
         )
 
     def rebind_live_clients(self, old_shared: Provider | None) -> None:
