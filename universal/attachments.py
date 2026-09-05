@@ -39,6 +39,38 @@ def _invoke(agent: Any, tool: str, **kwargs: object) -> str | None:
     return None
 
 
+def _is_actionable_stt_error(text: str) -> bool:
+    lowered = text.lower()
+    return text.startswith("Error") or "not installed" in lowered
+
+
+def _prompt_already_has_transcript(prompt: str, heard: str) -> bool:
+    """True when the UI already put the transcript into the composer prompt."""
+    text = prompt.strip()
+    heard = heard.strip()
+    if not text or not heard:
+        return False
+    if text == heard:
+        return True
+    return text.endswith(f" {heard}")
+
+
+def _audio_block(prompt: str, name: str, path: Path, heard: str | None) -> str | None:
+    """Return plain trimmed transcript text — never Attached/Transcript labels."""
+    text = (heard or "").strip()
+    if not text or text == "[empty transcript]":
+        return (
+            f"Error: no transcript for {name}. "
+            f"Solution: retry after installing Whisper (`pip install 'universal[media]'`), "
+            f"or convert the clip to .wav. Saved at {path}."
+        )
+    if _is_actionable_stt_error(text):
+        return text
+    if _prompt_already_has_transcript(prompt, text):
+        return None
+    return text
+
+
 def apply_attachments(agent: Any, prompt: str, attachments: list[dict[str, str]]) -> str:
     """Write uploads to disk. Images go through vision; audio through STT."""
     if not attachments:
@@ -66,7 +98,9 @@ def apply_attachments(agent: Any, prompt: str, attachments: list[dict[str, str]]
             heard = str(item.get("transcript") or "").strip() or _invoke(
                 agent, "transcribe", audio_path=str(path), model="tiny"
             )
-            blocks.append(f"[Attached audio {name}]\nTranscript: {heard or f'Saved audio at {path}'}")
+            block = _audio_block(prompt, name, path, heard)
+            if block:
+                blocks.append(block)
         else:
             extracted = extract_text(path)
             if extracted:

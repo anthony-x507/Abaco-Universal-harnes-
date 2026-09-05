@@ -45,7 +45,7 @@ Cada panel se abre y se cierra. El estado se guarda en `localStorage` bajo `univ
 
 El Workspace **no** es una extensión de Chrome ni una pantalla compartida. Es un hueco honesto: “No screen connected” / “Extension: not connected”. Connect e Install están deshabilitados. Browser automation y login replay siguen fuera.
 
-File: un `.txt` / markdown / código pequeño se mete en el prompt. Binarios solo dejan una nota. Audio: el micrófono graba un clip; **no hay speech-to-text** en el servidor. El modelo ve una nota (“Attached audio clip…”).
+File: un `.txt` / markdown / código pequeño se mete en el prompt. Binarios solo dejan una nota. Audio: el micrófono graba WAV y el servidor lo transcribe con Whisper; el prompt recibe solo el texto limpio, sin etiquetas ni duplicados.
 
 ---
 
