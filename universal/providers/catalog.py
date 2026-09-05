@@ -73,8 +73,8 @@ def _via_openrouter(company: str, label: str, model: str, docs: str, *, region: 
 # 10 China + 40 United States. One latest flagship each. Custom is extra.
 PROVIDERS: tuple[ModelProvider, ...] = (
     _row("DeepSeek", "V4 Pro", "https://api.deepseek.com/v1", "deepseek-v4-pro", "https://api-docs.deepseek.com/", region="cn", adapter="deepseek"),
-    _row("MiniMax", "M3", "https://api.minimax.chat/v1", "MiniMax-M3", "https://www.minimax.io/", region="cn", adapter="minimax"),
-    _row("Zhipu", "GLM-5.2", "https://open.bigmodel.cn/api/paas/v4", "glm-5.2", "https://open.bigmodel.cn/", region="cn", adapter="zhipu"),
+    _row("MiniMax", "M3", "https://api.minimax.io/v1", "MiniMax-M3", "https://platform.minimax.io/docs/api-reference/text-openai-api", region="cn", adapter="minimax"),
+    _row("Zhipu", "GLM-5.2", "https://api.z.ai/api/paas/v4", "glm-5.2", "https://docs.z.ai/", region="cn", adapter="zhipu"),
     _row(
         "Baidu",
         "ERNIE 4.5 Turbo",
