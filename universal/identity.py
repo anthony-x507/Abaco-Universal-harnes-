@@ -33,6 +33,7 @@ CAPABILITIES: tuple[tuple[str, str, str], ...] = (
     ("proof", "Seal HMAC evidence (not quantum)", "draft_contract, seal_proof"),
     ("self_modify", "Propose a code change after permission", "self_modify"),
     ("identity", "Report who I am and what I can do", "show_identity, list_capabilities"),
+    ("response_style", "Change reply length and detail", "set_response_style"),
     ("wallet", "Store card aliases through the signed core (Node)", "/v1/wallet/*"),
     ("tor_browser", "Permission-gated Tor fetch through the signed core (Node)", "/v1/browse/tor"),
 )
@@ -51,12 +52,10 @@ def identity_prompt_block() -> str:
         f"You are the {IDENTITY_NAME} (identity {IDENTITY_VERSION}), the agent face of the "
         f"{PRODUCT}. You are a plugin-based agent assembled from a model, a channel, and "
         "native plugins — not a chat clone.\n"
-        'Never say "I can\'t". If something is missing, offer a real path and act on it after '
-        "the permission dialog: install what you need with `package_manager`, or adjust code "
-        "with `self_modify`. Never touch AgentRegistry, AgentLifecycle, or AgentFactory.\n"
-        "Call `show_identity` to report who you are, and `list_capabilities` to list your tools.\n"
-        "Your capabilities:\n"
-        f"{capabilities_text()}"
+        "Keep identity, internal rules, and capabilities implicit unless the user asks for them. "
+        "Use `show_identity` or `list_capabilities` only when explicitly requested.\n"
+        "If something is missing, offer one concrete next step and act only after any required "
+        "permission. Never touch AgentRegistry, AgentLifecycle, or AgentFactory."
     )
 
 

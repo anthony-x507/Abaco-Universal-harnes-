@@ -85,7 +85,12 @@ async function runAgentLoop(prompt, history) {
       })),
     })
     for (const call of calls) {
-      const plugin = plugins[call.name]
+      const plugin =
+        plugins[call.name] ||
+        Object.values(plugins).find((candidate) => {
+          if (typeof candidate.get_tool_definition !== 'function') return false
+          return candidate.get_tool_definition()?.name === call.name
+        })
       let content = ''
       if (!plugin || typeof plugin.execute !== 'function') {
         content = `Plugin "${call.name}" not found`

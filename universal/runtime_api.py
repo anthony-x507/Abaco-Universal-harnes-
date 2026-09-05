@@ -77,6 +77,10 @@ class ThinkBody(BaseModel):
     history: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class ResponseStyleBody(BaseModel):
+    style: str | None = None
+
+
 def _messages_from_body(raw: list[dict[str, Any]]) -> list[Message]:
     messages: list[Message] = []
     for item in raw:
@@ -178,6 +182,18 @@ def register_runtime_routes(app: FastAPI, state: Any) -> None:
         from universal.identity import identity_payload
 
         return identity_payload()
+
+    @app.post("/v1/response-style")
+    def response_style(body: ResponseStyleBody) -> dict[str, str]:
+        from universal.plugins.response_style import load_response_style, save_response_style
+
+        if body.style is None:
+            return {"style": load_response_style()}
+        try:
+            style = save_response_style(body.style)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return {"style": style}
 
     @app.post("/v1/permission/ask")
     def permission_ask(body: PermissionBody) -> dict[str, Any]:

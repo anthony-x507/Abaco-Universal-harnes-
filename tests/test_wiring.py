@@ -57,6 +57,7 @@ def test_plugin_catalog_creates_known_ids() -> None:
         "package_manager",
         "self_modify",
         "identity",
+        "response_style",
     }
     prompt = catalog.create("system_prompt", system_prompt="Stay brief.")
     assert prompt.name == "system_prompt"

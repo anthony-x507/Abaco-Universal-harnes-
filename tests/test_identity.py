@@ -33,7 +33,8 @@ def _call(name: str) -> ToolCall:
 
 def test_identity_is_a_native_plugin() -> None:
     assert "identity" in NATIVE_PLUGIN_NAMES
-    assert NATIVE_PLUGIN_NAMES[-1] == "identity"
+    assert "response_style" in NATIVE_PLUGIN_NAMES
+    assert NATIVE_PLUGIN_NAMES[-1] == "response_style"
 
 
 def test_every_created_agent_has_identity(platform: Universal) -> None:
@@ -47,12 +48,16 @@ def test_every_created_agent_has_identity(platform: Universal) -> None:
 def test_all_three_prompts_contain_the_identity_block(platform: Universal) -> None:
     block = identity_prompt_block()
     assert IDENTITY_NAME in block
+    assert "Your capabilities:" not in block
+    assert capabilities_text() not in block
     for template_id in ("general", "researcher", "coder"):
         prompt = get_template(template_id).system_prompt
         assert block in prompt
         assert IDENTITY_NAME in prompt
         assert "`show_identity`" in prompt
         assert "list_capabilities" in prompt
+        assert "at most 3 lines" in prompt
+        assert "Do not list your rules, identity, or capabilities" in prompt
 
 
 def test_identity_tools_return_the_name() -> None:

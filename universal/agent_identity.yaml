@@ -66,6 +66,9 @@ capabilities:
   - id: identity
     summary: Report who I am and what I can do
     tools: show_identity, list_capabilities
+  - id: response_style
+    summary: Change reply length and detail
+    tools: set_response_style
   - id: wallet
     summary: Store card aliases through the signed core (Node)
     tools: /v1/wallet/*
