@@ -24,7 +24,7 @@ def test_three_templates_load() -> None:
     assert get_template("general").default_plugins == NATIVE_PLUGIN_NAMES
     assert get_template("coder").default_plugins == NATIVE_PLUGIN_NAMES
     for template_id in ids:
-        assert "I can try to install" in get_template(template_id).system_prompt
+        assert "offer one concrete solution" in get_template(template_id).system_prompt
 
 
 def test_templates_have_distinct_prompts() -> None:

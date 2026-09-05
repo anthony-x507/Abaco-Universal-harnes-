@@ -115,10 +115,10 @@ def test_before_complete_injects_style_instruction(tmp_path: Path, monkeypatch) 
         Message(role="user", content="hi"),
     ]
     out = plugin.before_complete(agent, messages)
-    assert out[0].role == "system" and out[0].content == "You are helpful."
-    assert out[1].role == "system"
-    assert out[1].content == style_instruction("detailed")
-    assert out[2].role == "user"
+    assert out[0].role == "system"
+    assert out[0].content == "You are helpful.\n\n" + style_instruction("detailed")
+    assert out[1].role == "user"
+    assert sum(message.role == "system" for message in out) == 1
 
 
 def test_after_complete_truncates_concise_and_preserves_metadata(

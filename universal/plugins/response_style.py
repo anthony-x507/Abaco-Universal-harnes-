@@ -173,9 +173,17 @@ class ResponseStylePlugin(Plugin):
         style_msg = Message(role="system", content=instruction)
         if not messages:
             return [style_msg]
-        # Keep an existing leading system prompt first; append style as a second system turn.
+        # Preserve the one-system-message invariant used by provider adapters.
         if messages[0].role == "system":
-            return [messages[0], style_msg, *messages[1:]]
+            first = messages[0]
+            combined = Message(
+                role="system",
+                content=f"{first.content}\n\n{instruction}",
+                name=first.name,
+                tool_call_id=first.tool_call_id,
+                tool_calls=first.tool_calls,
+            )
+            return [combined, *messages[1:]]
         return [style_msg, *messages]
 
     def after_complete(

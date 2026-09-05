@@ -60,7 +60,8 @@ def test_t03_system_prompt_is_template_field_not_a_plugin(
     agent.accept("ping")
     first = provider.calls[0][0]
     assert first.role == "system"
-    assert first.content == template.system_prompt
+    assert first.content.startswith(template.system_prompt)
+    assert "Response style:" in first.content
     assert sum(1 for message in provider.calls[0] if message.role == "system") == 1
 
 
