@@ -30,7 +30,7 @@ describe('Header brand', () => {
     )
     expect(screen.getByRole('heading', { name: 'Abaco Universal Harness' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Abaco Universal Harness' })).toBeInTheDocument()
-    expect(await screen.findByText('1.2.10')).toBeInTheDocument()
+    expect(await screen.findByText('1.2.11')).toBeInTheDocument()
     expect(screen.getByText('chat face')).toBeInTheDocument()
   })
 })

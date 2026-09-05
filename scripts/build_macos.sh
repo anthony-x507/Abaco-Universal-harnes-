@@ -7,11 +7,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-export PATH="/opt/homebrew/bin:$PATH"
-# Media extra (Whisper) is optional and huge. Install in the user env:
-#   python3 -m pip install -e ".[media]"
-# Do not pip-install here: Actions already ran ".[desktop]"; a second pip
-# on a PEP 668 Mac Python aborts the DMG.
+# ffmpeg may live in Homebrew. Append so Actions/setup-python stays first.
+if [[ -d /opt/homebrew/bin ]]; then
+  export PATH="${PATH}:/opt/homebrew/bin"
+fi
+# Media extra (Whisper) is optional: python3 -m pip install -e ".[media]"
 
 echo "Building Universal icons from the Ábaco mark…"
 chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
