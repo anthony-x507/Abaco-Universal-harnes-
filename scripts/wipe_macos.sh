@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Wipe every local Universal install and user-data on THIS Mac.
 # Two computers never share these folders. GitHub always serves the same Universal.dmg.
-# Run this on the Mac that still shows the old Chat face, then install 1.2.4 into /Applications only.
+# Run this on the Mac that still shows the old Chat face, then install 1.2.5 into /Applications only.
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -85,9 +85,9 @@ done
 echo
 echo "This Mac is clean. Next:"
 echo "  1. Download ONLY this file:"
-echo "     https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.4/Universal.dmg"
+echo "     https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.5/Universal.dmg"
 echo "  2. Open the DMG and drag Universal.app to /Applications (not Downloads)."
 echo "  3. Eject the DMG. Delete Universal.dmg from Downloads."
 echo "  4. Open Spotlight, type Universal, confirm the path is /Applications/Universal.app"
-echo "  5. Header must say Abaco Universal Harness and 1.2.4."
+echo "  5. Header must say Abaco Universal Harness and 1.2.5."
 echo "     If you see Universal Platform + Templates/Face, you opened a leftover copy."

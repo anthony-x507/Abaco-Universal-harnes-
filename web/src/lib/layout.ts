@@ -25,15 +25,15 @@ export const LAYOUT_DEFAULTS: LayoutState = {
   right: true,
   rightWidth: 320,
   composerOpen: true,
-  composerHeight: 148,
+  composerHeight: 104,
 }
 
 const NAV_MIN = 176
 const NAV_MAX = 360
 const PANE_MIN = 220
 const PANE_MAX = 520
-const COMPOSER_MIN = 96
-const COMPOSER_MAX = 420
+const COMPOSER_MIN = 72
+const COMPOSER_MAX = 252
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))

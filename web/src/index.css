@@ -37,3 +37,19 @@ body {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
+
+.glass-composer {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(11, 14, 20, 0.16);
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.composer-dock {
+  pointer-events: none;
+}
+
+.composer-dock > * {
+  pointer-events: auto;
+}

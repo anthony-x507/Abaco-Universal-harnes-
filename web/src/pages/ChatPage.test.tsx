@@ -213,6 +213,9 @@ describe('Chat page quality tests', () => {
     installFetchMock(() => null)
     renderChat()
     expect(await screen.findByPlaceholderText('How can I help you today?')).toBeInTheDocument()
+    expect(screen.getByTestId('composer-dock')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('How can I help you today?')).toHaveClass('min-h-[4.5rem]')
+    expect(screen.getByPlaceholderText('How can I help you today?').closest('form')).toHaveClass('glass-composer')
     expect(screen.queryByRole('heading', { name: 'Templates' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Agents' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Messages' })).not.toBeInTheDocument()
@@ -397,5 +400,35 @@ describe('Chat page quality tests', () => {
     } finally {
       Object.defineProperty(globalThis, 'navigator', { configurable: true, value: original })
     }
+  })
+
+  it('copies a chat message from either bubble', async () => {
+    const written: string[] = []
+    const user = userEvent.setup()
+    installFetchMock((path) => {
+      if (path === '/v1/agents/a1') {
+        return jsonResponse({
+          ...agentFixture,
+          history: [
+            { role: 'user', content: 'hello there' },
+            { role: 'assistant', content: 'copy this reply' },
+          ],
+        })
+      }
+      return null
+    })
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (text: string) => written.push(text) },
+    })
+    renderChat()
+    expect(await screen.findByText('copy this reply')).toBeInTheDocument()
+    const copies = screen.getAllByRole('button', { name: 'Copy message' })
+    expect(copies).toHaveLength(2)
+    await user.click(copies[1])
+    expect(written.at(-1)).toBe('copy this reply')
+    expect(await screen.findByText('Copied message')).toBeInTheDocument()
+    await user.click(copies[0])
+    expect(written.at(-1)).toBe('hello there')
   })
 })

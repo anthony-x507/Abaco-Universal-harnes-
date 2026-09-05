@@ -1,4 +1,4 @@
-import { ArrowUp, FileText, Mic, Paperclip, PanelRight, Square, Trash2, X } from 'lucide-react'
+import { ArrowUp, Copy, FileText, Mic, Paperclip, PanelRight, Square, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ModelPicker, matchPreset } from '../components/ModelPicker'
@@ -33,6 +33,7 @@ import { cn, usageLabel } from '../lib/utils'
 import { DragHandle } from '../components/DragHandle'
 import { useLayout } from '../lib/layout-context'
 import { SIZE_LIMITS } from '../lib/layout'
+import { textToCopy, writeClipboard } from '../lib/clipboard'
 
 type Attachment = {
   name: string
@@ -46,7 +47,7 @@ type Attachment = {
 
 const TEXT_FILE =
   /\.(md|txt|json|csv|py|ts|tsx|js|jsx|html|htm|xml|yaml|yml|toml|ini|log|rst|css|env|rtf|docx|pdf)$/i
-const COMPOSER_MAX_PX = 360
+const COMPOSER_MAX_PX = 252
 
 function fileToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -66,6 +67,8 @@ export function ChatPage() {
   const selectedId = searchParams.get('agent') ?? ''
   const { layout, updateLayout } = useLayout()
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const composerDockRef = useRef<HTMLDivElement>(null)
+  const [dockPad, setDockPad] = useState(168)
   const [agents, setAgents] = useState<Agent[]>([])
   const [history, setHistory] = useState<HistoryTurn[]>([])
   const [prompt, setPrompt] = useState('')
@@ -230,6 +233,23 @@ export function ChatPage() {
     box.style.height = 'auto'
     box.style.height = `${Math.min(box.scrollHeight, COMPOSER_MAX_PX)}px`
   }, [prompt])
+
+  useEffect(() => {
+    const dock = composerDockRef.current
+    if (!dock || typeof ResizeObserver === 'undefined') return
+    const apply = () => setDockPad(Math.round(dock.offsetHeight * 0.45))
+    apply()
+    const observer = new ResizeObserver(apply)
+    observer.observe(dock)
+    return () => observer.disconnect()
+  }, [attachments.length, statusLine, selectedId])
+
+  const copyTurn = async (full: string) => {
+    const selection = window.getSelection()?.toString() ?? ''
+    const text = textToCopy(full, selection)
+    const ok = await writeClipboard(text)
+    showToast(ok ? (selection.trim() && text === selection.trim() ? 'Copied selection' : 'Copied message') : 'Could not copy.')
+  }
 
   const sendPrompt = async (
     outbound: string,
@@ -697,8 +717,9 @@ export function ChatPage() {
             ref={threadRef}
             className={cn(
               'min-h-0 flex-1 overflow-auto px-4',
-              emptyThread ? 'flex flex-col items-center justify-end pb-2' : 'space-y-3 py-2',
+              emptyThread ? 'flex flex-col items-center justify-end' : 'space-y-3 py-2',
             )}
+            style={{ paddingBottom: dockPad }}
           >
             {emptyThread ? (
               <div className="mb-4 max-w-xl text-center">
@@ -731,13 +752,24 @@ export function ChatPage() {
                       >
                         <div
                           className={cn(
-                            'mb-1 text-[11px] font-medium uppercase tracking-wide',
+                            'mb-1 flex items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wide',
                             turn.failed ? 'text-red-200' : mine ? 'text-sky-300' : 'text-amber-200',
                           )}
                         >
-                          {turn.failed ? 'error' : mine ? 'You' : selected?.name || 'Agent'}
+                          <span>{turn.failed ? 'error' : mine ? 'You' : selected?.name || 'Agent'}</span>
+                          {turn.content ? (
+                            <button
+                              type="button"
+                              className="rounded-md p-1 text-muted normal-case tracking-normal hover:bg-white/10 hover:text-ink"
+                              aria-label="Copy message"
+                              title="Copy message, or selected text"
+                              onClick={() => void copyTurn(turn.content)}
+                            >
+                              <Copy size={12} />
+                            </button>
+                          ) : null}
                         </div>
-                        <div className="whitespace-pre-wrap">
+                        <div className="cursor-text select-text whitespace-pre-wrap">
                           {turn.content || (turn.role === 'assistant' && sending ? '…' : '')}
                         </div>
                         {turn.failed && (
@@ -755,9 +787,13 @@ export function ChatPage() {
             )}
           </div>
 
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 pb-5 pt-1">
+          <div
+            ref={composerDockRef}
+            data-testid="composer-dock"
+            className="composer-dock absolute inset-x-0 bottom-0 z-10 mx-auto flex w-full max-w-2xl flex-col gap-1.5 px-4 pb-3 pt-2"
+          >
             <form
-              className={cn('glass-panel relative rounded-[28px] p-3', dropActive && 'ring-2 ring-accent/50')}
+              className={cn('glass-composer relative rounded-[22px] p-2', dropActive && 'ring-2 ring-accent/50')}
               onSubmit={(event) => {
                 event.preventDefault()
                 if (!requireAgent()) return
@@ -779,7 +815,7 @@ export function ChatPage() {
               }}
             >
               {dropActive && (
-                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[28px] bg-accent/10 text-sm text-accent">
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[22px] bg-accent/10 text-sm text-accent">
                   Drop any document here
                 </div>
               )}
@@ -820,8 +856,8 @@ export function ChatPage() {
                 }}
                 placeholder={selected ? 'How can I help you today?' : 'Create an agent in Design first'}
                 disabled={sending || transcribing}
-                rows={4}
-                className="max-h-[360px] min-h-[6.5rem] w-full resize-y overflow-y-auto bg-transparent px-3 py-2 text-sm leading-relaxed text-ink outline-none placeholder:text-muted"
+                rows={3}
+                className="max-h-[252px] min-h-[4.5rem] w-full resize-y overflow-y-auto bg-transparent px-3 py-1.5 text-sm leading-relaxed text-ink outline-none placeholder:text-muted"
               />
               <div className="px-3 text-[11px] text-muted">
                 {words.toLocaleString('en-US')} / 5,000 words
