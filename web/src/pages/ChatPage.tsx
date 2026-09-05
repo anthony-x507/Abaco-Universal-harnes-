@@ -706,7 +706,7 @@ export function ChatPage() {
             data-testid="chat-thread"
             className={cn(
               'min-h-0 flex-1 overflow-auto px-4',
-              emptyThread ? 'flex flex-col items-center justify-end' : 'space-y-3 py-2 pb-3',
+              emptyThread ? 'flex flex-col items-center justify-end pb-2' : 'space-y-3 py-2 pb-4',
             )}
           >
             {emptyThread ? (
@@ -777,7 +777,7 @@ export function ChatPage() {
 
           <div
             data-testid="composer-dock"
-            className="composer-dock relative z-10 mx-auto flex w-full max-w-2xl shrink-0 flex-col gap-1.5 px-4 pb-3 pt-1"
+            className="composer-dock relative z-10 mx-auto flex w-full max-w-2xl shrink-0 flex-col gap-1.5 px-4 pb-3 pt-3"
           >
             <form
               className={cn('glass-composer relative rounded-[22px] p-2', dropActive && 'ring-2 ring-accent/50')}
