@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from universal.core.types import CompletionResponse, Message, ToolCall, ToolSpec
 from universal.exceptions import ProviderError
 from universal.providers.base import ProviderAdapter
+from universal.think_filter import apply_to_response
 
 
 class GoogleAdapter(ProviderAdapter):
@@ -115,12 +116,14 @@ class GoogleAdapter(ProviderAdapter):
         finish = str(candidates[0].get("finishReason") or "STOP").lower()
         if finish == "stop":
             finish = "stop"
-        return CompletionResponse(
-            text="".join(texts),
-            tool_calls=tool_calls,
-            model=self.model,
-            finish_reason="tool_calls" if tool_calls else finish,
-            raw=data,
+        return apply_to_response(
+            CompletionResponse(
+                text="".join(texts),
+                tool_calls=tool_calls,
+                model=self.model,
+                finish_reason="tool_calls" if tool_calls else finish,
+                raw=data,
+            )
         )
 
     def parse_stream_line(self, line: str) -> str | None:

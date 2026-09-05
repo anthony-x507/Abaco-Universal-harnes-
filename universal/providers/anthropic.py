@@ -8,6 +8,7 @@ from typing import Any
 from universal.core.types import CompletionResponse, Message, ToolCall, ToolSpec
 from universal.exceptions import ProviderError
 from universal.providers.base import ProviderAdapter
+from universal.think_filter import apply_to_response
 
 
 class AnthropicAdapter(ProviderAdapter):
@@ -126,12 +127,14 @@ class AnthropicAdapter(ProviderAdapter):
         finish = str(data.get("stop_reason") or "stop")
         if finish == "tool_use":
             finish = "tool_calls"
-        return CompletionResponse(
-            text="".join(texts),
-            tool_calls=tool_calls,
-            model=str(data.get("model") or self.model or ""),
-            finish_reason=finish,
-            raw=data,
+        return apply_to_response(
+            CompletionResponse(
+                text="".join(texts),
+                tool_calls=tool_calls,
+                model=str(data.get("model") or self.model or ""),
+                finish_reason=finish,
+                raw=data,
+            )
         )
 
     def parse_stream_line(self, line: str) -> str | None:

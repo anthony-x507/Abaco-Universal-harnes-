@@ -34,6 +34,7 @@ import { DragHandle } from '../components/DragHandle'
 import { useLayout } from '../lib/layout-context'
 import { SIZE_LIMITS } from '../lib/layout'
 import { textToCopy, writeClipboard } from '../lib/clipboard'
+import { ThinkStreamFilter, stripThinkTags } from '../lib/thinkFilter'
 
 type Attachment = {
   name: string
@@ -234,7 +235,7 @@ export function ChatPage() {
 
   const copyTurn = async (full: string) => {
     const selection = window.getSelection()?.toString() ?? ''
-    const text = textToCopy(full, selection)
+    const text = stripThinkTags(textToCopy(full, selection))
     const ok = await writeClipboard(text)
     showToast(ok ? (selection.trim() && text === selection.trim() ? 'Copied selection' : 'Copied message') : 'Could not copy.')
   }
@@ -251,6 +252,7 @@ export function ChatPage() {
     setSending(true)
     setError('')
     setStatusLine('Thinking…')
+    const think = new ThinkStreamFilter()
     setHistory((current) => {
       const next = current.filter((turn) => !turn.failed)
       if (appendUser) next.push({ role: 'user', content: outbound })
@@ -263,12 +265,14 @@ export function ChatPage() {
         outbound,
         (delta) => {
           if (selectedIdRef.current !== agentId) return
+          const visible = think.feed(delta)
+          if (!visible) return
           setStatusLine('')
           setHistory((current) => {
             const next = [...current]
             const last = next[next.length - 1]
             if (last?.role === 'assistant' && !last.failed) {
-              next[next.length - 1] = { role: 'assistant', content: last.content + delta }
+              next[next.length - 1] = { role: 'assistant', content: last.content + visible }
             }
             return next
           })
@@ -758,7 +762,13 @@ export function ChatPage() {
                           ) : null}
                         </div>
                         <div className="cursor-text select-text whitespace-pre-wrap">
-                          {turn.content || (turn.role === 'assistant' && sending ? '…' : '')}
+                          {turn.content
+                            ? turn.role === 'assistant'
+                              ? stripThinkTags(turn.content)
+                              : turn.content
+                            : turn.role === 'assistant' && sending
+                              ? '…'
+                              : ''}
                         </div>
                         {turn.failed && (
                           <Button size="sm" variant="outline" className="mt-2" onClick={() => void retryLast()} disabled={sending}>

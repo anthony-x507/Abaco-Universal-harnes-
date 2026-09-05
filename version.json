@@ -1,5 +1,5 @@
 {
-  "version": "1.2.16",
+  "version": "1.2.17",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "New Abaco Universal Harness crystal logo across the web header, favicon, app background, and macOS Finder/Dock icon. Universal.icns is regenerated from the delivered 1254x1254 source."
+  "release_notes": "Hide model <think> reasoning from chat, history, SSE, CLI, and the Node LLM bridge. Incremental strip so split tags cannot leak. Language policy and the three-line cap are unchanged."
 }

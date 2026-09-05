@@ -8,6 +8,7 @@ from typing import Any
 from universal.core.types import CompletionResponse, Message, ToolCall, ToolSpec
 from universal.exceptions import ProviderError
 from universal.providers.base import ProviderAdapter
+from universal.think_filter import apply_to_response
 
 
 class OpenAIAdapter(ProviderAdapter):
@@ -70,12 +71,14 @@ class OpenAIAdapter(ProviderAdapter):
                 )
             )
         text = message.get("content") or ""
-        return CompletionResponse(
-            text=text,
-            tool_calls=tool_calls,
-            model=str(data.get("model") or self.model or ""),
-            finish_reason=str(choices[0].get("finish_reason") or "stop"),
-            raw=data,
+        return apply_to_response(
+            CompletionResponse(
+                text=text,
+                tool_calls=tool_calls,
+                model=str(data.get("model") or self.model or ""),
+                finish_reason=str(choices[0].get("finish_reason") or "stop"),
+                raw=data,
+            )
         )
 
     def parse_stream_line(self, line: str) -> str | None:

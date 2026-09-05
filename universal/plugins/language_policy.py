@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Literal
 
 from universal.core.plugin import Plugin
 from universal.core.types import CompletionResponse, Message
+from universal.think_filter import strip_think_tags
 
 if TYPE_CHECKING:
     from universal.core.agent import Agent
@@ -328,7 +329,8 @@ class LanguagePolicyPlugin(Plugin):
             )
         # Always enforce the three-line budget, including explicit detail requests.
         question = details_question_for(language)
-        trimmed = enforce_concise_text(response.text, details_question=question)
+        visible = strip_think_tags(response.text)
+        trimmed = enforce_concise_text(visible, details_question=question)
         if trimmed == response.text:
             return response
         return CompletionResponse(

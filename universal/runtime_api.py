@@ -12,6 +12,7 @@ from universal.core.types import Message, ToolCall, ToolSpec
 from universal.exceptions import ConfigError
 from universal.permission_gate import ask_permission
 from universal.runtime_manager import default_manager
+from universal.think_filter import strip_think_tags
 
 
 class LlmCompleteBody(BaseModel):
@@ -154,7 +155,7 @@ def register_runtime_routes(app: FastAPI, state: Any) -> None:
         tools = _tools_from_body(body.tools) or None
         response = state.platform.provider().complete(messages, tools=tools, model=body.model)
         return {
-            "content": response.text,
+            "content": strip_think_tags(response.text),
             "tool_calls": [
                 {"id": call.id, "name": call.name, "arguments": call.arguments}
                 for call in response.tool_calls

@@ -6,7 +6,7 @@ Idioma del repo: inglés. Puedes responder en español.
 
 **Repo:** https://github.com/anthony-x507/Abaco-Universal-harnes-  
 **Producto en Mac:** solo `Universal.dmg` → `/Applications/Universal.app`  
-**Current version:** 1.2.16 (header **Abaco Universal Harness**)
+**Current version:** 1.2.17 (header **Abaco Universal Harness**)
 
 ---
 
@@ -71,7 +71,7 @@ Puertos fijos en desarrollo:
 - Cara Vite: `http://127.0.0.1:43123` (proxy a la factory)
 - Factory: `http://127.0.0.1:43124`
 
-En el `.app` de Mac, pywebview abre la factory (la SPA empaquetada en `web/dist`). La versión va en la URL (`/?v=1.2.16`) para no servir un Chat cacheado de v1.0.0.
+En el `.app` de Mac, pywebview abre la factory (la SPA empaquetada en `web/dist`). La versión va en la URL (`/?v=1.2.17`) para no servir un Chat cacheado de v1.0.0.
 
 ---
 
@@ -84,6 +84,8 @@ Hay **dos pisos**. No los mezcles.
 Vive en el paquete `universal`. Lista canónica: `NATIVE_PLUGIN_NAMES` en `universal/plugins/catalog.py`.
 
 Hoy siempre se instalan: `terminal`, `tts`, `stt`, `vision`, `web_search`, `scraper`, `rule_enforcer`, `navigator`, `team`, `strategist`, `proof`, `improvement`, `package_manager`, `self_modify`, `identity`, `language_policy`.
+
+El razonamiento `<think>` de Qwen/DeepSeek **no es un plugin**. `universal/think_filter.py` lo quita del stream, del historial, de `/v1/llm/complete` y de la burbuja de Chat. No crear `mother.yaml` ni `response_style.js` para eso.
 
 Un plugin Python:
 

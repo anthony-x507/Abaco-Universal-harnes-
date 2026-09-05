@@ -435,4 +435,41 @@ describe('Chat page quality tests', () => {
     await user.click(copies[0])
     expect(written.at(-1)).toBe('hello there')
   })
+
+  it('hides split <think> reasoning in the stream and on copy', async () => {
+    const written: string[] = []
+    const user = userEvent.setup()
+    installFetchMock((path, init) => {
+      if (path === '/v1/agents/a1/ask' && init?.method === 'POST') {
+        return sseResponse([
+          'data: {"text":"<th"}',
+          'data: {"text":"ink>secret chain</th"}',
+          'data: {"text":"ink>visible reply"}',
+          `data: ${JSON.stringify({
+            ...agentFixture,
+            history: [
+              { role: 'user', content: 'hola' },
+              { role: 'assistant', content: 'visible reply' },
+            ],
+            answer: 'visible reply',
+            done: true,
+          })}`,
+        ])
+      }
+      return null
+    })
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (text: string) => written.push(text) },
+    })
+    renderChat()
+    const box = await screen.findByPlaceholderText('How can I help you today?')
+    await user.type(box, 'hola')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    expect(await screen.findByText('visible reply')).toBeInTheDocument()
+    expect(screen.queryByText(/secret chain/)).not.toBeInTheDocument()
+    const copies = screen.getAllByRole('button', { name: 'Copy message' })
+    await user.click(copies[copies.length - 1])
+    expect(written.at(-1)).toBe('visible reply')
+  })
 })

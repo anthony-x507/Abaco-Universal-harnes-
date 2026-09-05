@@ -322,6 +322,7 @@ def check_plugin_tests(root: Path) -> tuple[bool, str]:
         "tests/test_governance.py",
         "tests/test_strategist.py",
         "tests/test_language_policy.py",
+        "tests/test_think_filter.py",
     )
     missing = [name for name in needed if not _exists(root, name)]
     return not missing, f"functional test files present; missing={missing or 'none'}"

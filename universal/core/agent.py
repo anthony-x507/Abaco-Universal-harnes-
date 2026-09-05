@@ -17,6 +17,7 @@ from universal.core.types import AgentInfo, AgentState, CompletionResponse, Mess
 from universal.core.usage import UsageStats, record_provider_call
 from universal.exceptions import ProviderError
 from universal.nervous import CircuitOpen, provider_breaker
+from universal.think_filter import ThinkStreamFilter, apply_to_response, strip_think_tags
 
 _NAME_FACT = re.compile(r"\bmy name is\s+(.+?)(?:[.!?]|$)", re.IGNORECASE)
 DEFAULT_HISTORY_TURNS = 10
@@ -163,7 +164,7 @@ class Agent:
 
     def _remember_turn(self, user: Message, answer: str) -> None:
         self._history.append(user)
-        self._history.append(Message(role="assistant", content=answer))
+        self._history.append(Message(role="assistant", content=strip_think_tags(answer)))
         self._save_history()
 
     def memory_path(self) -> Path:
@@ -203,7 +204,7 @@ class Agent:
             ]
             facts.append(f"The user's name is {person}.")
             self.memory_data["facts"] = facts[-20:]
-        self.memory_data["last_conversation"] = f"User: {user_text}\nAgent: {answer}"
+        self.memory_data["last_conversation"] = f"User: {user_text}\nAgent: {strip_think_tags(answer)}"
         self._save_memory()
 
     def _history_for_provider(self) -> list[Message]:
@@ -300,7 +301,7 @@ class Agent:
         working = list(turn)
         response = self._run_tool_loop(working, tools)
 
-        response = self.plugins.after_complete(self, working, response)
+        response = apply_to_response(self.plugins.after_complete(self, working, response))
         if remember:
             self._remember_turn(user, response.text)
         if self.memory_enabled:
@@ -318,18 +319,22 @@ class Agent:
 
         if tools:
             response = yield from self._run_tool_loop_events(working, tools)
-            response = self.plugins.after_complete(self, working, response)
+            response = apply_to_response(self.plugins.after_complete(self, working, response))
             assembled = response.text
             if assembled:
                 yield {"type": "token", "text": assembled}
         else:
-            pieces: list[str] = []
+            think = ThinkStreamFilter()
             started = time.perf_counter()
             self._hydrate_provider_key()
             for piece in self.provider.stream(working, tools=None, model=self.llm_model or None):
-                pieces.append(piece)
-                yield {"type": "token", "text": piece}
-            assembled = "".join(pieces)
+                visible = think.feed(piece)
+                if visible:
+                    yield {"type": "token", "text": visible}
+            tail = think.flush()
+            if tail:
+                yield {"type": "token", "text": tail}
+            assembled = think.text
             response = CompletionResponse(text=assembled, model=getattr(self.provider, "model", "") or "")
             record_provider_call(
                 self,
@@ -337,7 +342,7 @@ class Agent:
                 messages=working,
                 latency_ms=(time.perf_counter() - started) * 1000,
             )
-            response = self.plugins.after_complete(self, working, response)
+            response = apply_to_response(self.plugins.after_complete(self, working, response))
             assembled = response.text
 
         if remember:
@@ -388,7 +393,7 @@ class Agent:
             return response
 
         try:
-            return breaker.execute(_call)
+            return apply_to_response(breaker.execute(_call))
         except CircuitOpen as exc:
             return CompletionResponse(text=f"error: provider circuit open ({exc})", model=self.llm_model)
 
