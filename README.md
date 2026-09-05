@@ -11,7 +11,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager, self modify, identity
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager, self modify, identity, response style
 - In-process wiring (`events.jsonl` + provider circuit). Not Redis. Map: [docs/wiring.md](docs/wiring.md)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Sentinel Proof: HMAC-sealed evidence (contract → oracles → challenges → reducer). Not quantum.
@@ -109,7 +109,7 @@ universal> quit
 
 `python3 -m universal serve` is the control plane (`GET /health`, factory REST under `/v1/agents`, `/v1/templates`, `/v1/settings`, `/v1/channels`). It is **not** `/v1/chat/completions`.
 
-The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspace. Drop any document on the write bar. Audio records to WAV and `POST /v1/transcribe` runs local Whisper (`tiny`). If the desktop window has no `getUserMedia` (common in the Mac WKWebView), Chat records on the host via `POST /v1/record/start` and `/v1/record/stop`, then transcribes the same way. Allow Microphone for Universal in System Settings → Privacy & Security. The composer holds about 5,000 words without a cutoff. Install the optional extra if health shows `"whisper": false`: `pip install 'universal[media]'`.
+The SPA in `web/` talks only to that factory. Chat is nav, messages, and workspace. Drop any document on the write bar. Audio records to WAV and `POST /v1/transcribe` runs local Whisper (`tiny`). If the desktop window has no `getUserMedia` (common in the Mac WKWebView), Chat records on the host via `POST /v1/record/start` and `/v1/record/stop`, then transcribes the same way. Allow Microphone for Universal in System Settings → Privacy & Security. The composer holds about 5,000 words without a cutoff. Release DMGs bundle the media extra; source installs can add it with `pip install 'universal[media]'`.
 
 | Control | Behavior |
 |---|---|
@@ -194,7 +194,7 @@ Built-in catalog ids:
 |---|---|---|
 | `terminal` | `run_command` | Local shell. Timeout 15s. Refuses obvious destroyers (`rm -rf /`, `mkfs`, `dd of=`, shutdown). `UNIVERSAL_TERMINAL_DIR` sets cwd. |
 | `tts` | `speak` | Voice `male` / `female` / `default`, speed `0.5`–`2.0`. Uses `say`, `espeak`/`espeak-ng`, or `spd-say` when present. Text is never interpolated into a shell string. |
-| `stt` | `transcribe` | Local Whisper (`tiny`…`large`). Optional extra: `pip install 'universal[media]'`. Missing Whisper returns an error string; CI does not download models. |
+| `stt` | `transcribe` | Local Whisper (`tiny`…`large`). Release DMGs bundle the media extra; source installs use `pip install 'universal[media]'`. |
 | `vision` | `describe_image` | Demo caption without a vision method. Live `OpenAICompatProvider.complete_vision` uses the same HTTP client (not a second provider). |
 | `web_search` | `search_web` | DuckDuckGo Instant Answer. No API key. |
 | `scraper` | `scrape_url` | BeautifulSoup. http(s) only; localhost and private IPs are rejected. |
@@ -207,6 +207,7 @@ Built-in catalog ids:
 | `package_manager` | `package_manager` | Install pip / npm / brew packages after the permission dialog. Logic in `universal/packages.py`. |
 | `self_modify` | `self_modify` | Propose a code change after the permission dialog. Never touches AgentRegistry / AgentLifecycle / AgentFactory. |
 | `identity` | `show_identity`, `list_capabilities` | Report who the agent is (Abaco Universal Harness Agent) and list its capabilities. Canonical source `universal/identity.py`. Not a template; no `mother.yaml`. |
+| `response_style` | `set_response_style` | Persist `concise` (default), `detailed`, or `default` under user data. Concise replies have at most three non-empty lines unless the user requests detail. |
 | `tools` | `utc_now` | Researcher only, in addition to the natives. |
 | `transcript` / `system_prompt` | — | Catalog only. Templates do **not** install them. The system prompt is `agent.system_prompt`. |
 
@@ -274,7 +275,7 @@ scripts/build_macos.sh    # bun build + PyInstaller → Universal.app
 scripts/create_dmg.sh     # Universal.dmg (hdiutil)
 ```
 
-`build_macos.sh` on Linux only builds the SPA and runs `--check` (there is no `.app` on this OS). Whisper is **not** bundled; install `universal[media]` if you want local STT. TTS uses macOS `say`. Offline: terminal, TTS, STT (if Whisper is present), and local vision captions. Live LLM and `search_web` / `scrape_url` need the network.
+`build_macos.sh` on Linux only builds the SPA and runs `--check` (there is no `.app` on this OS). Release DMGs bundle Whisper; source installs need `universal[media]` for local STT. TTS uses macOS `say`. Offline: terminal, TTS, STT, and local vision captions. Live LLM and `search_web` / `scrape_url` need the network.
 
 The crystal Ábaco mark (`web/src/assets/logo.png`) is the window watermark (15% opacity), the header lockup next to **Abaco Universal Harness**, and the splash shown while the SPA mounts. `scripts/make_icns.sh` builds `Universal.icns` for the Dock, Finder, and title-bar icon; `build_macos.sh` packages that file into `Universal.app`.
 
@@ -312,14 +313,14 @@ GitHub Releases always serves the **same** `Universal.dmg` to every computer. Tw
 bash scripts/wipe_macos.sh
 ```
 
-Then download [Universal.dmg v1.2.12](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.12/Universal.dmg), drag it to `/Applications` only, and open it from there. The header must say **Abaco Universal Harness** and **1.2.12**.
+Then download [Universal.dmg v1.2.13](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.13/Universal.dmg), drag it to `/Applications` only, and open it from there. The header must say **Abaco Universal Harness** and **1.2.13**.
 
 ```bash
 universal update                 # check
 universal update --apply         # packaged Mac app only
 ```
 
-A tag `v*` on GitHub runs `.github/workflows/release.yml` (macOS runner, no Whisper) and attaches `Universal.dmg`.
+A tag `v*` on GitHub runs `.github/workflows/release.yml` (macOS runner with desktop + media extras) and attaches `Universal.dmg`.
 
 ## Library
 

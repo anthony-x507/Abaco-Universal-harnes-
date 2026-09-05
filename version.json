@@ -1,5 +1,5 @@
 {
-  "version": "1.2.12",
+  "version": "1.2.13",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Native identity plugin: Abaco Universal Harness Agent injected into the three templates (general, researcher, coder), show_identity / list_capabilities on every agent, GET/POST /v1/identity. No mother.yaml. Core still locked."
+  "release_notes": "Concise responses by default with a persistent response_style plugin; macOS build now bundles STT media dependencies and verifies ffmpeg. Identity remains native without automatic capability dumps."
 }
