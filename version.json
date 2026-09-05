@@ -1,5 +1,5 @@
 {
-  "version": "1.2.11",
+  "version": "1.2.12",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Proactive install and self-modify: media extra, package_manager and self_modify on every agent, core still locked."
+  "release_notes": "Native identity plugin: Abaco Universal Harness Agent injected into the three templates (general, researcher, coder), show_identity / list_capabilities on every agent, GET/POST /v1/identity. No mother.yaml. Core still locked."
 }

@@ -77,7 +77,7 @@ def test_desktop_check_cli(capsys) -> None:
 
 def test_desktop_face_url_busts_wkwebview_cache() -> None:
     assert desktop_face_url("127.0.0.1", 43124, "1.2.7") == "http://127.0.0.1:43124/?v=1.2.7"
-    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.11")
+    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.12")
 
 
 def test_desktop_parser_defaults() -> None:
