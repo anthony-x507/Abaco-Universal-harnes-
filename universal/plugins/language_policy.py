@@ -159,20 +159,24 @@ _ENGLISH_MARKERS = (
     " summarize ",
     " understand ",
 )
-_APP_MODIFICATION_MARKERS = (
-    "modifica la app",
-    "modificar la app",
-    "arregla la app",
-    "arregla el botón",
-    "cambia la aplicación",
-    "modify the app",
-    "fix the app",
-    "fix the button",
-    "change the application",
-    "modifie l'application",
-    "répare l'application",
-    "répare le bouton",
-    "change l'application",
+_APP_MODIFICATION_ACTIONS = (
+    "arregla",
+    "modifica",
+    "modificar",
+    "cambia",
+    "fix",
+    "modify",
+    "change",
+    "répare",
+    "modifie",
+)
+_APP_MODIFICATION_TARGETS = (
+    "app",
+    "aplicación",
+    "application",
+    "botón",
+    "button",
+    "bouton",
 )
 
 
@@ -231,7 +235,9 @@ def details_question_for(language: UserLanguage) -> str | None:
 
 def is_app_modification_request(messages: list[Message]) -> bool:
     prompt = latest_user_text(messages).casefold()
-    return any(marker in prompt for marker in _APP_MODIFICATION_MARKERS)
+    return any(action in prompt for action in _APP_MODIFICATION_ACTIONS) and any(
+        target in prompt for target in _APP_MODIFICATION_TARGETS
+    )
 
 
 def enforce_concise_text(
