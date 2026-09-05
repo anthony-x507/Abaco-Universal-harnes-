@@ -71,6 +71,7 @@ export type ModelPreset = {
   default_model: string
   docs: string
   requires_api_key: boolean
+  region?: string
 }
 
 export type Template = {

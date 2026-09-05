@@ -77,6 +77,16 @@ DEFAULT_RULES: tuple[dict[str, object], ...] = (
         "description": "The agent may propose a better plan. The user still accepts or rejects it.",
         "enforced": True,
     },
+    {
+        "id": "allow_self_install",
+        "description": "The agent may install packages (pip, npm, brew) after the user allows that command.",
+        "enforced": True,
+    },
+    {
+        "id": "auto_attempt",
+        "description": "The agent may keep working through small problems without a confirmation on every step.",
+        "enforced": True,
+    },
 )
 
 RULE_IDS = tuple(str(row["id"]) for row in DEFAULT_RULES)

@@ -11,7 +11,7 @@ It is for people who want a small, honest runtime: one registry, one lifecycle, 
 - CLI (`ask`, `chat`, `shell`, `deploy`) and webhook channel
 - Browser face: Chat, Agents, Design, Settings
 - Persistent facts (`memory.json`), Auto tool loop (`run`), identity snapshot, token/cost meter
-- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement
+- Native tools on every agent: terminal, TTS, Whisper STT, vision, web search, scraper, rule enforcer, navigator, team, strategist, proof, improvement, package manager
 - In-process wiring (`events.jsonl` + provider circuit). Not Redis. Map: [docs/wiring.md](docs/wiring.md)
 - Mission state per agent (`situation/{id}.json`), Chat notices, and teams of **existing** agents (no fourth template)
 - Sentinel Proof: HMAC-sealed evidence (contract → oracles → challenges → reducer). Not quantum.
@@ -73,7 +73,7 @@ python3 -m universal ask --template coder "Write a Python function that reverses
 
 Any OpenAI Chat Completions–compatible server works (OpenAI, OpenRouter, Ollama `/v1`, a company gateway). Hugging Face and MLX are not stubbed here.
 
-`GET /v1/models` and `universal models` list **40 companies**, each with that lab's **latest** flagship (OpenAI GPT-5.6 Sol, Anthropic Claude Fable 5.1, Google Gemini 3.8 Flash, …). There is not a second OpenAI row and not ten Llama hosts. They only fill `UNIVERSAL_LLM_BASE_URL` and `UNIVERSAL_LLM_MODEL` for the existing `OpenAICompatProvider`. Settings offers the same picker; Design create uses the process default. This is not 40 HTTP clients. Labs without a public OpenAI-compatible API are reached through OpenRouter.
+`GET /v1/models` and `universal models` list **10 China labs and 40 United States hosts**, each with that company's **latest** flagship (DeepSeek V4 Pro, OpenAI GPT-5.6 Sol, xAI Grok 4.6, …). Filter with `?region=cn` or `?region=us`. There is not a second OpenAI row. They only fill `UNIVERSAL_LLM_BASE_URL` and `UNIVERSAL_LLM_MODEL` for the existing `OpenAICompatProvider`. This is not 50 HTTP clients. Labs without a public OpenAI-compatible API are reached through OpenRouter.
 
 ## CLI
 

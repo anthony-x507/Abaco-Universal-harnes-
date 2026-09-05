@@ -18,12 +18,15 @@ from universal.server import create_app
 
 def test_one_latest_model_per_company() -> None:
     companies = list_companies()
-    assert len(companies) == 40
-    assert len(set(companies)) == 40
-    assert len(PROVIDERS) == 41
+    assert len(companies) == 50
+    assert len(set(companies)) == 50
+    assert len(list_companies("cn")) == 10
+    assert len(list_companies("us")) == 40
+    assert len(PROVIDERS) == 51
     assert PROVIDERS[-1].name == "Custom (URL)"
     names = [row.name for row in PROVIDERS]
     assert len(names) == len(set(names))
+    assert all(row.region in {"cn", "us", ""} for row in PROVIDERS)
 
 
 def test_get_provider() -> None:
@@ -46,11 +49,14 @@ def test_list_providers() -> None:
     assert mini is not None and mini.default_model == "MiniMax-M3"
     assert "Custom (URL)" in names
     assert "Custom (URL)" not in list_providers_without_custom()
-    assert "Ollama (Llama 3.2)" not in names
+    assert "Ollama (Local)" in names
     assert "Groq (Llama 3 70B)" not in names
     assert sum(1 for name in names if name.startswith("OpenAI ")) == 1
     assert sum(1 for name in names if name.startswith("Anthropic ")) == 1
-    assert sum(1 for name in names if "Llama 3" in name) == 0
+    assert sum(1 for name in names if name.startswith("DeepSeek ")) == 1
+    assert get_provider("Ollama (Local)") is not None
+    assert get_provider("Ollama (Local)").region == "us"
+    assert get_provider("DeepSeek (V4 Pro)").region == "cn"
 
 
 def test_openrouter_is_transport_not_ten_rows() -> None:
@@ -74,9 +80,13 @@ def test_http_models_lists_presets(platform: Universal) -> None:
     response = client.get("/v1/models")
     assert response.status_code == 200
     rows = response.json()["models"]
-    assert len(rows) == 41
-    assert rows[0]["name"] == "OpenAI (GPT-5.6 Sol)"
-    assert rows[0]["company"] == "OpenAI"
+    assert len(rows) == 51
+    china = client.get("/v1/models", params={"region": "cn"}).json()["models"]
+    assert len([row for row in china if row["company"] != "Custom"]) == 10
+    assert all(row["region"] in {"cn", ""} for row in china)
+    assert any(row["name"] == "OpenAI (GPT-5.6 Sol)" and row["company"] == "OpenAI" for row in rows)
+    assert rows[0]["name"] == "DeepSeek (V4 Pro)"
+    assert rows[0]["region"] == "cn"
     assert client.post("/v1/chat/completions", json={}).status_code == 404
 
 

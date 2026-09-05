@@ -51,6 +51,12 @@ class TorBody(BaseModel):
     timeout: int = 30
 
 
+class PackageBody(BaseModel):
+    action: str
+    package: str = ""
+    manager: str
+
+
 class EvolveBody(BaseModel):
     target_file: str
     new_code: str
@@ -217,6 +223,12 @@ def register_runtime_routes(app: FastAPI, state: Any) -> None:
         if not body.url.strip():
             raise HTTPException(status_code=400, detail="url is required")
         return fetch_via_tor(url=body.url, timeout=body.timeout, action="fetch")
+
+    @app.post("/v1/packages/run")
+    def packages_run(body: PackageBody) -> dict[str, Any]:
+        from universal.packages import run_package_manager
+
+        return run_package_manager(action=body.action, package=body.package, manager=body.manager)
 
     @app.post("/v1/runtime/evolve")
     def runtime_evolve(body: EvolveBody) -> dict[str, Any]:

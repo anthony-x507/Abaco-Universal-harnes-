@@ -176,7 +176,7 @@ class NavigatorPlugin(Plugin):
             to_step = str(args.get("to_step") or "").strip()
             if not reason or not from_step or not to_step:
                 return "error: reason, from_step, and to_step are required"
-            if is_enforced("navigator_allow_deviations"):
+            if is_enforced("navigator_allow_deviations") and not is_enforced("auto_attempt"):
                 from universal.permission_gate import ask_permission
 
                 decision = ask_permission(

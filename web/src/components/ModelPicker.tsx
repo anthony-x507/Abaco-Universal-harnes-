@@ -48,11 +48,20 @@ export function ModelPicker({
             {currentModel}
           </option>
         ) : null}
-        {models.map((row) => (
-          <option key={row.name} value={row.name}>
-            {row.name}
-          </option>
-        ))}
+        {(['cn', 'us', ''] as const).map((region) => {
+          const rows = models.filter((row) => (row.region || '') === region)
+          if (!rows.length) return null
+          const label = region === 'cn' ? 'China' : region === 'us' ? 'United States' : 'Other'
+          return (
+            <optgroup key={region || 'other'} label={label}>
+              {rows.map((row) => (
+                <option key={row.name} value={row.name}>
+                  {row.name}
+                </option>
+              ))}
+            </optgroup>
+          )
+        })}
       </select>
       {shown ? (
         <span className={cn('truncate text-[11px] text-muted', compact ? 'max-w-[10rem]' : 'block')} title={shown}>

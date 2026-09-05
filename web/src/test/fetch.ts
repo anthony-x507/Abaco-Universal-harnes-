@@ -52,7 +52,7 @@ export function defaultCatalog() {
       status: 'ok',
       demo: true,
       agents: 1,
-      version: '1.2.5',
+      version: '1.2.6',
       whisper: true,
       runtime: { ok: false, url: 'http://127.0.0.1:43126', dir: '', plugins: [] },
     },
@@ -103,6 +103,8 @@ export function defaultCatalog() {
         { id: 'strategist_deepseek_tracking', description: 'Scan official DeepSeek Harness repos and keep a comparison report.', enforced: true },
         { id: 'sentinel_proof_required', description: 'Last mission step stays verifying until a Sentinel Proof is sealed.', enforced: false },
         { id: 'improvement_allow_suggestions', description: 'The agent may propose a better plan. The user still accepts or rejects it.', enforced: true },
+        { id: 'allow_self_install', description: 'The agent may install packages (pip, npm, brew) after the user allows that command.', enforced: true },
+        { id: 'auto_attempt', description: 'The agent may keep working through small problems without a confirmation on every step.', enforced: true },
       ],
     },
     deepseek: {

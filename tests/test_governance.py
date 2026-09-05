@@ -32,7 +32,11 @@ def test_default_rules_include_finance_and_tor() -> None:
     assert "strategist_deepseek_tracking" in ids
     assert "sentinel_proof_required" in ids
     assert "improvement_allow_suggestions" in ids
+    assert "allow_self_install" in ids
+    assert "auto_attempt" in ids
     assert set(RULE_IDS) <= ids
+    assert is_enforced("allow_self_install")
+    assert is_enforced("auto_attempt")
     assert is_enforced("no_purchase_without_permission")
     assert is_enforced("no_dark_web_without_permission")
     assert is_enforced("navigator_auto_notify")

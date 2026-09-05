@@ -8,6 +8,7 @@ from universal.core.plugin import Plugin
 from universal.exceptions import PluginError
 from universal.plugins.improvement import ImprovementPlugin
 from universal.plugins.navigator import NavigatorPlugin
+from universal.plugins.package_manager import PackageManagerPlugin
 from universal.plugins.proof import ProofPlugin
 from universal.plugins.rules import RuleEnforcerPlugin
 from universal.plugins.strategist import StrategistPlugin
@@ -37,6 +38,7 @@ NATIVE_PLUGIN_NAMES: tuple[str, ...] = (
     "strategist",
     "proof",
     "improvement",
+    "package_manager",
 )
 
 
@@ -134,6 +136,10 @@ def _improvement_plugin(**_kwargs: object) -> ImprovementPlugin:
     return ImprovementPlugin()
 
 
+def _package_manager_plugin(**_kwargs: object) -> PackageManagerPlugin:
+    return PackageManagerPlugin()
+
+
 def default_plugin_catalog() -> PluginCatalog:
     catalog = PluginCatalog()
     catalog.register("system_prompt", _system_prompt_plugin)
@@ -151,6 +157,7 @@ def default_plugin_catalog() -> PluginCatalog:
     catalog.register("strategist", _strategist_plugin)
     catalog.register("proof", _proof_plugin)
     catalog.register("improvement", _improvement_plugin)
+    catalog.register("package_manager", _package_manager_plugin)
     return catalog
 
 

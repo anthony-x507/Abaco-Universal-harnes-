@@ -126,6 +126,8 @@ def _cmd_models(args: argparse.Namespace) -> int:
     for row in PROVIDERS:
         print(f"  {row.name}")
         print(f"    Company: {row.company}")
+        if row.region:
+            print(f"    Region: {row.region}")
         print(f"    URL: {row.base_url or '(custom)'}")
         print(f"    Model: {row.default_model}")
         if row.docs:

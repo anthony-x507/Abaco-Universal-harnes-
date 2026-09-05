@@ -277,8 +277,12 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         return {"ok": True, "message": message}
 
     @app.get("/v1/models")
-    def list_models() -> dict[str, Any]:
-        return {"models": [row.to_dict() for row in PROVIDERS]}
+    def list_models(region: str | None = None) -> dict[str, Any]:
+        rows = PROVIDERS
+        if region:
+            wanted = region.strip().lower()
+            rows = tuple(row for row in PROVIDERS if row.region == wanted or row.company == "Custom")
+        return {"models": [row.to_dict() for row in rows]}
 
     @app.get("/v1/templates")
     def templates() -> dict[str, Any]:
