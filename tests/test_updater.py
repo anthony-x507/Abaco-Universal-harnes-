@@ -51,8 +51,8 @@ def test_check_parses_github_payload() -> None:
         "body": "notes",
         "assets": [
             {
-                "name": "Universal.dmg",
-                "browser_download_url": "https://github.com/acme/universal/releases/download/v9.9.9/Universal.dmg",
+                "name": "Abaco-Harness.dmg",
+                "browser_download_url": "https://github.com/acme/universal/releases/download/v9.9.9/Abaco-Harness.dmg",
             }
         ],
     }
@@ -83,7 +83,7 @@ def test_apply_schedules_relaunch_without_killing_tests(tmp_path: Path, monkeypa
             current="1.0.6",
             latest="9.9.9",
             available=True,
-            url="https://github.com/acme/universal/releases/download/v9.9.9/Universal.dmg",
+            url="https://github.com/acme/universal/releases/download/v9.9.9/Abaco-Harness.dmg",
             release_notes="",
             repo="acme/universal",
         ),
@@ -91,7 +91,7 @@ def test_apply_schedules_relaunch_without_killing_tests(tmp_path: Path, monkeypa
     monkeypatch.setattr(Updater, "_download", lambda self, url, dest: dest.write_bytes(b"dmg"))
     monkeypatch.setattr(Updater, "_install_dmg", lambda self, dmg, dest: None)
     monkeypatch.setattr(Updater, "_clear_caches_after_install", lambda self: None)
-    dest = tmp_path / "Universal.app"
+    dest = tmp_path / "Abaco Harness.app"
     dest.mkdir()
     updater = Updater(repo="acme/universal")
     message = updater.apply(dest_app=dest)
@@ -125,7 +125,10 @@ def test_clear_macos_webview_caches(tmp_path: Path) -> None:
 
 def test_install_warning_when_frozen_outside_applications(monkeypatch) -> None:
     monkeypatch.setattr("universal.updater.sys.frozen", True, raising=False)
-    monkeypatch.setattr("universal.updater.sys.executable", "/Users/me/Downloads/Universal.app/Contents/MacOS/Universal")
+    monkeypatch.setattr(
+        "universal.updater.sys.executable",
+        "/Users/me/Downloads/Abaco Harness.app/Contents/MacOS/Abaco Harness",
+    )
     assert install_warning() == INSTALL_WARNING
 
 

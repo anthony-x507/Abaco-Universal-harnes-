@@ -19,8 +19,8 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="header-left">
-        <img src={logo} alt="Abaco Universal Harness" className="header-logo" />
-        <h1 className="header-title">Abaco Universal Harness</h1>
+        <img src={logo} alt="Abaco Harness" className="header-logo" />
+        <h1 className="header-title">Abaco Harness</h1>
         {version ? (
           <span className="header-version" title="Installed app version">
             {version}

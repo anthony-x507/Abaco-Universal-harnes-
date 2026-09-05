@@ -57,7 +57,7 @@ def ask_permission(
 
 
 def _ask_macos(*, action: str, details: str, agent: str) -> PermissionDecision:
-    title = _escape_applescript("Universal platform — permission")
+    title = _escape_applescript("Abaco Harness — permission")
     heading = _escape_applescript(_truncate(f"{agent} needs permission", 80))
     body = _escape_applescript(_truncate(f"{action}\n\n{details}".strip(), 900))
     script = (

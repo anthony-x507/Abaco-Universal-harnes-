@@ -1,4 +1,4 @@
-"""Check GitHub Releases for a newer Universal.dmg. Apply only on a packaged Mac app."""
+"""Check GitHub Releases for a newer Abaco-Harness.dmg. Apply only on a packaged Mac app."""
 
 from __future__ import annotations
 
@@ -22,17 +22,26 @@ ALLOWED_HOSTS = {
     "release-assets.githubusercontent.com",
 }
 ENV_ALLOW_INSTALL = "UNIVERSAL_UPDATE_ALLOW_INSTALL"
-APP_INSTALL = Path("/Applications/Universal.app")
-INSTALL_WARNING = "Universal should be installed in /Applications/ for auto-updates"
+APP_BUNDLE_NAME = "Abaco Harness.app"
+DMG_ASSET_NAME = "Abaco-Harness.dmg"
+APP_INSTALL = Path("/Applications") / APP_BUNDLE_NAME
+LEGACY_APP_INSTALL = Path("/Applications/Universal.app")
+VOLUME_NAMES = ("Abaco Harness", "Universal")
+BUNDLE_CANDIDATES = (APP_BUNDLE_NAME, "Universal.app")
+INSTALL_WARNING = "Abaco Harness should be installed in /Applications/ for auto-updates"
 CACHE_GLOBS = (
     "Library/Caches/com.universal*",
     "Library/Caches/Universal",
+    "Library/Caches/Abaco Harness",
     "Library/Caches/pywebview",
     "Library/WebKit/com.universal*",
     "Library/WebKit/Universal",
+    "Library/WebKit/Abaco Harness",
     "Library/HTTPStorages/com.universal*",
     "Library/HTTPStorages/Universal",
+    "Library/HTTPStorages/Abaco Harness",
     "Library/Saved Application State/*Universal*",
+    "Library/Saved Application State/*Abaco*",
     "Library/Application Support/pywebview",
 )
 
@@ -57,7 +66,8 @@ def clear_macos_webview_caches(home: Path | None = None) -> list[str]:
 def running_from_applications() -> bool:
     if not getattr(sys, "frozen", False):
         return True
-    return (sys.executable or "").startswith(str(APP_INSTALL))
+    exe = sys.executable or ""
+    return exe.startswith(str(APP_INSTALL)) or exe.startswith(str(LEGACY_APP_INSTALL))
 
 
 def install_warning() -> str:
@@ -116,9 +126,10 @@ class UpdateStatus:
 
 
 class Updater:
-    """Talks to the GitHub Releases API. Replaces Universal.app only.
+    """Talks to the GitHub Releases API. Replaces Abaco Harness.app only.
 
-    User-data (history, registry, ``llm.json``) stays in Application Support.
+    User-data (history, registry, ``llm.json``) stays in Application Support
+    under the existing ``Universal`` folder so a rename does not split the registry.
     """
 
     def __init__(self, *, repo: str | None = None, client: httpx.Client | None = None) -> None:
@@ -154,7 +165,7 @@ class Updater:
         try:
             response = self._http().get(
                 url,
-                headers={"Accept": "application/vnd.github+json", "User-Agent": "Universal-updater"},
+                headers={"Accept": "application/vnd.github+json", "User-Agent": "Abaco-Harness-updater"},
             )
             response.raise_for_status()
             data = response.json()
@@ -216,7 +227,7 @@ class Updater:
             raise ConfigError(status.reason or "No update available.")
         self._assert_safe_url(status.url)
         dest = dest_app or APP_INSTALL
-        dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Universal_update.dmg"
+        dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Abaco-Harness_update.dmg"
         self._download(status.url, dmg_path)
         self._install_dmg(dmg_path, dest)
         self._clear_caches_after_install()
@@ -256,16 +267,31 @@ class Updater:
             response.raise_for_status()
             dest.write_bytes(response.read())
 
+    @staticmethod
+    def _mounted_app() -> tuple[Path | None, Path | None]:
+        """Find Abaco Harness.app (or leftover Universal.app) on a mounted DMG."""
+        for volume in VOLUME_NAMES:
+            mount = Path("/Volumes") / volume
+            if not mount.is_dir():
+                continue
+            for bundle in BUNDLE_CANDIDATES:
+                src = mount / bundle
+                if src.is_dir():
+                    return mount, src
+        return None, None
+
     def _install_dmg(self, dmg_path: Path, dest_app: Path) -> None:
-        mount = Path("/Volumes/Universal")
         subprocess.run(["hdiutil", "attach", str(dmg_path), "-nobrowse"], check=True)
-        src = mount / "Universal.app"
-        if not src.is_dir():
-            subprocess.run(["hdiutil", "detach", str(mount), "-quiet"], check=False)
-            raise ConfigError("Mounted image has no Universal.app")
+        mount, src = self._mounted_app()
+        if mount is None or src is None:
+            for volume in VOLUME_NAMES:
+                subprocess.run(["hdiutil", "detach", f"/Volumes/{volume}", "-quiet"], check=False)
+            raise ConfigError("Mounted image has no Abaco Harness.app")
         if dest_app.exists():
             subprocess.run(["rm", "-rf", str(dest_app)], check=True)
         subprocess.run(["cp", "-R", str(src), str(dest_app)], check=True)
+        if dest_app == APP_INSTALL and LEGACY_APP_INSTALL.exists() and LEGACY_APP_INSTALL != dest_app:
+            subprocess.run(["rm", "-rf", str(LEGACY_APP_INSTALL)], check=False)
         subprocess.run(["hdiutil", "detach", str(mount), "-quiet"], check=True)
         try:
             dmg_path.unlink()

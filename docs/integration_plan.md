@@ -2,7 +2,7 @@
 
 The owner archived 48 notes (originally announced as 51) and asked for an integration plan. This document is the plan. It is **not** a license to copy the Aegis tree.
 
-Package: `universal`. Product: **Universal platform**. Face/app is built from zero.
+Package: `universal`. Product: **Abaco Harness**. Face/app is built from zero.
 
 ## What is already shipped
 

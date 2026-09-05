@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Sign Universal.app with microphone entitlements.
+# Sign Abaco Harness.app with microphone entitlements.
 # A Developer ID is used when APPLE_SIGNING_IDENTITY is set.
 # Otherwise the bundle is ad-hoc signed so macOS still lists it under
 # Privacy & Security → Microphone (an unsigned .app never appears there).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${1:-$ROOT/Universal.app}"
+APP="${1:-$ROOT/Abaco Harness.app}"
 ENTITLEMENTS="$ROOT/entitlements.plist"
 
 if [[ ! -d "$APP" ]]; then
@@ -31,13 +31,13 @@ codesign --force --deep --timestamp --options runtime \
   --sign "$APPLE_SIGNING_IDENTITY" \
   "$APP"
 
-if [[ -n "${APPLE_ID:-}" && -n "${APPLE_TEAM_ID:-}" && -n "${APPLE_APP_PASSWORD:-}" && -f "$ROOT/Universal.dmg" ]]; then
-  xcrun notarytool submit "$ROOT/Universal.dmg" \
+if [[ -n "${APPLE_ID:-}" && -n "${APPLE_TEAM_ID:-}" && -n "${APPLE_APP_PASSWORD:-}" && -f "$ROOT/Abaco-Harness.dmg" ]]; then
+  xcrun notarytool submit "$ROOT/Abaco-Harness.dmg" \
     --apple-id "$APPLE_ID" \
     --team-id "$APPLE_TEAM_ID" \
     --password "$APPLE_APP_PASSWORD" \
     --wait
-  xcrun stapler staple "$ROOT/Universal.dmg"
+  xcrun stapler staple "$ROOT/Abaco-Harness.dmg"
 fi
 
 echo "Signed $APP"

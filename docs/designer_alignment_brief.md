@@ -1,4 +1,4 @@
-# Briefing for the designer — Universal platform alignment
+# Briefing for the designer — Abaco Harness alignment
 
 This is the message engineering needs answered before we implement more of the integration plan. Please reply with an alignment plan: what stays, what drops, what the first face is, and which technical decisions you own.
 
@@ -14,7 +14,7 @@ We will not copy the Aegis tree onto the running factory. We also will not guess
 
 ## 1. What is actually built (today)
 
-Product name: **Universal platform**. Python package: `universal`. Not Aegis. Not `factory/`. Not `aegis-agent/`.
+Product name: **Abaco Harness**. Python package: `universal`. Not Aegis. Not `factory/`. Not `aegis-agent/`.
 
 There is one composition root, `Universal`, constructed once per process:
 
@@ -80,7 +80,7 @@ Note 36 agrees the ChatGPT/LibreChat faces are historical and the UI should be b
 
 ## 3. Owner locks (these win over the notes)
 
-1. Product name Universal platform. Package `universal`. **Never name anything Aegis** in product or code.
+1. Product name Abaco Harness. Package `universal`. **Never name anything Aegis** in product or code.
 2. English only in code, comments, UI copy, README, commits.
 3. One `AgentRegistry` + one `AgentLifecycle`, constructed once on `Universal` and **injected**. Generator and Manager must not each own a pair.
 4. First ship was: agent that answers + one real OpenAI-compatible provider + one working CLI channel + three templates + tests. That ship is done.

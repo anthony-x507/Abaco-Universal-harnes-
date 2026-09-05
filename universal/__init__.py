@@ -1,4 +1,4 @@
-"""Universal platform — plugin-based agent factory and harness."""
+"""Abaco Harness — plugin-based agent factory and harness (Python package: universal)."""
 
 from universal._version import __version__
 from universal.config import Settings

@@ -19,26 +19,26 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install Universal desktop and media extras
+      - name: Install Abaco Harness desktop and media extras
         run: |
           python3 -m pip install -U pip
           python3 -m pip install -e ".[desktop,media]"
           python3 -m pip install "pyinstaller>=6.0"
-      - name: Build Universal.app and Universal.dmg
+      - name: Build Abaco Harness.app and Abaco-Harness.dmg
         run: |
           chmod +x scripts/build_macos.sh scripts/create_dmg.sh
           ./scripts/build_macos.sh
           ./scripts/create_dmg.sh
-          test -f Universal.dmg
-          ls -lh Universal.app Universal.dmg
+          test -f "Abaco-Harness.dmg"
+          ls -lh "Abaco Harness.app" "Abaco-Harness.dmg"
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Universal.dmg
+          files: Abaco-Harness.dmg
           tag_name: ${{ github.ref_name || 'v0.1.1' }}
-          name: Universal ${{ github.ref_name || 'v0.1.1' }}
+          name: Abaco Harness ${{ github.ref_name || 'v0.1.1' }}
           body: |
-            Native Mac installer. Open Universal.dmg, drag Universal.app to Applications, launch it.
+            Native Mac installer. Open Abaco-Harness.dmg, drag Abaco Harness.app to Applications, launch it.
             The factory and the native plugins ship inside the app.
           generate_release_notes: true
           fail_on_unmatched_files: true

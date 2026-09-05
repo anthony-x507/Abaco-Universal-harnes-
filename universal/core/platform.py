@@ -16,7 +16,12 @@ from universal.templates.catalog import TemplateCatalog
 
 
 class Universal:
-    """Process-wide Universal platform instance.
+    """Process-wide composition root for Abaco Harness.
+
+    The class name stays ``Universal`` because it is the single registry /
+    lifecycle / factory owner imported throughout the ``universal`` package.
+    Renaming it would be a large internal blast radius without changing
+    user-visible branding. The product display name is Abaco Harness.
 
     This is the only type that constructs ``AgentRegistry`` and
     ``AgentLifecycle``. Both are injected into the factory, which forwards
