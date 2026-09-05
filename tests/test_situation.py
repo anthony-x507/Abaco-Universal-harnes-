@@ -65,8 +65,16 @@ def test_obstacle_notifies_and_fails_at_three_attempts(platform: Universal) -> N
     assert any("Finish the report" in str(row["message"]) for row in notices)
 
 
-def test_deviation_denied_when_permission_is_deny(platform: Universal, monkeypatch) -> None:
+def test_deviation_denied_when_permission_is_deny(
+    platform: Universal, monkeypatch, tmp_path: Path
+) -> None:
     monkeypatch.setenv("UNIVERSAL_PERMISSION_MODE", "deny")
+    rules = tmp_path / "rules.json"
+    rules.write_text(
+        '{"rules":[{"id":"auto_attempt","enforced":false}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("UNIVERSAL_RULES_FILE", str(rules))
     agent = platform.factory.create("general", name="nav-dev")
     plugin = agent.plugins.get("navigator")
     assert plugin is not None

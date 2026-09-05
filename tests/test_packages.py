@@ -35,7 +35,7 @@ def test_templates_are_proactive() -> None:
         prompt = get_template(template_id).system_prompt
         assert "offer one concrete solution" in prompt
         assert "package_manager" in prompt
-        assert 'Do not say "I can\'t"' in prompt
+        assert "I need your permission to [action]. Proceed?" in prompt
 
 
 def test_install_blocked_when_rule_off(monkeypatch, tmp_path: Path) -> None:
