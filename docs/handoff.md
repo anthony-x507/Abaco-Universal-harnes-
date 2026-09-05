@@ -169,14 +169,52 @@ python3 -m universal audit
 
 ---
 
-## 7. Cómo se publica (Mac)
+## 7. Cómo se publica un update que la Mac sí ve
 
-1. Subir `main` a GitHub (`anthony-x507/Abaco-Universal-harnes-`).
-2. Tag `vX.Y.Z` → `.github/workflows/release.yml` arma `Universal.dmg`.
-3. El diseñador instala **solo** ese DMG en `/Applications`. Un zip del source no es el producto y no se auto-actualiza.
-4. El header debe decir **Abaco Universal Harness** y la versión del tag.
+**Check for Updates no mira `git push`.** Mira GitHub **Releases** del repo `anthony-x507/Abaco-Universal-harnes-`:
 
-`git push` solo no cambia lo que ve la ventana nativa.
+`GET https://api.github.com/repos/anthony-x507/Abaco-Universal-harnes-/releases/latest`
+
+Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`Universal.dmg`**. Si solo hay commits en `main`, Settings dice que no hay update. Eso no es un bug.
+
+### Receta para el agente / ingeniero nuevo
+
+1. **Subir la versión en el código** (todas a la misma, por ejemplo `1.2.8`):
+   - `version.json` (`version` + `release_notes`)
+   - `universal/_version.py`
+   - `pyproject.toml`
+   - `web/package.json`
+   - tests que afirman la versión (`tests/test_updater.py`, `tests/test_desktop.py`, `web/src/test/fetch.ts`, `web/src/components/Header.test.tsx`)
+2. **Commit** en `main`.
+3. **Push de la rama a GitHub** (el remoto que es `anthony-x507/Abaco-Universal-harnes-`, no basta un remoto interno):
+   ```bash
+   git push github main
+   ```
+4. **Crear y empujar el tag** `v` + esa versión. El workflow **solo** corre con tags `v*`:
+   ```bash
+   git tag -a v1.2.8 -m "Una línea de qué cambió."
+   git push github v1.2.8
+   ```
+   Sin este paso **no hay Release y no hay update**.
+5. **Esperar Actions.** En el repo: Actions → workflow **Release**. Tiene que terminar en verde y adjuntar `Universal.dmg` al Release `v1.2.8`.
+6. Comprobar a mano:
+   - https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/latest
+   - Tiene que listar **Universal.dmg** (no un zip de source).
+   - El tag tiene que ser **más alto** que el número del header en la Mac de Anthony (si la app dice 1.2.7, el Release tiene que ser 1.2.8 o más).
+7. En la Mac: app en **`/Applications/Universal.app`** → Settings → **Check for Updates** → **Download now**. Si el `.app` está en Descargas, el updater avisa y no instala.
+
+### Qué no sirve
+
+| Lo que hizo alguien | Qué ve Anthony |
+|---|---|
+| `git push` a `main` | Nada. El header sigue igual. |
+| Push a un remoto que no es ese GitHub | Nada. |
+| Tag sin `v` (`1.2.8`) | El workflow no corre. |
+| Tag empujado pero Actions falló | Release sin `.dmg` → “Latest release has no .dmg asset.” |
+| Tag igual o menor que la app (`v1.2.7` si ya tiene 1.2.7) | “Already up to date.” |
+| Subir solo el source zip a Releases | El updater busca un asset que termina en `.dmg`. |
+
+`workflow_dispatch` en `.github/workflows/release.yml` también puede armar un Release, pero el camino normal es **tag `v*`**. No se “prepara el update” editando Settings. Se prepara en GitHub: **versión + tag + Actions + `Universal.dmg`**.
 
 ---
 
