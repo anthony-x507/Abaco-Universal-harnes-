@@ -102,6 +102,20 @@ def test_stt_missing_file_and_missing_whisper(tmp_path: Path, monkeypatch) -> No
     assert "whisper" in result.lower() or "Error transcribing" in result
 
 
+def test_stt_reports_missing_ffmpeg_for_non_wav(tmp_path: Path, monkeypatch) -> None:
+    plugin = STTPlugin()
+    clip = tmp_path / "note.m4a"
+    clip.write_bytes(b"\x00\x00\x00\x20ftyp")
+    monkeypatch.setattr("universal.plugins.stt.shutil.which", lambda _name: None)
+    result = plugin.invoke_tool(_call("transcribe", audio_path=str(clip)))
+    assert result is not None
+    assert "ffmpeg" in result and "brew install ffmpeg" in result
+
+    wav = tmp_path / "note.wav"
+    wav.write_bytes(b"RIFF")
+    assert plugin._missing_ffmpeg(wav) is False
+
+
 def test_vision_demo_caption_and_missing_file(tmp_path: Path) -> None:
     plugin = VisionPlugin()
     agent = Agent(name="v", provider=FakeProvider(), template_id="general")

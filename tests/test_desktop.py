@@ -77,7 +77,7 @@ def test_desktop_check_cli(capsys) -> None:
 
 def test_desktop_face_url_busts_wkwebview_cache() -> None:
     assert desktop_face_url("127.0.0.1", 43124, "1.2.7") == "http://127.0.0.1:43124/?v=1.2.7"
-    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.13")
+    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.14")
 
 
 def test_desktop_parser_defaults() -> None:
@@ -97,6 +97,9 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert 'PATH="${PATH}:/opt/homebrew/bin"' in build
     assert 'PATH="/opt/homebrew/bin:${PATH}"' not in build
     assert "command -v ffmpeg" in build
+    # A missing ffmpeg on the build runner must warn, never abort the release.
+    ffmpeg_gate = build.split("command -v ffmpeg", 1)[1].split("fi", 1)[0]
+    assert "exit 1" not in ffmpeg_gate
     assert 'import whisper' in build
     assert "--collect-submodules=whisper" in build
     assert "--collect-data=whisper" in build

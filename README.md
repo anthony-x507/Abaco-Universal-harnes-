@@ -313,7 +313,7 @@ GitHub Releases always serves the **same** `Universal.dmg` to every computer. Tw
 bash scripts/wipe_macos.sh
 ```
 
-Then download [Universal.dmg v1.2.13](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.13/Universal.dmg), drag it to `/Applications` only, and open it from there. The header must say **Abaco Universal Harness** and **1.2.13**.
+Then download [Universal.dmg v1.2.14](https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/download/v1.2.14/Universal.dmg), drag it to `/Applications` only, and open it from there. The header must say **Abaco Universal Harness** and **1.2.14**.
 
 ```bash
 universal update                 # check

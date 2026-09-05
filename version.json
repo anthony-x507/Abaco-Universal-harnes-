@@ -1,5 +1,5 @@
 {
-  "version": "1.2.13",
+  "version": "1.2.14",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Concise responses by default with a persistent response_style plugin; macOS build now bundles STT media dependencies and verifies ffmpeg. Identity remains native without automatic capability dumps."
+  "release_notes": "Concise replies by default (response_style plugin: concise/detailed/default), identity no longer dumps capabilities unprompted, and macOS builds bundle openai-whisper for STT. A missing ffmpeg no longer breaks the release; WAV transcribes without it."
 }

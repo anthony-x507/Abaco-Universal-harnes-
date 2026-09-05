@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from universal.core.plugin import Plugin
@@ -75,12 +76,24 @@ class STTPlugin(Plugin):
                 return str(path)
         return str(path)
 
+    @staticmethod
+    def _missing_ffmpeg(path: Path) -> bool:
+        """Whisper shells out to ffmpeg for every format except the WAV fast path."""
+        if path.suffix.lower() == ".wav":
+            return False
+        return shutil.which("ffmpeg") is None
+
     def _transcribe(self, audio_path: str, model: str) -> str:
         if not audio_path:
             return "Error: audio_path is required"
         path = Path(audio_path)
         if not path.is_file():
             return f"Error: file not found: {audio_path}"
+        if self._missing_ffmpeg(path):
+            return (
+                f"Error: {path.suffix or 'this format'} needs ffmpeg, which is not installed. "
+                "Solution: run 'brew install ffmpeg', or record/convert the audio to .wav."
+            )
         try:
             model_obj = self._load_model(model)
             payload = self._audio_for_model(path)

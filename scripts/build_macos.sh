@@ -54,10 +54,12 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 0
 fi
 
+# ffmpeg is a runtime helper on the user's Mac, not a build input: PyInstaller does
+# not bundle system binaries, so a missing ffmpeg here must never fail the release.
+# Recorded WAV goes through universal/audio_io.py, which decodes without ffmpeg.
 if ! command -v ffmpeg >/dev/null 2>&1; then
-  echo "ffmpeg not found on PATH (required for Whisper STT in Universal.app)." >&2
-  echo "Install ffmpeg (e.g. brew install ffmpeg) so it is on PATH, then re-run." >&2
-  exit 1
+  echo "note: ffmpeg is not on PATH. WAV transcription still works; other formats"
+  echo "note: need 'brew install ffmpeg' on the machine running Universal.app."
 fi
 
 if ! python3 -c "import whisper" >/dev/null 2>&1; then
