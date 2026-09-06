@@ -1,6 +1,6 @@
 """Per-agent mission state. Not the lifecycle ``AgentState``.
 
-Keyed by agent id under user data so it survives replacing Abaco Harness.app.
+Keyed by agent id under user data so it survives replacing Abaco Coding Harness.app.
 """
 
 from __future__ import annotations

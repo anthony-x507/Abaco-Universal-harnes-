@@ -7,10 +7,10 @@ import { AppShell } from './AppShell'
 import { Header } from './Header'
 
 describe('Header brand', () => {
-  it('shows the crystal mark next to Abaco Harness', () => {
+  it('shows the crystal mark next to Abaco Coding Harness', () => {
     render(<Header />)
-    expect(screen.getByRole('heading', { name: 'Abaco Harness' })).toBeInTheDocument()
-    const mark = screen.getByRole('img', { name: 'Abaco Harness' })
+    expect(screen.getByRole('heading', { name: 'Abaco Coding Harness' })).toBeInTheDocument()
+    const mark = screen.getByRole('img', { name: 'Abaco Coding Harness' })
     expect(mark).toHaveAttribute('src')
     expect(String(mark.getAttribute('src'))).toMatch(/logo/)
   })
@@ -28,9 +28,9 @@ describe('Header brand', () => {
         </LayoutProvider>
       </MemoryRouter>,
     )
-    expect(screen.getByRole('heading', { name: 'Abaco Harness' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Abaco Harness' })).toBeInTheDocument()
-    expect(await screen.findByText('1.2.17')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Abaco Coding Harness' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Abaco Coding Harness' })).toBeInTheDocument()
+    expect(await screen.findByText('1.2.18')).toBeInTheDocument()
     expect(screen.getByText('chat face')).toBeInTheDocument()
   })
 })

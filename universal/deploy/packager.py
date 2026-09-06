@@ -31,7 +31,7 @@ class ZipPackager:
         info = agent.info(state or AgentState.CREATED)
         manifest = {
             "universal_version": __version__,
-            "product": "Abaco Harness",
+            "product": "Abaco Coding Harness",
             "agent": info.to_dict(),
             "system_prompt": agent.system_prompt,
             "plugins": agent.plugins.snapshot(),
@@ -40,7 +40,7 @@ class ZipPackager:
         config = {
             "model": info.model,
             "template_id": agent.template_id,
-            "note": "API keys are never written into an Abaco Harness package.",
+            "note": "API keys are never written into an Abaco Coding Harness package.",
         }
 
         try:
@@ -55,7 +55,7 @@ class ZipPackager:
                 archive.writestr(
                     "README.txt",
                     (
-                        f"Abaco Harness agent package\n"
+                        f"Abaco Coding Harness agent package\n"
                         f"name={agent.name}\n"
                         f"id={agent.id}\n"
                         f"template={agent.template_id}\n"

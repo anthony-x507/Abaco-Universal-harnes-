@@ -41,7 +41,7 @@ export function StrategistReport() {
         </Button>
       </div>
       <p className="text-muted">
-        Public GitHub for <code>deepseek-ai/deepseek-harness</code>. Compared with Abaco Harness, not a second
+        Public GitHub for <code>deepseek-ai/deepseek-harness</code>. Compared with Abaco Coding Harness, not a second
         product. Mentions use DuckDuckGo. X/Twitter is not wired. There is no 7 AM background job — scan
         when you want a fresh report.
       </p>
@@ -84,7 +84,7 @@ export function StrategistReport() {
       ) : null}
       {report?.comparisons?.length ? (
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted">Compared with Abaco Harness</p>
+          <p className="text-xs uppercase tracking-wide text-muted">Compared with Abaco Coding Harness</p>
           <ul className="mt-1 space-y-2">
             {report.comparisons.map((row) => (
               <li key={row.feature}>

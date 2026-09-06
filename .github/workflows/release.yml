@@ -19,26 +19,50 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install Abaco Harness desktop and media extras
+      - name: Install Abaco Coding Harness desktop and media extras
         run: |
           python3 -m pip install -U pip
           python3 -m pip install -e ".[desktop,media]"
           python3 -m pip install "pyinstaller>=6.0"
-      - name: Build Abaco Harness.app and Abaco-Harness.dmg
+      - name: Build Abaco Coding Harness.app and Abaco-Coding-Harness.dmg
         run: |
           chmod +x scripts/build_macos.sh scripts/create_dmg.sh
           ./scripts/build_macos.sh
           ./scripts/create_dmg.sh
-          test -f "Abaco-Harness.dmg"
-          ls -lh "Abaco Harness.app" "Abaco-Harness.dmg"
+          test -f "Abaco-Coding-Harness.dmg"
+          test -d "Abaco Coding Harness.app"
+          ls -lh "Abaco Coding Harness.app" "Abaco-Coding-Harness.dmg"
+      - name: Confirm transitional DMG payload
+        run: |
+          STAGE="$(mktemp -d)"
+          ./scripts/create_dmg.sh --stage "$STAGE"
+          test -d "$STAGE/Abaco Coding Harness.app"
+          test -d "$STAGE/Universal.app"
+          echo "Staged dual-bundle bridge: Abaco Coding Harness.app + Universal.app"
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Abaco-Harness.dmg
+          files: Abaco-Coding-Harness.dmg
           tag_name: ${{ github.ref_name || 'v0.1.1' }}
-          name: Abaco Harness ${{ github.ref_name || 'v0.1.1' }}
+          name: Abaco Coding Harness ${{ github.ref_name || 'v0.1.1' }}
           body: |
-            Native Mac installer. Open Abaco-Harness.dmg, drag Abaco Harness.app to Applications, launch it.
+            Native Mac installer. Open Abaco-Coding-Harness.dmg, drag **Abaco Coding Harness.app** to Applications, launch it.
             The factory and the native plugins ship inside the app.
+
+            ## Auto-update from 1.2.15 / 1.2.16
+            v1.2.17 renamed the bundle to Abaco Harness.app. Old updaters only look for
+            `/Volumes/Universal/Universal.app` and fail with **Mounted image has no Universal.app**.
+            This image is a bridge: it still ships `Universal.app` (same binary) on volume `Universal`
+            so Check for Updates → Download now works from those builds.
+
+            ## One-time manual install (if auto-update still fails)
+            1. Quit Universal / Abaco Harness.
+            2. Download `Abaco-Coding-Harness.dmg` from this release.
+            3. Open the DMG (volume name is still `Universal`).
+            4. Drag **Abaco Coding Harness.app** to `/Applications`.
+            5. Optionally delete `/Applications/Universal.app` and `/Applications/Abaco Harness.app`.
+            6. Open Abaco Coding Harness from `/Applications`. Header must say **Abaco Coding Harness**.
+
+            After this release, later auto-updates use the new names. Python package stays `universal`.
           generate_release_notes: true
           fail_on_unmatched_files: true

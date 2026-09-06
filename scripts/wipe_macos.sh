@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Wipe every local Abaco Harness / leftover Universal install and user-data on THIS Mac.
-# Two computers never share these folders. GitHub always serves the same Abaco-Harness.dmg.
+# Wipe every local Abaco Coding Harness / leftover Abaco Harness / Universal
+# install and user-data on THIS Mac.
+# Two computers never share these folders. GitHub always serves the same
+# Abaco-Coding-Harness.dmg.
 # Application Support stays under Universal so a wipe still clears the existing registry.
 # Run this on the Mac that still shows the old Chat face, then install into /Applications only.
 set -euo pipefail
@@ -10,15 +12,17 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-echo "Quitting Abaco Harness..."
+echo "Quitting Abaco Coding Harness..."
+killall "Abaco Coding Harness" 2>/dev/null || true
 killall "Abaco Harness" 2>/dev/null || true
 killall Universal 2>/dev/null || true
+pkill -f "/Applications/Abaco Coding Harness.app" 2>/dev/null || true
 pkill -f "/Applications/Abaco Harness.app" 2>/dev/null || true
 pkill -f "/Applications/Universal.app" 2>/dev/null || true
 sleep 1
 
-echo "Ejecting mounted Abaco Harness / leftover Universal DMGs..."
-for volume in "/Volumes/Abaco Harness" /Volumes/Universal /Volumes/Universal\ *; do
+echo "Ejecting mounted Abaco Coding Harness / leftover Abaco Harness / Universal DMGs..."
+for volume in "/Volumes/Abaco Coding Harness" "/Volumes/Abaco Harness" /Volumes/Universal /Volumes/Universal\ *; do
   [ -d "$volume" ] || continue
   echo "  ejecting $volume"
   hdiutil detach "$volume" -force >/dev/null 2>&1 || true
@@ -33,13 +37,15 @@ remove_if_exists() {
 }
 
 echo "Removing app bundles and leftover DMGs..."
-for bundle in "Abaco Harness.app" "Universal.app"; do
+for bundle in "Abaco Coding Harness.app" "Abaco Harness.app" "Universal.app"; do
   remove_if_exists "/Applications/${bundle}"
   remove_if_exists "$HOME/Downloads/${bundle}"
   remove_if_exists "$HOME/Desktop/${bundle}"
   remove_if_exists "$HOME/Documents/${bundle}"
   remove_if_exists "$HOME/${bundle}"
 done
+remove_if_exists "$HOME/Downloads/Abaco-Coding-Harness.dmg"
+remove_if_exists "$HOME/Desktop/Abaco-Coding-Harness.dmg"
 remove_if_exists "$HOME/Downloads/Abaco-Harness.dmg"
 remove_if_exists "$HOME/Desktop/Abaco-Harness.dmg"
 remove_if_exists "$HOME/Downloads/Universal.dmg"
@@ -50,9 +56,9 @@ if command -v mdfind >/dev/null 2>&1; then
     [ -z "$found" ] && continue
     case "$found" in
       /Volumes/*) echo "  skipping mounted image $found" ;;
-      *"Abaco Harness.app"|*Universal.app) remove_if_exists "$found" ;;
+      *"Abaco Coding Harness.app"|*"Abaco Harness.app"|*Universal.app) remove_if_exists "$found" ;;
     esac
-  done < <(mdfind 'kMDItemFSName == "Abaco Harness.app" || kMDItemFSName == "Universal.app"' 2>/dev/null || true)
+  done < <(mdfind 'kMDItemFSName == "Abaco Coding Harness.app" || kMDItemFSName == "Abaco Harness.app" || kMDItemFSName == "Universal.app"' 2>/dev/null || true)
 fi
 
 echo "Removing user data (chats, keys, registry)..."
@@ -66,6 +72,7 @@ shopt -s nullglob
 for path in \
   "$HOME/Library/Caches/com.universal"* \
   "$HOME/Library/Caches/Universal" \
+  "$HOME/Library/Caches/Abaco Coding Harness" \
   "$HOME/Library/Caches/Abaco Harness" \
   "$HOME/Library/Caches/pywebview" \
   "$HOME/Library/Caches/"*pywebview* \
@@ -73,12 +80,14 @@ for path in \
   "$HOME/Library/Caches/"*PyInstaller* \
   "$HOME/Library/WebKit/com.universal"* \
   "$HOME/Library/WebKit/Universal" \
+  "$HOME/Library/WebKit/Abaco Coding Harness" \
   "$HOME/Library/WebKit/Abaco Harness" \
   "$HOME/Library/WebKit/"*pywebview* \
   "$HOME/Library/WebKit/"*pyinstaller* \
   "$HOME/Library/WebKit/"*PyInstaller* \
   "$HOME/Library/HTTPStorages/com.universal"* \
   "$HOME/Library/HTTPStorages/Universal" \
+  "$HOME/Library/HTTPStorages/Abaco Coding Harness" \
   "$HOME/Library/HTTPStorages/Abaco Harness" \
   "$HOME/Library/HTTPStorages/"*pywebview* \
   "$HOME/Library/HTTPStorages/"*pyinstaller* \
@@ -88,6 +97,7 @@ for path in \
   "$HOME/Library/Preferences/com.universal"* \
   "$HOME/Library/Preferences/org.pywebview"* \
   "$HOME/Library/Logs/Universal" \
+  "$HOME/Library/Logs/Abaco Coding Harness" \
   "$HOME/Library/Logs/Abaco Harness" \
   "$HOME/Library/Application Support/pywebview"
 do
@@ -97,9 +107,9 @@ done
 echo
 echo "This Mac is clean. Next:"
 echo "  1. Download ONLY this file from Releases:"
-echo "     Abaco-Harness.dmg"
-echo "  2. Open the DMG and drag Abaco Harness.app to /Applications (not Downloads)."
-echo "  3. Eject the DMG. Delete Abaco-Harness.dmg from Downloads."
-echo "  4. Open Spotlight, type Abaco Harness, confirm the path is /Applications/Abaco Harness.app"
-echo "  5. Header must say Abaco Harness."
+echo "     Abaco-Coding-Harness.dmg"
+echo "  2. Open the DMG and drag Abaco Coding Harness.app to /Applications (not Downloads)."
+echo "  3. Eject the DMG. Delete Abaco-Coding-Harness.dmg from Downloads."
+echo "  4. Open Spotlight, type Abaco Coding Harness, confirm the path is /Applications/Abaco Coding Harness.app"
+echo "  5. Header must say Abaco Coding Harness."
 echo "     If you see Universal Platform + Templates/Face, you opened a leftover copy."

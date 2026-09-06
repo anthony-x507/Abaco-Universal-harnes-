@@ -140,7 +140,7 @@ export function WorkspacePane({
           <div className="rounded-lg border border-border bg-surface-2 p-3">
             <div className="flex items-center gap-2">
               <PlugZap size={16} className="text-accent" />
-              <div className="text-sm font-medium">Abaco Harness companion</div>
+              <div className="text-sm font-medium">Abaco Coding Harness companion</div>
             </div>
             <p className="mt-2 text-xs text-muted">
               Chrome extension status: not installed. The right column is reserved for the helper

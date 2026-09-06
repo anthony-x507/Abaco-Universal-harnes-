@@ -176,7 +176,7 @@ def analyze_changes(readme: str, package_json: str) -> list[dict[str, str]]:
 
 
 def compare_with_universal(harness: dict[str, Any] | None, changes: list[dict[str, str]]) -> list[dict[str, str]]:
-    """Compare DSH with Abaco Harness. Package name stays ``universal``."""
+    """Compare DSH with Abaco Coding Harness. Package name stays ``universal``."""
     rows: list[dict[str, str]] = []
     desc = str((harness or {}).get("description") or "").lower()
     change_text = " ".join(item.get("message", "") for item in changes).lower()
@@ -184,7 +184,7 @@ def compare_with_universal(harness: dict[str, Any] | None, changes: list[dict[st
         rows.append(
             {
                 "feature": "plugin_surface",
-                "status": "DSH makes the UI and agent loop plugins. Abaco Harness keeps a signed factory and native Python plugins.",
+                "status": "DSH makes the UI and agent loop plugins. Abaco Coding Harness keeps a signed factory and native Python plugins.",
                 "recommendation": "Do not move the factory into Node. Watch DSH plugin ideas that fit a signed core (sandbox, schedule).",
                 "priority": "high",
             }
@@ -193,7 +193,7 @@ def compare_with_universal(harness: dict[str, Any] | None, changes: list[dict[st
         rows.append(
             {
                 "feature": "sandbox",
-                "status": "DSH documents a sandbox plugin. Abaco Harness’s terminal is a local shell with destroyer guards.",
+                "status": "DSH documents a sandbox plugin. Abaco Coding Harness’s terminal is a local shell with destroyer guards.",
                 "recommendation": "Treat a sandbox as complementary, not a replacement for run_command.",
                 "priority": "medium",
             }
@@ -204,7 +204,7 @@ def compare_with_universal(harness: dict[str, Any] | None, changes: list[dict[st
             {
                 "feature": "visibility",
                 "status": f"The official DSH repo has {stars} GitHub stars. That is popularity, not a missing Universal tool.",
-                "recommendation": "Keep Abaco Harness’s locks (one registry, one provider, accept-not-completions). Steal ideas, not architecture.",
+                "recommendation": "Keep Abaco Coding Harness’s locks (one registry, one provider, accept-not-completions). Steal ideas, not architecture.",
                 "priority": "low",
             }
         )
@@ -272,7 +272,7 @@ def empty_report(*, blocked: bool = False, reason: str = "") -> dict[str, Any]:
         "changes_detected": [],
         "popularity": None,
         "comparisons": [],
-        "product": "Abaco Harness",
+        "product": "Abaco Coding Harness",
     }
 
 
@@ -315,7 +315,7 @@ def scan_deepseek(*, refresh: bool = False, fetch: Fetcher | None = None) -> dic
         "changes_detected": changes,
         "popularity": _popularity(getter, stars),
         "comparisons": comparisons,
-        "product": "Abaco Harness",
+        "product": "Abaco Coding Harness",
     }
     _notify_new_releases(cached, payload)
     return save_report(payload)
@@ -326,7 +326,7 @@ def format_report(payload: dict[str, Any]) -> str:
         return f"error: DeepSeek tracking is off ({payload.get('reason')})"
     if not payload.get("harness") and not payload.get("scanned"):
         return "No DeepSeek scan yet. Ask again after a scan, or use Settings → Scan DeepSeek."
-    lines = ["DeepSeek Harness monitor (Abaco Harness)"]
+    lines = ["DeepSeek Harness monitor (Abaco Coding Harness)"]
     harness = payload.get("harness") or {}
     if harness:
         lines.append(f"Repo: {harness.get('full_name')}  stars={harness.get('stars')}  updated={harness.get('updated_at')}")

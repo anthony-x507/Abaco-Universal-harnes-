@@ -316,7 +316,7 @@ export function SettingsPage() {
         <Card className="space-y-3 p-5">
           <h2 className="text-sm font-semibold">Updates</h2>
           <p className="text-sm text-muted">
-            Official install is Abaco-Harness.dmg → /Applications/Abaco Harness.app. Updates replace that copy only.
+            Official install is Abaco-Coding-Harness.dmg → /Applications/Abaco Coding Harness.app. Updates replace that copy only.
           </p>
           {updateWarn && <p className="text-sm text-amber-200">{updateWarn}</p>}
           <Button
@@ -361,7 +361,7 @@ export function SettingsPage() {
                     setApplyingUpdate(true)
                     try {
                       await applyUpdate()
-                      setUpdateNote('Update installed. Abaco Harness is restarting — you do not need to quit.')
+                      setUpdateNote('Update installed. Abaco Coding Harness is restarting — you do not need to quit.')
                       setPendingUpdate(null)
                     } catch (err) {
                       setUpdateNote(err instanceof Error ? err.message : 'Update failed.')

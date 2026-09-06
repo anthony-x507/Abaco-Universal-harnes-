@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Abaco Harness desktop bundle. On macOS this produces Abaco Harness.app.
+# Build the Abaco Coding Harness desktop bundle. On macOS this produces Abaco Coding Harness.app.
 # Plugins (terminal, TTS, STT, vision, search, scraper) ship in the Python package;
 # they are not copied as a second tree. Release builds bundle openai-whisper for STT.
 # The Python package, console script, and env vars stay `universal` / UNIVERSAL_*.
@@ -8,19 +8,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-APP_BUNDLE="Abaco Harness.app"
+APP_BUNDLE="Abaco Coding Harness.app"
 
 # ffmpeg may live in Homebrew. Append so Actions/setup-python stays first.
 if [[ -d /opt/homebrew/bin ]]; then
   export PATH="${PATH}:/opt/homebrew/bin"
 fi
 
-echo "Building Abaco Harness icons from the Ábaco mark…"
+echo "Building Abaco Coding Harness icons from the Ábaco mark…"
 chmod +x scripts/make_icns.sh scripts/make_icon.py scripts/download_node.sh scripts/sign_macos.sh
 ./scripts/make_icns.sh
 ./scripts/download_node.sh
 
-echo "Building Abaco Harness web face…"
+echo "Building Abaco Coding Harness web face…"
 (
   cd web
   bun install
@@ -31,8 +31,8 @@ if [[ ! -f web/dist/index.html ]]; then
   echo "web/dist/index.html missing after build" >&2
   exit 1
 fi
-if ! grep -q "Abaco Harness" web/dist/index.html; then
-  echo "web/dist is the old face (missing Abaco Harness)" >&2
+if ! grep -q "Abaco Coding Harness" web/dist/index.html; then
+  echo "web/dist is the old face (missing Abaco Coding Harness)" >&2
   exit 1
 fi
 if grep -q "Abaco Universal Harness" web/dist/index.html; then
@@ -92,7 +92,7 @@ fi
 python3 -m PyInstaller \
   --noconfirm \
   --windowed \
-  --name "Abaco Harness" \
+  --name "Abaco Coding Harness" \
   "${ICON_ARGS[@]}" \
   "${DATA_ARGS[@]}" \
   --add-data "web/dist:web/dist" \
@@ -117,20 +117,20 @@ else
   exit 1
 fi
 
-rm -rf build dist "Abaco Harness.spec"
+rm -rf build dist "Abaco Coding Harness.spec"
 python3 - <<'PY'
 from pathlib import Path
 import plistlib
-path = Path("Abaco Harness.app/Contents/Info.plist")
+path = Path("Abaco Coding Harness.app/Contents/Info.plist")
 if path.is_file():
     data = plistlib.loads(path.read_bytes())
-    data["CFBundleName"] = "Abaco Harness"
-    data["CFBundleDisplayName"] = "Abaco Harness"
+    data["CFBundleName"] = "Abaco Coding Harness"
+    data["CFBundleDisplayName"] = "Abaco Coding Harness"
     data["NSMicrophoneUsageDescription"] = (
-        "Abaco Harness needs the microphone to record voice notes and transcribe them with Whisper."
+        "Abaco Coding Harness needs the microphone to record voice notes and transcribe them with Whisper."
     )
     data["NSCameraUsageDescription"] = (
-        "Abaco Harness can attach a photo from the camera roll when you pick a file."
+        "Abaco Coding Harness can attach a photo from the camera roll when you pick a file."
     )
     path.write_bytes(plistlib.dumps(data))
     print("Info.plist: display name and microphone usage string added")

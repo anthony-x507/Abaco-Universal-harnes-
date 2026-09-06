@@ -1,4 +1,4 @@
-"""Shared value types for Abaco Harness (package: universal)."""
+"""Shared value types for Abaco Coding Harness (package: universal)."""
 
 from __future__ import annotations
 

@@ -52,7 +52,7 @@ export function defaultCatalog() {
       status: 'ok',
       demo: true,
       agents: 1,
-      version: '1.2.17',
+      version: '1.2.18',
       whisper: true,
       runtime: { ok: false, url: 'http://127.0.0.1:43126', dir: '', plugins: [] },
     },
@@ -131,7 +131,7 @@ export function defaultCatalog() {
       comparisons: [
         {
           feature: 'plugin_surface',
-          status: 'DSH makes the UI and agent loop plugins. Abaco Harness keeps a signed factory.',
+          status: 'DSH makes the UI and agent loop plugins. Abaco Coding Harness keeps a signed factory.',
           recommendation: 'Watch sandbox and schedule ideas. Do not move the factory into Node.',
         },
       ],

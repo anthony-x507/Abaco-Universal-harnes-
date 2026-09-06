@@ -2,7 +2,7 @@
   "name": "abaco-runtime",
   "version": "1.0.0",
   "private": true,
-  "description": "User-writable evolutionary runtime for Abaco Harness",
+  "description": "User-writable evolutionary runtime for Abaco Coding Harness",
   "main": "runtime.js",
   "scripts": {
     "start": "node runtime.js"

@@ -1,4 +1,4 @@
-"""Built-in templates — the first three faces of Abaco Harness."""
+"""Built-in templates — the first three faces of Abaco Coding Harness."""
 
 from __future__ import annotations
 
