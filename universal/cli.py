@@ -1,4 +1,4 @@
-"""Command-line entry for Abaco Harness (console script: universal)."""
+"""Command-line entry for Abaco Coding Harness (console script: universal)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from universal.templates.catalog import list_templates
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="universal",
-        description="Abaco Harness — plugin-based agent factory and harness.",
+        description="Abaco Coding Harness — plugin-based agent factory and harness.",
     )
     parser.add_argument("--version", action="version", version=f"universal {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -94,7 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Verify web/dist and factory health without opening a window.",
     )
 
-    update = sub.add_parser("update", help="Check GitHub Releases for a newer Abaco-Harness.dmg.")
+    update = sub.add_parser("update", help="Check GitHub Releases for a newer Abaco-Coding-Harness.dmg.")
     update.add_argument(
         "--apply",
         action="store_true",

@@ -32,7 +32,7 @@ User
 | Circuit | `universal/nervous.py` | Opens after 3 provider failures |
 | LLM dialect | `universal/providers/factory.py` | One HTTP client; adapter picks auth/payload/parse |
 | Health | `GET /health` | Includes `nervous` snapshot |
-| Mac install | `Abaco-Harness.dmg` → `/Applications/Abaco Harness.app` | `scripts/build_macos.sh`, `sign_macos.sh`, `create_dmg.sh` |
+| Mac install | `Abaco-Coding-Harness.dmg` → `/Applications/Abaco Coding Harness.app` | `scripts/build_macos.sh`, `sign_macos.sh`, `create_dmg.sh` |
 
 ## What is not in this product
 

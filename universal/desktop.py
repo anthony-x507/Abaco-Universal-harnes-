@@ -23,7 +23,7 @@ from universal.web_dist import resolve_web_dist
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 43124
-WINDOW_TITLE = "Abaco Harness"
+WINDOW_TITLE = "Abaco Coding Harness"
 
 
 def desktop_face_url(host: str, port: int, version: str | None = None) -> str:
@@ -207,7 +207,7 @@ def run_desktop(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="universal desktop",
-        description="Open the Abaco Harness factory in a native window (same localhost serve).",
+        description="Open the Abaco Coding Harness factory in a native window (same localhost serve).",
     )
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)

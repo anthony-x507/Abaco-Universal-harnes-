@@ -210,7 +210,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
         return member.accept(prompt)
 
     set_delegate_hook(_delegate)
-    app = FastAPI(title="Abaco Harness", version=current_version())
+    app = FastAPI(title="Abaco Coding Harness", version=current_version())
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -242,7 +242,7 @@ def create_app(platform: Universal, *, demo: bool = False) -> FastAPI:
     def health() -> dict[str, Any]:
         return {
             "status": "ok",
-            "product": "Abaco Harness",
+            "product": "Abaco Coding Harness",
             "demo": state.demo,
             "agents": len(state.platform.factory.list()),
             "web": bool(getattr(app.state, "web_dist", None)),

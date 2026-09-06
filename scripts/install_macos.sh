@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Install Abaco Harness on this Mac from a source checkout or unzipped release.
-# This is not Abaco Harness.app (that is built on macOS with scripts/build_macos.sh).
+# Install Abaco Coding Harness on this Mac from a source checkout or unzipped release.
+# This is not Abaco Coding Harness.app (that is built on macOS with scripts/build_macos.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

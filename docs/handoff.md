@@ -1,12 +1,12 @@
-# Handoff — Abaco Harness
+# Handoff — Abaco Coding Harness
 
 Esto es para **pasar el trabajo** a otra persona (ingeniería o diseño). No es un plan de producto nuevo. Lee esto antes de tocar archivos.
 
 Idioma del repo: inglés. Puedes responder en español.
 
 **Repo:** https://github.com/anthony-x507/Abaco-Universal-harnes-  
-**Producto en Mac:** solo `Abaco-Harness.dmg` → `/Applications/Abaco Harness.app`  
-**Current version:** 1.2.17 (header **Abaco Harness**)  
+**Producto en Mac:** solo `Abaco-Coding-Harness.dmg` → `/Applications/Abaco Coding Harness.app`  
+**Current version:** 1.2.18 (header **Abaco Coding Harness**)  
 **Paquete Python:** `universal` (no se renombra). Env vars `UNIVERSAL_*` igual. Clase interna `Universal` en `platform.py` se queda.
 
 ---
@@ -72,7 +72,7 @@ Puertos fijos en desarrollo:
 - Cara Vite: `http://127.0.0.1:43123` (proxy a la factory)
 - Factory: `http://127.0.0.1:43124`
 
-En el `.app` de Mac, pywebview abre la factory (la SPA empaquetada en `web/dist`). La versión va en la URL (`/?v=1.2.17`) para no servir un Chat cacheado de v1.0.0.
+En el `.app` de Mac, pywebview abre la factory (la SPA empaquetada en `web/dist`). La versión va en la URL (`/?v=1.2.18`) para no servir un Chat cacheado de v1.0.0.
 
 ---
 
@@ -176,7 +176,7 @@ python3 -m universal audit
 
 `GET https://api.github.com/repos/anthony-x507/Abaco-Universal-harnes-/releases/latest`
 
-Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`.dmg`** (`Abaco-Harness.dmg`). Si solo hay commits en `main`, Settings dice que no hay update. Eso no es un bug.
+Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`.dmg`** (`Abaco-Coding-Harness.dmg`). Si solo hay commits en `main`, Settings dice que no hay update. Eso no es un bug.
 
 ### Receta para el agente / ingeniero nuevo
 
@@ -197,12 +197,12 @@ Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`.d
    git push github v1.2.8
    ```
    Sin este paso **no hay Release y no hay update**.
-5. **Esperar Actions.** En el repo: Actions → workflow **Release**. Tiene que terminar en verde y adjuntar `Abaco-Harness.dmg` al Release `v1.2.8`.
+5. **Esperar Actions.** En el repo: Actions → workflow **Release**. Tiene que terminar en verde y adjuntar `Abaco-Coding-Harness.dmg` al Release `v1.2.8`.
 6. Comprobar a mano:
    - https://github.com/anthony-x507/Abaco-Universal-harnes-/releases/latest
-   - Tiene que listar **Abaco-Harness.dmg** (no un zip de source).
+   - Tiene que listar **Abaco-Coding-Harness.dmg** (no un zip de source).
    - El tag tiene que ser **más alto** que el número del header en la Mac de Anthony (si la app dice 1.2.7, el Release tiene que ser 1.2.8 o más).
-7. En la Mac: app en **`/Applications/Abaco Harness.app`** → Settings → **Check for Updates** → **Download now**. Si el `.app` está en Descargas, el updater avisa y no instala.
+7. En la Mac: app en **`/Applications/Abaco Coding Harness.app`** (o leftover `/Applications/Universal.app` on 1.2.15) → Settings → **Check for Updates** → **Download now**. Si el `.app` está en Descargas, el updater avisa y no instala.
 
 ### Qué no sirve
 
@@ -215,7 +215,7 @@ Ahí tiene que existir un tag más nuevo que el de la app **y** un archivo **`.d
 | Tag igual o menor que la app (`v1.2.7` si ya tiene 1.2.7) | “Already up to date.” |
 | Subir solo el source zip a Releases | El updater busca un asset que termina en `.dmg`. |
 
-`workflow_dispatch` en `.github/workflows/release.yml` también puede armar un Release, pero el camino normal es **tag `v*`**. No se “prepara el update” editando Settings. Se prepara en GitHub: **versión + tag + Actions + `Abaco-Harness.dmg`**.
+`workflow_dispatch` en `.github/workflows/release.yml` también puede armar un Release, pero el camino normal es **tag `v*`**. No se “prepara el update” editando Settings. Se prepara en GitHub: **versión + tag + Actions + `Abaco-Coding-Harness.dmg`**.
 
 ---
 

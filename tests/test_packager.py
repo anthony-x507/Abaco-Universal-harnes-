@@ -25,7 +25,7 @@ def test_packager_writes_zip(platform: Universal, tmp_path: Path) -> None:
         assert usage["calls"] == 0
         assert usage["estimated_cost"] == 0
         manifest = json.loads(archive.read("manifest.json"))
-        assert manifest["product"] == "Abaco Harness"
+        assert manifest["product"] == "Abaco Coding Harness"
         assert manifest["agent"]["id"] == agent.id
         assert manifest["agent"]["template_id"] == "general"
         config = json.loads(archive.read("config.json"))

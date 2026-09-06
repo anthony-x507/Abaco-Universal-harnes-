@@ -1,8 +1,8 @@
-"""Typed errors for Abaco Harness (package: universal)."""
+"""Typed errors for Abaco Coding Harness (package: universal)."""
 
 
 class UniversalError(Exception):
-    """Base error for Abaco Harness."""
+    """Base error for Abaco Coding Harness."""
 
 
 class ConfigError(UniversalError):

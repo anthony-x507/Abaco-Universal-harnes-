@@ -1,4 +1,4 @@
-"""Canonical identity for the Abaco Harness agent.
+"""Canonical identity for the Abaco Coding Harness agent.
 
 This Python module is the single source of truth. It is NOT a factory template
 and there is no ``mother.yaml``: identity is injected into the three existing templates
@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
-IDENTITY_NAME = "Abaco Harness Agent"
+IDENTITY_NAME = "Abaco Coding Harness Agent"
 IDENTITY_VERSION = "1.0.0"  # persona version, not the app / package version
-PRODUCT = "Abaco Harness"
+PRODUCT = "Abaco Coding Harness"
 
 # id -> (summary, representative tools). Mirrors the native plugin catalog plus
 # the two Node bridges (wallet, tor_browser) that reach the signed core.

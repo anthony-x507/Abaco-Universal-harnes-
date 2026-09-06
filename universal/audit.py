@@ -264,7 +264,7 @@ def check_notarization_not_here(root: Path) -> tuple[bool, str]:
 
 def check_updater(root: Path) -> tuple[bool, str]:
     ok = _has(root, "universal/updater.py", "class Updater", "def apply", "def check")
-    return ok, "Updater checks GitHub Releases and can replace Abaco Harness.app"
+    return ok, "Updater checks GitHub Releases and can replace Abaco Coding Harness.app"
 
 
 def check_relaunch(root: Path) -> tuple[bool, str]:

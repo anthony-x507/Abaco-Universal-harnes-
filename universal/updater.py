@@ -1,4 +1,4 @@
-"""Check GitHub Releases for a newer Abaco-Harness.dmg. Apply only on a packaged Mac app."""
+"""Check GitHub Releases for a newer Abaco-Coding-Harness.dmg. Apply only on a packaged Mac app."""
 
 from __future__ import annotations
 
@@ -22,23 +22,37 @@ ALLOWED_HOSTS = {
     "release-assets.githubusercontent.com",
 }
 ENV_ALLOW_INSTALL = "UNIVERSAL_UPDATE_ALLOW_INSTALL"
-APP_BUNDLE_NAME = "Abaco Harness.app"
-DMG_ASSET_NAME = "Abaco-Harness.dmg"
+APP_BUNDLE_NAME = "Abaco Coding Harness.app"
+PREVIOUS_BUNDLE_NAME = "Abaco Harness.app"
+LEGACY_BUNDLE_NAME = "Universal.app"
+DMG_ASSET_NAME = "Abaco-Coding-Harness.dmg"
+PREFERRED_DMG_NAMES = (
+    DMG_ASSET_NAME,
+    "Abaco-Harness.dmg",
+    "Universal.dmg",
+)
 APP_INSTALL = Path("/Applications") / APP_BUNDLE_NAME
-LEGACY_APP_INSTALL = Path("/Applications/Universal.app")
-VOLUME_NAMES = ("Abaco Harness", "Universal")
-BUNDLE_CANDIDATES = (APP_BUNDLE_NAME, "Universal.app")
-INSTALL_WARNING = "Abaco Harness should be installed in /Applications/ for auto-updates"
+PREVIOUS_APP_INSTALL = Path("/Applications") / PREVIOUS_BUNDLE_NAME
+LEGACY_APP_INSTALL = Path("/Applications") / LEGACY_BUNDLE_NAME
+LEGACY_APP_INSTALLS = (PREVIOUS_APP_INSTALL, LEGACY_APP_INSTALL)
+# 1.2.15 / 1.2.16 hard-code /Volumes/Universal/Universal.app. Ship that volume
+# name on the transitional DMG so those binaries can apply.
+VOLUME_NAMES = ("Universal", "Abaco Coding Harness", "Abaco Harness")
+BUNDLE_CANDIDATES = (APP_BUNDLE_NAME, PREVIOUS_BUNDLE_NAME, LEGACY_BUNDLE_NAME)
+INSTALL_WARNING = "Abaco Coding Harness should be installed in /Applications/ for auto-updates"
 CACHE_GLOBS = (
     "Library/Caches/com.universal*",
     "Library/Caches/Universal",
+    "Library/Caches/Abaco Coding Harness",
     "Library/Caches/Abaco Harness",
     "Library/Caches/pywebview",
     "Library/WebKit/com.universal*",
     "Library/WebKit/Universal",
+    "Library/WebKit/Abaco Coding Harness",
     "Library/WebKit/Abaco Harness",
     "Library/HTTPStorages/com.universal*",
     "Library/HTTPStorages/Universal",
+    "Library/HTTPStorages/Abaco Coding Harness",
     "Library/HTTPStorages/Abaco Harness",
     "Library/Saved Application State/*Universal*",
     "Library/Saved Application State/*Abaco*",
@@ -67,7 +81,10 @@ def running_from_applications() -> bool:
     if not getattr(sys, "frozen", False):
         return True
     exe = sys.executable or ""
-    return exe.startswith(str(APP_INSTALL)) or exe.startswith(str(LEGACY_APP_INSTALL))
+    return any(
+        exe.startswith(str(path))
+        for path in (APP_INSTALL, PREVIOUS_APP_INSTALL, LEGACY_APP_INSTALL)
+    )
 
 
 def install_warning() -> str:
@@ -100,6 +117,25 @@ def can_apply_install() -> bool:
     return bool(getattr(sys, "frozen", False) and sys.platform == "darwin")
 
 
+def pick_dmg_asset(assets: object) -> str | None:
+    """Prefer the canonical DMG name, then leftover names, then any .dmg."""
+    rows: list[dict[str, object]] = [row for row in (assets or []) if isinstance(row, dict)]
+    by_name = {str(row.get("name") or ""): row for row in rows}
+    chosen = None
+    for preferred in PREFERRED_DMG_NAMES:
+        if preferred in by_name:
+            chosen = by_name[preferred]
+            break
+    if chosen is None:
+        for row in rows:
+            if str(row.get("name") or "").endswith(".dmg"):
+                chosen = row
+                break
+    if chosen is None:
+        return None
+    return str(chosen.get("browser_download_url") or "") or None
+
+
 @dataclass(frozen=True, slots=True)
 class UpdateStatus:
     current: str
@@ -126,7 +162,7 @@ class UpdateStatus:
 
 
 class Updater:
-    """Talks to the GitHub Releases API. Replaces Abaco Harness.app only.
+    """Talks to the GitHub Releases API. Replaces Abaco Coding Harness.app only.
 
     User-data (history, registry, ``llm.json``) stays in Application Support
     under the existing ``Universal`` folder so a rename does not split the registry.
@@ -165,7 +201,7 @@ class Updater:
         try:
             response = self._http().get(
                 url,
-                headers={"Accept": "application/vnd.github+json", "User-Agent": "Abaco-Harness-updater"},
+                headers={"Accept": "application/vnd.github+json", "User-Agent": "Abaco-Coding-Harness-updater"},
             )
             response.raise_for_status()
             data = response.json()
@@ -191,14 +227,7 @@ class Updater:
             )
         latest = str(data.get("tag_name") or data.get("name") or "").lstrip("v")
         notes = str(data.get("body") or "")
-        download = None
-        for asset in data.get("assets") or []:
-            if not isinstance(asset, dict):
-                continue
-            name = str(asset.get("name") or "")
-            if name.endswith(".dmg"):
-                download = str(asset.get("browser_download_url") or "") or None
-                break
+        download = pick_dmg_asset(data.get("assets"))
         available = bool(latest and download and is_newer(latest, self.current))
         reason = ""
         if latest and not download:
@@ -227,7 +256,7 @@ class Updater:
             raise ConfigError(status.reason or "No update available.")
         self._assert_safe_url(status.url)
         dest = dest_app or APP_INSTALL
-        dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Abaco-Harness_update.dmg"
+        dmg_path = Path(os.environ.get("TMPDIR", "/tmp")) / "Abaco-Coding-Harness_update.dmg"
         self._download(status.url, dmg_path)
         self._install_dmg(dmg_path, dest)
         self._clear_caches_after_install()
@@ -268,10 +297,11 @@ class Updater:
             dest.write_bytes(response.read())
 
     @staticmethod
-    def _mounted_app() -> tuple[Path | None, Path | None]:
-        """Find Abaco Harness.app (or leftover Universal.app) on a mounted DMG."""
+    def _mounted_app(volumes_root: Path | None = None) -> tuple[Path | None, Path | None]:
+        """Find Abaco Coding Harness.app (or leftover names) on a mounted DMG."""
+        root = volumes_root if volumes_root is not None else Path("/Volumes")
         for volume in VOLUME_NAMES:
-            mount = Path("/Volumes") / volume
+            mount = root / volume
             if not mount.is_dir():
                 continue
             for bundle in BUNDLE_CANDIDATES:
@@ -286,12 +316,14 @@ class Updater:
         if mount is None or src is None:
             for volume in VOLUME_NAMES:
                 subprocess.run(["hdiutil", "detach", f"/Volumes/{volume}", "-quiet"], check=False)
-            raise ConfigError("Mounted image has no Abaco Harness.app")
+            raise ConfigError("Mounted image has no Abaco Coding Harness.app")
         if dest_app.exists():
             subprocess.run(["rm", "-rf", str(dest_app)], check=True)
         subprocess.run(["cp", "-R", str(src), str(dest_app)], check=True)
-        if dest_app == APP_INSTALL and LEGACY_APP_INSTALL.exists() and LEGACY_APP_INSTALL != dest_app:
-            subprocess.run(["rm", "-rf", str(LEGACY_APP_INSTALL)], check=False)
+        if dest_app == APP_INSTALL:
+            for leftover in LEGACY_APP_INSTALLS:
+                if leftover.exists() and leftover != dest_app:
+                    subprocess.run(["rm", "-rf", str(leftover)], check=False)
         subprocess.run(["hdiutil", "detach", str(mount), "-quiet"], check=True)
         try:
             dmg_path.unlink()

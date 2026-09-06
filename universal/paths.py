@@ -1,4 +1,4 @@
-"""User-data locations that survive replacing Abaco Harness.app.
+"""User-data locations that survive replacing Abaco Coding Harness.app.
 
 Native plugin *code* stays in the Python package (not copied here).
 This directory holds memory, the registry sidecar, chat history, a plugin
@@ -71,12 +71,12 @@ def get_memory_dir() -> Path:
 
 
 def get_registry_file() -> Path:
-    """Identities only. Survives replacing Abaco Harness.app and a git pull of the repo."""
+    """Identities only. Survives replacing Abaco Coding Harness.app and a git pull of the repo."""
     return user_data_dir() / "registry.json"
 
 
 def get_history_dir() -> Path:
-    """Per-agent chat transcripts. Survives replacing Abaco Harness.app."""
+    """Per-agent chat transcripts. Survives replacing Abaco Coding Harness.app."""
     env = os.environ.get("UNIVERSAL_HISTORY_DIR", "").strip()
     if env:
         path = Path(env)

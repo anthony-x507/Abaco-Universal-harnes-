@@ -1,6 +1,6 @@
 # Harness audit
 
-This folder is the integrator audit for **Abaco Harness** + **Sentinel Proof v1**.
+This folder is the integrator audit for **Abaco Coding Harness** + **Sentinel Proof v1**.
 
 The engine is `python3 -m universal audit`. It writes a sealed HMAC bundle and a markdown report. It is **not** `@sentinel-proof/cli`, not Docker, and not quantum.
 

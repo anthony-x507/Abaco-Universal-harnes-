@@ -32,11 +32,12 @@ def _call(name: str) -> ToolCall:
     return ToolCall(id="t1", name=name, arguments="{}")
 
 
-def test_product_display_name_is_abaco_harness() -> None:
-    assert PRODUCT == "Abaco Harness"
-    assert IDENTITY_NAME == "Abaco Harness Agent"
+def test_product_display_name_is_abaco_coding_harness() -> None:
+    assert PRODUCT == "Abaco Coding Harness"
+    assert IDENTITY_NAME == "Abaco Coding Harness Agent"
     assert "Universal" not in PRODUCT
     assert "Avaco" not in PRODUCT
+    assert PRODUCT != "Abaco Harness"
 
 
 def test_identity_is_a_native_plugin() -> None:

@@ -1,4 +1,4 @@
-# Abaco Harness demo walkthrough
+# Abaco Coding Harness demo walkthrough
 
 About ten minutes. English UI. No API key. You will start the factory, create a researcher (memory + tools), try Auto, hit the webhook, watch the usage meter, download a ZIP, and restart to see the identity snapshot.
 
@@ -35,7 +35,7 @@ Check:
 curl -sS http://127.0.0.1:43124/health
 ```
 
-You should see `"status":"ok"`, `"product":"Abaco Harness"`, `"demo":true`.
+You should see `"status":"ok"`, `"product":"Abaco Coding Harness"`, `"demo":true`.
 
 ---
 
