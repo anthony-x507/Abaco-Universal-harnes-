@@ -1,5 +1,5 @@
 {
-  "version": "1.2.17",
+  "version": "1.2.18",
   "repo": "anthony-x507/Abaco-Universal-harnes-",
-  "release_notes": "Display name is Abaco Harness. Mac installer is Abaco-Harness.dmg → /Applications/Abaco Harness.app."
+  "release_notes": "Mac auto-update bridge. 1.2.15/1.2.16 failed on v1.2.17 with “Mounted image has no Universal.app” (rename to Abaco Harness.app). This DMG still includes Universal.app on a Universal volume so those old updaters can apply. If you are stuck on 1.2.15 or 1.2.16 you can also drag Abaco Harness.app to /Applications once; after this release later auto-updates work."
 }

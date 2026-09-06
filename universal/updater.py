@@ -268,10 +268,11 @@ class Updater:
             dest.write_bytes(response.read())
 
     @staticmethod
-    def _mounted_app() -> tuple[Path | None, Path | None]:
+    def _mounted_app(volumes_root: Path | None = None) -> tuple[Path | None, Path | None]:
         """Find Abaco Harness.app (or leftover Universal.app) on a mounted DMG."""
+        root = volumes_root if volumes_root is not None else Path("/Volumes")
         for volume in VOLUME_NAMES:
-            mount = Path("/Volumes") / volume
+            mount = root / volume
             if not mount.is_dir():
                 continue
             for bundle in BUNDLE_CANDIDATES:

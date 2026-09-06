@@ -3,18 +3,24 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi.testclient import TestClient
 
 from universal.core.platform import Universal
+from universal.exceptions import ConfigError
 from universal.paths import get_memory_dir, get_plugins_dir, user_data_dir
 from universal.plugins.catalog import NATIVE_PLUGIN_NAMES
 from universal.plugins.installer import ensure_plugins_installed
 from universal.release import BAKED_REPO, current_version, load_release
 from universal.server import create_app
 from universal.updater import (
+    APP_BUNDLE_NAME,
     INSTALL_WARNING,
     UpdateStatus,
     Updater,
@@ -24,6 +30,37 @@ from universal.updater import (
     parse_version,
 )
 from tests.native_expect import RESEARCHER_PLUGIN_NAMES
+
+ROOT = Path(__file__).resolve().parents[1]
+CREATE_DMG = ROOT / "scripts" / "create_dmg.sh"
+LEGACY_MISSING_APP = "Mounted image has no Universal.app"
+
+
+def _fake_app(path: Path, marker: str = "canonical") -> Path:
+    contents = path / "Contents" / "MacOS"
+    contents.mkdir(parents=True)
+    (contents / "marker").write_text(marker, encoding="utf-8")
+    return path
+
+
+def _legacy_1_2_15_find_app(volumes_root: Path) -> Path:
+    """Exact lookup from packaged 1.2.15 / 1.2.16 ``updater._install_dmg``."""
+    src = volumes_root / "Universal" / "Universal.app"
+    if not src.is_dir():
+        raise ConfigError(LEGACY_MISSING_APP)
+    return src
+
+
+def _stage_dmg(app: Path, stage: Path) -> None:
+    env = {**os.environ, "UNIVERSAL_APP_BUNDLE": str(app)}
+    subprocess.run(
+        ["bash", str(CREATE_DMG), "--stage", str(stage)],
+        check=True,
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_version_compare() -> None:
@@ -37,7 +74,7 @@ def test_repo_is_baked_and_ignores_env(monkeypatch) -> None:
     monkeypatch.setenv("UNIVERSAL_UPDATE_REPO", "evil/other")
     data = load_release()
     assert data["repo"] == BAKED_REPO
-    assert current_version() == "1.2.17"
+    assert current_version() == "1.2.18"
     updater = Updater()
     assert updater.repo == BAKED_REPO
 
@@ -163,7 +200,7 @@ def test_memory_and_registry_use_user_data(tmp_path: Path, monkeypatch, settings
 def test_http_update_check(platform: Universal, monkeypatch) -> None:
     def fake_check(self) -> UpdateStatus:  # noqa: ARG001
         return UpdateStatus(
-            current="1.2.17",
+            current="1.2.18",
             latest=None,
             available=False,
             url=None,
@@ -177,7 +214,7 @@ def test_http_update_check(platform: Universal, monkeypatch) -> None:
     health = client.get("/health")
     assert health.json()["version"] == current_version()
     body = client.get("/v1/update").json()
-    assert body["current"] == "1.2.17"
+    assert body["current"] == "1.2.18"
     assert body["repo"] == BAKED_REPO
     assert body["available"] is False
     assert "in_applications" in body
@@ -190,3 +227,56 @@ def test_version_json_exists() -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["version"] == current_version()
     assert data["repo"] == BAKED_REPO
+
+
+def test_v1_2_17_dmg_layout_breaks_old_updater(tmp_path: Path) -> None:
+    """v1.2.17 shipped only Abaco Harness.app on volume 'Abaco Harness'."""
+    volumes = tmp_path / "Volumes"
+    _fake_app(volumes / "Abaco Harness" / APP_BUNDLE_NAME)
+    with pytest.raises(ConfigError, match=LEGACY_MISSING_APP):
+        _legacy_1_2_15_find_app(volumes)
+    mount, src = Updater._mounted_app(volumes)
+    assert mount == volumes / "Abaco Harness"
+    assert src == volumes / "Abaco Harness" / APP_BUNDLE_NAME
+
+
+def test_bridge_dmg_layout_serves_old_and_new_updaters(tmp_path: Path) -> None:
+    app = _fake_app(tmp_path / APP_BUNDLE_NAME, marker="bridge")
+    stage = tmp_path / "stage"
+    _stage_dmg(app, stage)
+
+    assert (stage / APP_BUNDLE_NAME / "Contents" / "MacOS" / "marker").read_text(
+        encoding="utf-8"
+    ) == "bridge"
+    assert (stage / "Universal.app" / "Contents" / "MacOS" / "marker").read_text(
+        encoding="utf-8"
+    ) == "bridge"
+
+    volumes = tmp_path / "Volumes"
+    mount = volumes / "Universal"
+    shutil.copytree(stage, mount)
+
+    legacy = _legacy_1_2_15_find_app(volumes)
+    assert legacy == mount / "Universal.app"
+    assert legacy.is_dir()
+
+    found_mount, found_src = Updater._mounted_app(volumes)
+    assert found_mount == mount
+    assert found_src == mount / APP_BUNDLE_NAME
+
+
+def test_new_updater_accepts_legacy_bundle_only(tmp_path: Path) -> None:
+    volumes = tmp_path / "Volumes"
+    _fake_app(volumes / "Universal" / "Universal.app")
+    mount, src = Updater._mounted_app(volumes)
+    assert mount == volumes / "Universal"
+    assert src == volumes / "Universal" / "Universal.app"
+    assert _legacy_1_2_15_find_app(volumes) == src
+
+
+def test_new_updater_missing_both_bundles_is_empty(tmp_path: Path) -> None:
+    volumes = tmp_path / "Volumes"
+    (volumes / "Universal").mkdir(parents=True)
+    assert Updater._mounted_app(volumes) == (None, None)
+    with pytest.raises(ConfigError, match=LEGACY_MISSING_APP):
+        _legacy_1_2_15_find_app(volumes)

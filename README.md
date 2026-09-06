@@ -307,6 +307,8 @@ Set `UNIVERSAL_PERMISSION_MODE=allow` or `deny` in tests. On macOS, a native dia
 
 Self-update (packaged Mac app only): the repo `anthony-x507/Abaco-Universal-harnes-` is baked into `version.json`. On launch the SPA checks silently and prompts if a newer `.dmg` exists. Settings → **Check for Updates**. **Download now** replaces `/Applications/Abaco Harness.app` and relaunches. Nothing is overwritten until you confirm. If the app is not in `/Applications`, Settings warns that updates will fail. Gatekeeper override is required until signing exists.
 
+v1.2.17 renamed the Mac bundle to **Abaco Harness.app**. Clients still on **1.2.15 / 1.2.16** look only for `/Volumes/Universal/Universal.app` and fail with **Mounted image has no Universal.app**. From **1.2.18** the DMG is a bridge: it still includes a `Universal.app` copy of the same app on volume `Universal`, so those old updaters can apply. If you are stuck on 1.2.15 or 1.2.16 you can also drag **Abaco Harness.app** to `/Applications` once; after that, later auto-updates work.
+
 GitHub Releases always serves the **same** `Abaco-Harness.dmg` to every computer. Two Macs do not share Application Support. On **one** Mac, WKWebView can keep a cached `http://127.0.0.1:43124/` from v1.0.0 (Universal Platform + Create General) even after you replace the `.app`. From 1.2.4 the window loads `/?v=<version>` and stores WebView data under Application Support. Incident notes for the designer: [docs/designer_incident_report.md](docs/designer_incident_report.md). To wipe **this** Mac (deletes chats and saved keys on that Mac only):
 
 ```bash

@@ -77,7 +77,7 @@ def test_desktop_check_cli(capsys) -> None:
 
 def test_desktop_face_url_busts_wkwebview_cache() -> None:
     assert desktop_face_url("127.0.0.1", 43124, "1.2.7") == "http://127.0.0.1:43124/?v=1.2.7"
-    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.17")
+    assert desktop_face_url("127.0.0.1", 43124).endswith("/?v=1.2.18")
 
 
 def test_desktop_parser_defaults() -> None:
@@ -119,6 +119,12 @@ def test_macos_scripts_exist_and_stay_lock_safe() -> None:
     assert "leaving $APP unsigned" not in signer
     assert "hdiutil" in dmg
     assert "Abaco Harness.app" in dmg
+    assert "Universal.app" in dmg
+    assert 'VOLUME_NAME="Universal"' in dmg
+    assert '-volname "${VOLUME_NAME}"' in dmg
+    assert "1.2.15" in dmg and "1.2.16" in dmg
+    assert "Mounted image has no Universal.app" in dmg
+    assert "--stage" in dmg
     assert "Abaco-Harness.dmg" in dmg
     assert "from universal.desktop import main" in app_entry
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
